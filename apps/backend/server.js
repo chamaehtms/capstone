@@ -47,19 +47,48 @@ const announcementsRoutes = safeRoute('./routes/announcements', 'announcements')
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY) {
+  app.set('trust proxy', 1);
+}
+
+// Configurable CORS: allow specific origins or fallback to permissive mode
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+  : null;
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || !allowedOrigins || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS error: Origin ${origin} not allowed`));
+    },
+    credentials: true,
+  })
+);
+
 app.use(express.json());
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Serves uploaded resident photos, e.g. GET /uploads/residents/res-abc123.jpg
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Lightweight liveness probe for cloud orchestrators (Render, AWS, Railway, Docker)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Deep readiness probe including database connectivity
 app.get('/api/health', async (req, res) => {
   try {
     await pool.query('SELECT 1');
     res.json({ status: 'ok', database: 'connected' });
   } catch (err) {
-    res.status(500).json({ status: 'ok', database: 'disconnected', error: err.message });
+    res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
   }
 });
 

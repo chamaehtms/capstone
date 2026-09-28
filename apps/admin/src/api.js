@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+export const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || '/api';
+export const API_ORIGIN = API_BASE.startsWith('http') ? API_BASE.replace(/\/api\/?$/, '') : '';
+
+export function toAssetUrl(path) {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  return API_ORIGIN ? `${API_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}` : path;
+}
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE,
 });
 
 api.interceptors.request.use((config) => {

@@ -13,20 +13,15 @@
 // translate in both directions so the pages can keep working with the
 // same field names as before (user.firstName, user.purok, complaint.nature,
 // complaint.caseRef, etc).
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000/api';
-// The backend also serves uploaded files (photos, evidence) as plain
-// static paths like "/uploads/residents/xxx.jpg" — relative to the
-// backend's own origin, not this frontend's dev server (they run on
-// different ports). Derive that origin from API_BASE so <img src="...">
-// resolves correctly wherever the backend actually runs.
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
+const API_ORIGIN = API_BASE.startsWith('http') ? API_BASE.replace(/\/api\/?$/, '') : '';
 
 // Turn a relative upload path returned by the backend (e.g. photoUrl,
 // attachmentUrl) into an absolute URL this frontend can actually load.
 export function toAssetUrl(path) {
   if (!path) return path;
   if (/^https?:\/\//i.test(path)) return path; // already absolute
-  return API_ORIGIN + path;
+  return API_ORIGIN ? `${API_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}` : path;
 }
 
 export const Session = {
