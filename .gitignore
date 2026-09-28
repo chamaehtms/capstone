@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Turborepo cache
+.turbo/
+
+# Environment variables (secrets - never commit)
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Backend file uploads (keep directories via .gitkeep, ignore uploaded files)
+apps/backend/uploads/residents/*
+!apps/backend/uploads/residents/.gitkeep
+
+apps/backend/uploads/admins/*
+!apps/backend/uploads/admins/.gitkeep
+
+apps/backend/uploads/admin-ids/*
+!apps/backend/uploads/admin-ids/.gitkeep
+
+apps/backend/uploads/resident-ids/*
+!apps/backend/uploads/resident-ids/.gitkeep
+
+apps/backend/uploads/complaint-evidence/*
+!apps/backend/uploads/complaint-evidence/.gitkeep
+
+apps/backend/uploads/announcements/*
+!apps/backend/uploads/announcements/.gitkeep

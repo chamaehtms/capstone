@@ -1,0 +1,28 @@
+{
+  "name": "capstone-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Profiling and Complaint Management System - Monorepo",
+  "packageManager": "npm@11.5.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"backend,admin,resident\" -c \"blue,green,magenta\" \"npm run dev:backend\" \"npm run dev:admin\" \"npm run dev:resident\"",
+    "dev:backend": "npm run dev -w @capstone/backend",
+    "dev:admin": "npm run dev -w @capstone/admin",
+    "dev:resident": "npm run dev -w @capstone/resident",
+    "dev:frontends": "concurrently -n \"admin,resident\" -c \"green,magenta\" \"npm run dev:admin\" \"npm run dev:resident\"",
+    "build": "turbo run build",
+    "build:all": "npm run build --workspaces --if-present",
+    "check": "turbo run check",
+    "migrate": "npm run migrate -w @capstone/backend",
+    "start": "npm run dev",
+    "start:backend": "npm run start -w @capstone/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "turbo": "^2.4.4"
+  }
+}

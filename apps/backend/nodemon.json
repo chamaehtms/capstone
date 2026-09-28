@@ -1,0 +1,11 @@
+{
+  "restartable": "rs",
+  "ignore": [
+    "node_modules/**",
+    "uploads/**",
+    ".git/**",
+    "*.log"
+  ],
+  "delay": 500,
+  "ext": "js,json"
+}
