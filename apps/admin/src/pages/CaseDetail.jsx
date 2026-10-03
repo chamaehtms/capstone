@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
+import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
 
-const STATUS_OPTIONS = ['Pending', 'In Progress', 'Mediation', 'Resolved'];
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Closed'];
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
-  'In Progress': 'bg-blue-100 text-blue-700',
+  'Under Review': 'bg-blue-100 text-blue-700',
+  'In Progress': 'bg-amber-100 text-amber-700',
   Mediation: 'bg-purple-100 text-purple-700',
-  Resolved: 'bg-green-100 text-green-700',
+  Resolved: 'bg-emerald-100 text-emerald-700',
+  Closed: 'bg-slate-100 text-slate-700',
 };
 
 function formatDateTime(value) {
@@ -171,7 +174,11 @@ export default function CaseDetail() {
   if (!complaint) return <p className="text-slate-500">Loading case…</p>;
 
   const isFromPortal = !!complaint.filedByResidentId;
-  const hasMediation = !!complaint.scheduledMeeting || complaint.status === 'Mediation';
+  const isInfrastructure =
+    complaint.category === 'Infrastructure' ||
+    complaint.category === 'Public Works' ||
+    complaint.id?.startsWith('IN-');
+  const hasMediation = !isInfrastructure && (!!complaint.scheduledMeeting || complaint.status === 'Mediation');
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -207,6 +214,11 @@ export default function CaseDetail() {
                 ⚖️ Lupon Mediation
               </span>
             )}
+            {isInfrastructure && (
+              <span className="text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded">
+                🏗️ Public Works / Infra
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 mt-1">
             Case ID: {complaint.id} · Filed by {complaint.resident} · {complaint.filingDate}
@@ -228,16 +240,23 @@ export default function CaseDetail() {
             ))}
           </select>
 
-          <button
-            type="button"
-            onClick={openMediationModal}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-700 hover:bg-purple-800 rounded-lg transition shadow-xs"
-          >
-            <span>⚖️</span>
-            <span>{complaint.scheduledMeeting ? 'Edit Mediation' : 'Schedule Mediation'}</span>
-          </button>
+          {!isInfrastructure && (
+            <button
+              type="button"
+              onClick={openMediationModal}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-purple-700 hover:bg-purple-800 rounded-lg transition shadow-xs"
+            >
+              <span>⚖️</span>
+              <span>{complaint.scheduledMeeting ? 'Edit Mediation' : 'Schedule Mediation'}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* PROGRESS TIMELINE FOR INFRASTRUCTURAL REPORTS */}
+      {isInfrastructure && (
+        <InfrastructureTimeline c={complaint} />
+      )}
 
       {/* SCHEDULED MEDIATION HEARING CARD */}
       {complaint.scheduledMeeting && (
@@ -342,23 +361,76 @@ export default function CaseDetail() {
 
           {complaint.attachmentUrl && (
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-semibold text-slate-800 mb-3">Evidence / Attachment</h2>
-              <a
-                href={complaint.attachmentUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block"
-              >
-                {/\.(jpe?g|png|gif|webp)$/i.test(complaint.attachmentUrl) ? (
-                  <img
-                    src={complaint.attachmentUrl}
-                    alt="Evidence"
-                    className="max-h-64 rounded-lg border border-slate-200"
-                  />
-                ) : (
-                  <span className="text-sm text-blue-600 hover:underline">View attached file →</span>
-                )}
-              </a>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-slate-800">
+                  {/\.(mp4|webm|mov|mkv|avi)$/i.test(complaint.attachmentUrl)
+                    ? '🎬 Video Evidence Recording'
+                    : /\.(jpe?g|png|gif|webp)$/i.test(complaint.attachmentUrl)
+                    ? '📷 Photographic Evidence'
+                    : '📄 Documentary Evidence'}
+                </h2>
+                <a
+                  href={toAssetUrl(complaint.attachmentUrl)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  <span>Open in new window</span>
+                  <span>↗</span>
+                </a>
+              </div>
+
+              {/\.(mp4|webm|mov|mkv|avi)$/i.test(complaint.attachmentUrl) ? (
+                <div className="space-y-2">
+                  <video
+                    controls
+                    className="w-full max-h-96 rounded-lg bg-black border border-slate-200 shadow-xs"
+                    preload="metadata"
+                  >
+                    <source src={toAssetUrl(complaint.attachmentUrl)} />
+                    Your browser does not support the video tag.
+                  </video>
+                  <p className="text-xs text-slate-400">
+                    Video evidence recorded for Case {complaint.id}. You can play, pause, and inspect details in full screen.
+                  </p>
+                </div>
+              ) : /\.(jpe?g|png|gif|webp)$/i.test(complaint.attachmentUrl) ? (
+                <div className="space-y-2">
+                  <a
+                    href={toAssetUrl(complaint.attachmentUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block"
+                  >
+                    <img
+                      src={toAssetUrl(complaint.attachmentUrl)}
+                      alt="Evidence"
+                      className="max-h-80 rounded-lg border border-slate-200 object-contain shadow-xs hover:opacity-95 transition"
+                    />
+                  </a>
+                  <p className="text-xs text-slate-400">Click image to view in original resolution.</p>
+                </div>
+              ) : (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">📄</span>
+                    <div>
+                      <strong className="text-xs font-semibold text-slate-700 block">
+                        {complaint.attachmentUrl.split('/').pop() || 'Attached File'}
+                      </strong>
+                      <span className="text-[11px] text-slate-400">Documentary evidence file</span>
+                    </div>
+                  </div>
+                  <a
+                    href={toAssetUrl(complaint.attachmentUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs font-semibold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-md transition"
+                  >
+                    Download / View File →
+                  </a>
+                </div>
+              )}
             </div>
           )}
 

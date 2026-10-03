@@ -4,6 +4,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
@@ -63,6 +64,39 @@ const adminRegistrationUpload = adminIdUpload.fields([
   { name: 'idPhoto', maxCount: 1 },
   { name: 'selfiePhoto', maxCount: 1 },
 ]);
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+function isCloudinaryConfigured() {
+  return !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
+}
+
+async function uploadToCloudinary(file, folder) {
+  if (!file || !isCloudinaryConfigured()) return null;
+
+  try {
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder,
+      resource_type: 'auto',
+      use_filename: true,
+      unique_filename: false,
+      overwrite: false,
+    });
+    return result.secure_url;
+  } catch (err) {
+    console.error('[CLOUDINARY] Upload failed:', err.message || err);
+    return null;
+  }
+}
+
+async function deleteLocalUpload(file) {
+  if (!file?.path) return;
+  fs.unlink(file.path, () => {});
+}
 
 function createMailTransport() {
   const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
@@ -279,8 +313,23 @@ router.post('/request-access', (req, res) => {
         return res.status(400).json({ message: 'Selfie holding your valid ID is required.' });
       }
 
-      const idDocumentUrl = `/uploads/admin-ids/${idPhotoFile.filename}`;
-      const selfieIdUrl = `/uploads/admin-ids/${selfiePhotoFile.filename}`;
+      const usesCloudinary = isCloudinaryConfigured();
+      let idDocumentUrl = `/uploads/admin-ids/${idPhotoFile.filename}`;
+      let selfieIdUrl = `/uploads/admin-ids/${selfiePhotoFile.filename}`;
+      let uploadedIdUrl = null;
+      let uploadedSelfieUrl = null;
+
+      if (usesCloudinary) {
+        uploadedIdUrl = await uploadToCloudinary(idPhotoFile, 'barangay/admin-requests/ids');
+        uploadedSelfieUrl = await uploadToCloudinary(selfiePhotoFile, 'barangay/admin-requests/selfies');
+
+        if (uploadedIdUrl) {
+          idDocumentUrl = uploadedIdUrl;
+        }
+        if (uploadedSelfieUrl) {
+          selfieIdUrl = uploadedSelfieUrl;
+        }
+      }
 
       // Check if approved admin exists with this email or employeeId
       const { rows: existingAdmins } = await pool.query(
@@ -373,6 +422,13 @@ router.post('/request-access', (req, res) => {
         { id: requestId, email: normalizedEmail, full_name: finalFullName },
         mailTransport
       );
+
+      if (uploadedIdUrl) {
+        await deleteLocalUpload(idPhotoFile);
+      }
+      if (uploadedSelfieUrl) {
+        await deleteLocalUpload(selfiePhotoFile);
+      }
 
       return res.status(201).json({
         verificationRequired: true,
@@ -662,7 +718,17 @@ router.post('/me/photo', requireAuth, (req, res) => {
         fs.unlink(oldPath, () => {});
       }
 
-      const photoUrl = `/uploads/admins/${req.file.filename}`;
+      const usesCloudinary = isCloudinaryConfigured();
+      let photoUrl = `/uploads/admins/${req.file.filename}`;
+
+      if (usesCloudinary) {
+        const uploadedUrl = await uploadToCloudinary(req.file, 'barangay/admin/profile');
+        if (uploadedUrl) {
+          photoUrl = uploadedUrl;
+          await deleteLocalUpload(req.file);
+        }
+      }
+
       const { rows } = await pool.query(
         'UPDATE admins SET photo_url = $1 WHERE id = $2 RETURNING id, institutional_id, full_name, email, department, role, photo_url',
         [photoUrl, req.admin.id]

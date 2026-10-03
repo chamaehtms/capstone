@@ -30,10 +30,15 @@ const upload = multer({
       cb(null, `evidence-${Date.now()}${ext}`);
     },
   }),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB, matches "Up to 10MB" in the mockup
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for video/document evidence
   fileFilter: (req, file, cb) => {
-    if (!file.mimetype.startsWith('image/') && file.mimetype !== 'application/pdf') {
-      return cb(new Error('Only image or PDF evidence files are allowed.'));
+    const ok = file.mimetype.startsWith('image/') ||
+      file.mimetype.startsWith('video/') ||
+      file.mimetype === 'application/pdf' ||
+      file.mimetype === 'application/msword' ||
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (!ok) {
+      return cb(new Error('Only image, video, PDF, or document evidence files are allowed.'));
     }
     cb(null, true);
   },
@@ -46,6 +51,8 @@ async function hasValidFileSignature(file) {
   if (file.mimetype === 'image/gif') return header.subarray(0, 4).toString('ascii') === 'GIF8';
   if (file.mimetype === 'image/webp') return header.subarray(0, 4).toString('ascii') === 'RIFF' && header.subarray(8, 12).toString('ascii') === 'WEBP';
   if (file.mimetype === 'application/pdf') return header.subarray(0, 5).toString('ascii') === '%PDF-';
+  if (file.mimetype.startsWith('video/')) return true;
+  if (file.mimetype.includes('word') || file.mimetype.includes('officedocument')) return true;
   return false;
 }
 
@@ -99,7 +106,10 @@ function toComplaint(c, currentResidentId) {
     attachmentUrl: isAgainstMe ? null : c.attachment_url,
     submittedAt: c.created_at,
     underReviewAt: c.under_review_at,
+    inProgressAt: c.in_progress_at,
     resolvedAt: c.resolved_at,
+    closedAt: c.closed_at,
+    assignedTeam: c.assigned_team || 'Maintenance Team',
     mediationDate: c.mediation_date,
     mediationTime: c.mediation_time,
     mediationVenue: c.mediation_venue,

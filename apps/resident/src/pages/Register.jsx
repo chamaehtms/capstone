@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { register, verifyRegistrationEmail, resendRegistrationCode } from '../api.js';
+import { register, Session } from '../api.js';
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -9,12 +9,7 @@ export default function Register() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(null); // holds the pending-approval message once submitted
-  const [awaitingCode, setAwaitingCode] = useState(false);
-  const [verificationEmail, setVerificationEmail] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [verificationMessage, setVerificationMessage] = useState('');
-  const [resendingCode, setResendingCode] = useState(false);
+  const [registrationResult, setRegistrationResult] = useState(null);
   const [idFile, setIdFile] = useState(null);
   const [idPhotoPreview, setIdPhotoPreview] = useState('');
   const [idFileError, setIdFileError] = useState('');
@@ -95,10 +90,11 @@ export default function Register() {
         selfieWithId: selfieFile,
       };
       const data = await register(body);
-      setVerificationEmail(data.email || form.email.trim().toLowerCase());
-      setVerificationMessage(data.message || 'A six-digit code has been sent to your email.');
-      setVerificationCode('');
-      setAwaitingCode(true);
+      if (data.token && data.user) {
+        Session.setToken(data.token);
+        Session.setUser(data.user);
+      }
+      setRegistrationResult(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,93 +102,154 @@ export default function Register() {
     }
   }
 
-  async function handleVerifyCode(e) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const data = await verifyRegistrationEmail(verificationEmail, verificationCode);
-      setAwaitingCode(false);
-      setSubmitted(data.message || 'Email verified. Your registration is awaiting barangay approval.');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+  if (registrationResult) {
+    const isVerified = registrationResult.verified;
+    const user = registrationResult.user;
 
-  async function handleResendCode() {
-    setError('');
-    setResendingCode(true);
-    try {
-      const data = await resendRegistrationCode(verificationEmail);
-      setVerificationMessage(data.message);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setResendingCode(false);
-    }
-  }
-
-  if (submitted) {
     return (
       <div className="auth-scene auth-register-page">
         <div className="form-wrap">
           <div className="card auth-register-panel" style={{ padding: 36, textAlign: 'center' }}>
             <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" style={{ margin: '0 auto 12px' }} />
-            <h2 style={{ color: 'var(--navy)', margin: '0 0 10px' }}>Registration Submitted</h2>
-            <p style={{ color: 'var(--muted)', margin: '0 0 24px' }}>{submitted}</p>
-            <div style={{ fontSize: '2.8rem', marginBottom: 12 }}>⏳</div>
-            <div style={{ display: 'inline-block', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '4px 14px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 14 }}>
-              ⏳ Waiting for Approval
-            </div>
-            <h2 style={{ color: 'var(--navy)', margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 800 }}>
-              Waiting for Approval
-            </h2>
-            <p style={{ color: 'var(--muted)', margin: '0 0 24px', lineHeight: 1.6 }}>
-              Your email has been verified successfully. Your registration has been submitted and is now <strong>Waiting for Approval</strong> by Barangay Poblacion officials.
-            </p>
-            <Link to="/"><button className="btn btn-navy btn-block">Back to Sign In</button></Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
-  if (awaitingCode) {
-    return (
-      <div className="auth-scene auth-register-page">
-        <div className="form-wrap">
-          <div className="card auth-register-panel" style={{ padding: 36, textAlign: 'center' }}>
-            <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" style={{ margin: '0 auto 12px' }} />
-            <h2 style={{ color: 'var(--navy)', margin: '0 0 8px' }}>Verify your email</h2>
-            <p style={{ color: 'var(--muted)', fontSize: '.9rem', margin: '0 0 20px' }}>
-              {verificationMessage} Enter the six-digit code sent to {verificationEmail}. It expires in 10 minutes.
-            </p>
-            {error && <div className="error-msg">{error}</div>}
-            <form onSubmit={handleVerifyCode} style={{ textAlign: 'left' }}>
-              <div className="field">
-                <label className="field-label" htmlFor="emailVerificationCode">Email verification code</label>
-                <input
-                  id="emailVerificationCode"
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  required
-                />
-              </div>
-              <button type="submit" className="btn btn-navy btn-block" disabled={loading || verificationCode.length !== 6}>
-                {loading ? 'Verifying…' : 'Verify Email'}
-              </button>
-            </form>
-            <button type="button" className="btn btn-outline btn-block" style={{ marginTop: 12 }} disabled={resendingCode} onClick={handleResendCode}>
-              {resendingCode ? 'Sending…' : 'Resend code'}
-            </button>
+            {isVerified ? (
+              <>
+                <div style={{ fontSize: '3rem', marginBottom: 12 }}>✅</div>
+                <div style={{
+                  display: 'inline-block',
+                  background: '#dcfce7',
+                  color: '#15803d',
+                  border: '1px solid #86efac',
+                  padding: '4px 14px',
+                  borderRadius: 9999,
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  marginBottom: 14
+                }}>
+                  ✓ Account Verified &amp; Approved
+                </div>
+                <h2 style={{ color: 'var(--navy)', margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 800 }}>
+                  Account Verified &amp; Approved!
+                </h2>
+                <p style={{ color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.6, fontSize: '0.92rem' }}>
+                  A matching resident record was verified in the official <strong>Barangay Resident Database</strong>. Your account has been automatically approved for full portal access.
+                </p>
+
+                {user && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    padding: '16px 20px',
+                    textAlign: 'left',
+                    marginBottom: 24,
+                    fontSize: '0.88rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ color: '#64748b' }}>Resident Name:</span>
+                      <strong style={{ color: '#0f172a' }}>{user.fullName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ color: '#64748b' }}>Resident ID:</span>
+                      <strong style={{ color: '#0f172a' }}>{user.id}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ color: '#64748b' }}>Purok / Zone:</span>
+                      <strong style={{ color: '#0f172a' }}>{user.purok || '—'}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Access Level:</span>
+                      <strong style={{ color: '#16a34a' }}>● Full Resident Access</strong>
+                    </div>
+                  </div>
+                )}
+
+                <Link to="/dashboard">
+                  <button className="btn btn-navy btn-block" style={{ padding: '12px 20px', fontSize: '0.95rem', fontWeight: 700 }}>
+                    Enter Resident Portal →
+                  </button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: '3rem', marginBottom: 12 }}>⏳</div>
+                <div style={{
+                  display: 'inline-block',
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fcd34d',
+                  padding: '4px 14px',
+                  borderRadius: 9999,
+                  fontSize: '0.75rem',
+                  fontWeight: 800,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  marginBottom: 14
+                }}>
+                  ⏳ Account Pending Verification
+                </div>
+                <h2 style={{ color: 'var(--navy)', margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 800 }}>
+                  Registration Received
+                </h2>
+                <p style={{ color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.6, fontSize: '0.92rem' }}>
+                  Your details could not yet be automatically matched against the pre-existing Barangay Resident Database.
+                </p>
+
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: 10,
+                  padding: '14px 18px',
+                  textAlign: 'left',
+                  marginBottom: 20,
+                  fontSize: '0.85rem',
+                  color: '#92400e',
+                  lineHeight: 1.5
+                }}>
+                  <strong>Limited Access Active:</strong> You can access the system and submit complaints, incident reports, and blotter filings immediately. Full resident services will become active once barangay staff confirms your resident records.
+                </div>
+
+                {user && (
+                  <div style={{
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: 10,
+                    padding: '14px 18px',
+                    textAlign: 'left',
+                    marginBottom: 22,
+                    fontSize: '0.86rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ color: '#64748b' }}>Account Name:</span>
+                      <strong style={{ color: '#0f172a' }}>{user.fullName}</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ color: '#64748b' }}>Status:</span>
+                      <strong style={{ color: '#d97706' }}>Pending Verification</strong>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Permitted Action:</span>
+                      <strong style={{ color: '#0f172a' }}>Submit Complaints / Reports</strong>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <Link to="/file-complaint">
+                    <button className="btn btn-navy btn-block" style={{ padding: '12px 20px', fontSize: '0.95rem', fontWeight: 700 }}>
+                      Submit a Complaint / Report →
+                    </button>
+                  </Link>
+                  <Link to="/dashboard">
+                    <button className="btn btn-outline btn-block" style={{ padding: '10px 16px' }}>
+                      Go to Dashboard
+                    </button>
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -259,10 +316,14 @@ export default function Register() {
               <label className="field-label">Purok / Zone</label>
               <select value={form.purok} onChange={e => update('purok', e.target.value)} required>
                 <option value="">Select location</option>
-                <option>Camulinas Purok Centro</option>
-                <option>Purok Rizal</option>
-                <option>Purok Mabini</option>
-                <option>Purok Bonifacio</option>
+                <option>Camulinas Centro</option>
+                <option>Atabay</option>
+                <option>Calan</option>
+                <option>Housing</option>
+                <option>Puso</option>
+                <option> Intra </option>
+                <option>crossroad </option>
+
               </select>
             </div>
 

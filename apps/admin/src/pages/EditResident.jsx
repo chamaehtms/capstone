@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 
 export default function EditResident() {
   const { id } = useParams();
@@ -13,6 +13,7 @@ export default function EditResident() {
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [imgError, setImgError] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function EditResident() {
           education: r.education || '',
         });
         setPhotoUrl(r.photoUrl || '');
+        setImgError(false);
       })
       .catch(() => setLoadError('Resident not found.'));
   }, [id]);
@@ -47,6 +49,7 @@ export default function EditResident() {
     if (!file) return;
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
+    setImgError(false);
   };
 
   const handleSubmit = async (e) => {
@@ -54,15 +57,22 @@ export default function EditResident() {
     setError('');
     setLoading(true);
     try {
-      await api.put(`/residents/${id}`, form);
-
+      let uploadedPhotoUrl = photoUrl;
       if (photoFile) {
         setUploadingPhoto(true);
         const formData = new FormData();
         formData.append('photo', photoFile);
-        await api.post(`/residents/${id}/photo`, formData);
+        const photoRes = await api.post(`/residents/${id}/photo`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        uploadedPhotoUrl = photoRes.data?.photoUrl || uploadedPhotoUrl;
         setUploadingPhoto(false);
       }
+
+      await api.put(`/residents/${id}`, {
+        ...form,
+        photoUrl: uploadedPhotoUrl,
+      });
 
       navigate(`/residents/${id}`);
     } catch (err) {
@@ -91,21 +101,22 @@ export default function EditResident() {
         <section className="bg-white rounded-xl shadow-sm p-6">
           <h2 className="font-semibold text-slate-800 mb-4">📷 Photo</h2>
           <div className="flex items-center gap-4">
-            {photoPreview || photoUrl ? (
+            {photoPreview || (photoUrl && !imgError) ? (
               <img
-                src={photoPreview || photoUrl}
+                src={photoPreview || toAssetUrl(photoUrl)}
                 alt="Resident"
+                onError={() => setImgError(true)}
                 className="h-20 w-20 rounded-full object-cover border border-slate-200"
               />
             ) : (
-              <div className="h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs">
-                No Photo
+              <div className="h-20 w-20 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xs font-semibold">
+                {form.fullName ? form.fullName.slice(0, 2).toUpperCase() : 'No Photo'}
               </div>
             )}
             <div>
               <label className="inline-block px-4 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer">
-                Choose Photo
-                <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" />
+                {uploadingPhoto ? 'Uploading…' : 'Choose Photo'}
+                <input type="file" accept="image/*" onChange={handlePhotoSelect} className="hidden" disabled={uploadingPhoto} />
               </label>
               <p className="text-xs text-slate-400 mt-1">JPG or PNG, up to 5MB.</p>
             </div>

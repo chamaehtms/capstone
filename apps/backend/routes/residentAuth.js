@@ -9,6 +9,7 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { JWT_SECRET, requireResidentAuth } = require('../middleware/auth');
+const { sendResidentApprovalEmail, sendResidentPendingVerificationEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -45,13 +46,15 @@ const residentRegistrationUpload = idUpload.fields([
 
 function createMailTransport() {
   const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
-  if (!SMTP_USER || !SMTP_PASS) return null;
-  if (SMTP_USER.includes('your-sending-account') || SMTP_PASS.includes('your-16-character')) return null;
+  const smtpUser = SMTP_USER?.trim();
+  const smtpPass = SMTP_PASS?.replace(/\s+/g, '');
+  if (!smtpUser || !smtpPass) return null;
+  if (smtpUser.includes('your-sending-account') || smtpPass.includes('your-16-character')) return null;
 
-  if (SMTP_SERVICE === 'gmail' || (!SMTP_HOST && SMTP_USER.includes('@gmail.com'))) {
+  if (SMTP_SERVICE === 'gmail' || (!SMTP_HOST && smtpUser.includes('@gmail.com'))) {
     return nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      auth: { user: smtpUser, pass: smtpPass },
     });
   }
 
@@ -59,12 +62,16 @@ function createMailTransport() {
     host: SMTP_HOST || 'smtp.gmail.com',
     port: Number(SMTP_PORT || 587),
     secure: SMTP_SECURE === 'true',
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    auth: { user: smtpUser, pass: smtpPass },
   });
 }
 
 function hashVerificationCode(residentId, code) {
   return crypto.createHmac('sha256', JWT_SECRET).update(`${residentId}:${code}`).digest('hex');
+}
+
+function hashPasswordResetCode(residentId, code) {
+  return crypto.createHmac('sha256', JWT_SECRET).update(`password-reset:${residentId}:${code}`).digest('hex');
 }
 
 async function sendVerificationCode(resident, mailTransport) {
@@ -95,6 +102,92 @@ async function sendVerificationCode(resident, mailTransport) {
   }
 }
 
+function normalizeText(str) {
+  return String(str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function findRegistryMatch({ firstName, middleName, lastName, fullName, birthDate, zone, contact, email }) {
+  const normFirst = normalizeText(firstName);
+  const normLast = normalizeText(lastName);
+  const normFull = normalizeText(fullName);
+
+  // Search existing records in the Barangay Resident Database
+  const { rows } = await pool.query(
+    `SELECT * FROM residents
+     WHERE (password_hash IS NULL OR self_registered = false OR status = 'Verified')`
+  );
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const row of rows) {
+    const rowFull = normalizeText(row.full_name);
+    let score = 0;
+
+    // 1. Full name matching
+    if (rowFull && normFull && rowFull === normFull) {
+      score += 70;
+    } else if (normFirst && normLast && rowFull.includes(normFirst) && rowFull.includes(normLast)) {
+      score += 55;
+    }
+
+    // 2. Birth date matching
+    if (birthDate && row.birth_date) {
+      try {
+        const regBirth = new Date(row.birth_date).toISOString().slice(0, 10);
+        const subBirth = String(birthDate).slice(0, 10);
+        if (regBirth === subBirth) {
+          score += 30;
+        } else {
+          const regYear = new Date(row.birth_date).getFullYear();
+          const subYear = new Date(birthDate).getFullYear();
+          if (regYear === subYear) {
+            score += 15;
+          } else {
+            score -= 30;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 3. Contact number matching
+    if (contact && row.contact) {
+      const cleanSub = contact.replace(/\D/g, '').slice(-10);
+      const cleanReg = row.contact.replace(/\D/g, '').slice(-10);
+      if (cleanSub && cleanReg && cleanSub === cleanReg) {
+        score += 20;
+      }
+    }
+
+    // 4. Email matching
+    if (email && row.email) {
+      if (email.toLowerCase().trim() === row.email.toLowerCase().trim()) {
+        score += 25;
+      }
+    }
+
+    // 5. Zone matching
+    if (zone && row.zone) {
+      if (normalizeText(zone) === normalizeText(row.zone)) {
+        score += 10;
+      }
+    }
+
+    if (score >= 50 && score > bestScore) {
+      bestScore = score;
+      bestMatch = row;
+    }
+  }
+
+  return { match: bestMatch, score: bestScore };
+}
+
 function toResidentAccount(r) {
   return {
     id: r.id,
@@ -123,11 +216,6 @@ function toResidentAccount(r) {
 
 // POST /api/resident-auth/register  (self-service "Register your Household")
 router.post('/register', (req, res) => {
-  const mailTransport = createMailTransport();
-  if (!mailTransport) {
-    return res.status(503).json({ message: 'Email verification is not configured. Contact the system administrator.' });
-  }
-
   residentRegistrationUpload(req, res, async (uploadErr) => {
     if (uploadErr) {
       return res.status(400).json({ message: uploadErr.message || 'Unable to upload identification files.' });
@@ -173,61 +261,106 @@ router.post('/register', (req, res) => {
       const selfieIdUrl = `/uploads/resident-ids/${selfieFile.filename}`;
 
       const { rows: existing } = await pool.query(
-        'SELECT id, full_name, email, email_verified, email_verification_sent_at, self_registered FROM residents WHERE LOWER(email) = $1 AND password_hash IS NOT NULL',
+        'SELECT id, full_name, email FROM residents WHERE LOWER(email) = $1 AND password_hash IS NOT NULL',
         [normalizedEmail]
       );
       if (existing.length > 0) {
         cleanupFiles();
-        const resident = existing[0];
-        if (!resident.email_verified && resident.self_registered) {
-          const lastSent = resident.email_verification_sent_at && new Date(resident.email_verification_sent_at).getTime();
-          if (lastSent && Date.now() - lastSent < 60000) {
-            return res.status(429).json({ message: 'A code was sent recently. Wait one minute before requesting another.' });
-          }
-          await sendVerificationCode({ id: resident.id, email: resident.email, fullName: resident.full_name }, mailTransport);
-          return res.status(200).json({
-            verificationRequired: true,
-            email: resident.email,
-            message: 'A new six-digit verification code has been sent to your email.',
-          });
-        }
         return res.status(409).json({ message: 'An account already exists for this email.' });
       }
 
       const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
       const age = birthDate ? Math.max(0, new Date().getFullYear() - new Date(birthDate).getFullYear()) : null;
-      const id = `res-${uuidv4().slice(0, 8)}`;
 
-      const { rows } = await pool.query(
-        `INSERT INTO residents
-          (id, full_name, birth_date, age, gender, address, zone, contact, email, status,
-           category, password_hash, id_document_url, selfie_id_url, photo_url, self_registered, email_verified)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'Pending',$10,$11,$12,$13,$14,true,false)
-         RETURNING *`,
-        [
-          id, fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
-          contact || '', email, JSON.stringify(['Resident']), hashPassword(password), idDocumentUrl,
-          selfieIdUrl, selfieIdUrl,
-        ]
+      // Check Resident Registry for a matching resident record
+      const { match: registryMatch, score: matchScore } = await findRegistryMatch({
+        firstName, middleName, lastName, fullName, birthDate, zone, contact, email: normalizedEmail,
+      });
+
+      const isVerified = Boolean(registryMatch && matchScore >= 50);
+      const residentStatus = isVerified ? 'Verified' : 'Pending';
+      let residentRow;
+
+      if (registryMatch && !registryMatch.password_hash) {
+        // Link and claim the pre-enrolled registry record
+        const { rows: updatedRows } = await pool.query(
+          `UPDATE residents SET
+            full_name = COALESCE(NULLIF($1, ''), full_name),
+            birth_date = COALESCE($2, birth_date),
+            age = COALESCE($3, age),
+            gender = COALESCE(NULLIF($4, ''), gender),
+            address = COALESCE(NULLIF($5, ''), address),
+            zone = COALESCE(NULLIF($6, ''), zone),
+            contact = COALESCE(NULLIF($7, ''), contact),
+            email = $8,
+            password_hash = $9,
+            id_document_url = $10,
+            selfie_id_url = $11,
+            photo_url = COALESCE(photo_url, $11),
+            status = 'Verified',
+            self_registered = true,
+            email_verified = true
+           WHERE id = $12
+           RETURNING *`,
+          [
+            fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
+            contact || '', normalizedEmail, hashPassword(password), idDocumentUrl, selfieIdUrl,
+            registryMatch.id,
+          ]
+        );
+        residentRow = updatedRows[0];
+      } else {
+        // Insert new resident record
+        const id = `res-${uuidv4().slice(0, 8)}`;
+        const { rows: insertedRows } = await pool.query(
+          `INSERT INTO residents
+            (id, full_name, birth_date, age, gender, address, zone, contact, email, status,
+             category, password_hash, id_document_url, selfie_id_url, photo_url, self_registered, email_verified)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,true,true)
+           RETURNING *`,
+          [
+            id, fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
+            contact || '', normalizedEmail, residentStatus, JSON.stringify(['Resident']),
+            hashPassword(password), idDocumentUrl, selfieIdUrl, selfieIdUrl,
+          ]
+        );
+        residentRow = insertedRows[0];
+      }
+
+      // Generate login token for immediate portal access
+      const token = jwt.sign(
+        { id: residentRow.id, email: residentRow.email, fullName: residentRow.full_name, scope: 'resident' },
+        JWT_SECRET,
+        { expiresIn: '30d' }
       );
 
-      try {
-        await sendVerificationCode({ id, email: normalizedEmail, fullName }, mailTransport);
-      } catch (mailErr) {
-        console.error('[registration] Error sending verification email:', mailErr);
-        try {
-          await pool.query('DELETE FROM residents WHERE id = $1 AND email_verified = false', [id]);
-        } catch (_) {}
-        cleanupFiles();
-        return res.status(502).json({
-          message: 'Unable to deliver verification email: ' + (mailErr.message || 'SMTP error') + '. Please check your email address or try again.',
-        });
+      // Send email notification in the background
+      const loginUrl = (process.env.RESIDENT_FRONTEND_URL || 'http://localhost:5500').replace(/\/$/, '') + '/login';
+      if (isVerified) {
+        sendResidentApprovalEmail({
+          to: normalizedEmail,
+          residentName: fullName,
+          residentId: residentRow.id,
+          loginUrl,
+        }).catch((err) => console.error('[registration] Error sending auto-approval email:', err.message));
+      } else {
+        sendResidentPendingVerificationEmail({
+          to: normalizedEmail,
+          residentName: fullName,
+          residentId: residentRow.id,
+          loginUrl,
+        }).catch((err) => console.error('[registration] Error sending pending verification email:', err.message));
       }
 
       res.status(201).json({
-        verificationRequired: true,
-        email: normalizedEmail,
-        message: 'A six-digit verification code has been sent to your email.',
+        success: true,
+        verified: isVerified,
+        status: residentStatus,
+        token,
+        resident: toResidentAccount(residentRow),
+        message: isVerified
+          ? 'Your registration has been automatically verified against the Barangay Resident Database! Your account is approved and active.'
+          : 'Your registration was received. Your details could not yet be automatically matched against the official Barangay Resident Database. Your account is set to Pending Verification with limited access to file complaints.',
       });
     } catch (err) {
       console.error('[registration] Registration error:', err);
@@ -339,11 +472,6 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({ message: 'Verify your email using the six-digit code before signing in.' });
     }
 
-    if (resident.status === 'Pending') {
-      return res.status(403).json({
-        message: 'Your account is still awaiting barangay approval. Please check back later.',
-      });
-    }
     if (resident.status === 'Rejected') {
       return res.status(403).json({
         message: 'Your registration was not approved. Please visit the barangay office for assistance.',
@@ -489,13 +617,124 @@ router.post('/me/photo', requireResidentAuth, (req, res) => {
 });
 
 // POST /api/resident-auth/forgot-password
-router.post('/forgot-password', (req, res) => {
-  const { email } = req.body;
-  if (!email) {
-    return res.status(400).json({ message: 'Email is required.' });
+router.post('/forgot-password', async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: 'Enter a valid email address.' });
   }
-  // Generic response so we don't leak which emails have accounts.
-  res.json({ message: 'If an account matches that email, a secure reset link has been sent.' });
+
+  const mailTransport = createMailTransport();
+  if (!mailTransport) {
+    return res.status(503).json({ message: 'Email delivery is not configured. Contact the barangay administrator.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, full_name, email, password_reset_sent_at
+       FROM residents WHERE LOWER(email) = $1 AND password_hash IS NOT NULL`,
+      [email]
+    );
+    const resident = rows[0];
+    const genericMessage = 'If an account matches that email, a 6-digit reset code has been sent. It expires in 10 minutes.';
+    if (!resident) return res.json({ message: genericMessage });
+
+    const lastSentAt = resident.password_reset_sent_at && new Date(resident.password_reset_sent_at).getTime();
+    if (lastSentAt && Date.now() - lastSentAt < 60000) return res.json({ message: genericMessage });
+
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    const codeHash = hashPasswordResetCode(resident.id, code);
+    await pool.query(
+      `UPDATE residents SET password_reset_code_hash = $1,
+       password_reset_expires_at = now() + interval '10 minutes',
+       password_reset_sent_at = now(), password_reset_attempts = 0
+       WHERE id = $2`,
+      [codeHash, resident.id]
+    );
+
+    try {
+      await mailTransport.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: resident.email,
+        subject: 'Your Barangay Poblacion password reset code',
+        text: `Hello ${resident.full_name || 'Resident'},\n\nYour password reset code is: ${code}\n\nThis code expires in 10 minutes and can only be used once. If you did not request a password reset, you can ignore this email.`,
+      });
+    } catch (mailError) {
+      await pool.query(
+        `UPDATE residents SET password_reset_code_hash = NULL,
+         password_reset_expires_at = NULL, password_reset_sent_at = NULL
+         WHERE id = $1`,
+        [resident.id]
+      );
+      throw mailError;
+    }
+
+    return res.json({ message: genericMessage });
+  } catch (err) {
+    console.error('[resident-auth] Password reset code could not be sent:', err.message);
+    if (err.code === 'EAUTH' || err.responseCode === 535) {
+      return res.status(503).json({ message: 'Password reset email is unavailable. Please contact the barangay administrator.' });
+    }
+    return res.status(500).json({ message: 'Unable to send a password reset code right now. Please try again later.' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const code = String(req.body.code || '').trim();
+  const newPassword = String(req.body.newPassword || '');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{6}$/.test(code) || !newPassword) {
+    return res.status(400).json({ message: 'Enter your email, the 6-digit code, and a new password.' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: 'New password must be at least 8 characters.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, password_reset_code_hash, password_reset_expires_at, password_reset_attempts
+       FROM residents WHERE LOWER(email) = $1 AND password_hash IS NOT NULL`,
+      [email]
+    );
+    const resident = rows[0];
+    if (!resident || !resident.password_reset_code_hash) {
+      return res.status(400).json({ message: 'The reset code is invalid or expired. Request a new code.' });
+    }
+    if (resident.password_reset_attempts >= 5) {
+      return res.status(429).json({ message: 'Too many incorrect codes. Request a new reset code.' });
+    }
+    if (!resident.password_reset_expires_at || new Date(resident.password_reset_expires_at) <= new Date()) {
+      await pool.query(
+        `UPDATE residents SET password_reset_code_hash = NULL, password_reset_expires_at = NULL,
+         password_reset_attempts = 0 WHERE id = $1`,
+        [resident.id]
+      );
+      return res.status(400).json({ message: 'The reset code has expired. Request a new code.' });
+    }
+
+    const suppliedHash = hashPasswordResetCode(resident.id, code);
+    const expectedHash = resident.password_reset_code_hash;
+    const matches = expectedHash.length === suppliedHash.length && crypto.timingSafeEqual(
+      Buffer.from(expectedHash, 'hex'), Buffer.from(suppliedHash, 'hex')
+    );
+    if (!matches) {
+      await pool.query(
+        'UPDATE residents SET password_reset_attempts = password_reset_attempts + 1 WHERE id = $1',
+        [resident.id]
+      );
+      return res.status(400).json({ message: 'The reset code is incorrect.' });
+    }
+
+    await pool.query(
+      `UPDATE residents SET password_hash = $1, password_reset_code_hash = NULL,
+       password_reset_expires_at = NULL, password_reset_sent_at = NULL,
+       password_reset_attempts = 0 WHERE id = $2`,
+      [hashPassword(newPassword), resident.id]
+    );
+    return res.json({ message: 'Your password has been reset. You can now sign in with your new password.' });
+  } catch (err) {
+    console.error('[resident-auth] Password reset failed:', err.message);
+    return res.status(500).json({ message: 'Unable to reset your password right now. Please try again later.' });
+  }
 });
 
 module.exports = router;

@@ -330,8 +330,319 @@ async function sendNextHearingNoticeEmail({
   }
 }
 
+/**
+ * Sends an official Account Approval / Verification email to a resident.
+ */
+async function sendResidentApprovalEmail({
+  to,
+  residentName,
+  residentId,
+  loginUrl,
+}) {
+  if (!to) {
+    return { success: false, reason: 'Recipient email address is missing' };
+  }
+
+  const transport = createMailTransport();
+  if (!transport) {
+    console.warn('[mailer] SMTP not configured. Resident approval email could not be sent.');
+    return { success: false, reason: 'Email service is not configured on this server' };
+  }
+
+  const targetLoginUrl = loginUrl || (process.env.RESIDENT_FRONTEND_URL ? `${process.env.RESIDENT_FRONTEND_URL.replace(/\/$/, '')}/login` : 'http://localhost:5500/login');
+  const displayName = residentName || 'Resident';
+  const displayId = residentId || 'N/A';
+  const approvalDate = new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const subject = '🎉 Account Approved by Admin - Barangay Poblacion Residents Portal';
+
+  const text = `Hello ${displayName},\n\n`
+    + `Good news! Your resident account registration for the Barangay Poblacion Residents Portal has been officially approved and verified by the Barangay Admin.\n\n`
+    + `Account Details:\n`
+    + `- Name: ${displayName}\n`
+    + `- Resident ID: ${displayId}\n`
+    + `- Registered Email: ${to}\n`
+    + `- Status: Approved & Verified by Admin\n`
+    + `- Date Approved: ${approvalDate}\n\n`
+    + `You can now sign in to your resident portal account at:\n`
+    + `${targetLoginUrl}\n\n`
+    + `If you did not register for this account, please contact the Barangay Poblacion Hall immediately.\n\n`
+    + `Barangay Poblacion Administration\n`
+    + `Office of the Punong Barangay`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${subject}</title>
+    </head>
+    <body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+      <div style="max-width: 620px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); color: #ffffff; padding: 32px 24px; text-align: center;">
+          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #a7f3d0; font-weight: 700;">Republic of the Philippines · Province of Cavite</p>
+          <h1 style="margin: 6px 0 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #d1fae5;">Office of the Punong Barangay · Online Residents Portal</p>
+          <div style="margin-top: 16px; display: inline-block; background-color: #10b981; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 18px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+            ✓ Approved by Barangay Admin
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 32px 28px;">
+          <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6;">
+            Dear <strong>${displayName}</strong>,
+          </p>
+          <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.7; color: #334155;">
+            Mabuhay! We are pleased to notify you that your registration for the <strong>Barangay Poblacion Residents Portal</strong> has been officially reviewed and <strong style="color: #059669;">approved</strong> by the Barangay Administration.
+          </p>
+          <p style="margin: 0 0 24px; font-size: 14px; line-height: 1.7; color: #334155;">
+            Your identity and household verification have been completed. Your account is now fully active, giving you 24/7 online access to official barangay services.
+          </p>
+
+          <!-- Account Details Card -->
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #10b981; border-radius: 10px; padding: 20px; margin-bottom: 26px;">
+            <h3 style="margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #065f46; font-weight: 800;">
+              📋 Approved Resident Account Details
+            </h3>
+            <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; color: #047857; width: 140px; font-weight: 600;">Resident Name:</td>
+                <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${displayName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #047857; font-weight: 600;">Resident ID:</td>
+                <td style="padding: 6px 0; color: #065f46; font-weight: 700; font-family: monospace;">${displayId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #047857; font-weight: 600;">Registered Email:</td>
+                <td style="padding: 6px 0; color: #0f172a;">${to}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #047857; font-weight: 600;">Account Status:</td>
+                <td style="padding: 6px 0; color: #16a34a; font-weight: 800;">
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #16a34a; margin-right: 6px;"></span>Verified & Active
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; color: #047857; font-weight: 600;">Date Approved:</td>
+                <td style="padding: 6px 0; color: #0f172a;">${approvalDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Call To Action Button -->
+          <div style="text-align: center; margin: 30px 0 28px;">
+            <a href="${targetLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 14px 34px; border-radius: 8px; font-weight: 800; font-size: 15px; letter-spacing: 0.3px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);">
+              Sign In to Residents Portal →
+            </a>
+            <p style="margin: 12px 0 0; font-size: 12px; color: #64748b;">
+              Or navigate directly to: <a href="${targetLoginUrl}" style="color: #059669; text-decoration: underline;">${targetLoginUrl}</a>
+            </p>
+          </div>
+
+          <!-- Security Notice -->
+          <div style="background-color: #f1f5f9; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 12px; color: #64748b; line-height: 1.6;">
+            <strong>🔒 Security Reminder:</strong> Barangay staff will never ask for your password. If you did not apply for this account, please report it immediately to the Barangay Poblacion Hall.
+          </div>
+
+          <p style="margin: 0; font-size: 13px; color: #334155; line-height: 1.6;">
+            Sincerely,<br/>
+            <strong>Office of the Punong Barangay & Sangguniang Barangay</strong><br/>
+            Barangay Poblacion Administration
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+          This is an automated administrative notification sent from Barangay Poblacion.<br/>
+          Barangay Hall, Poblacion· For inquiries, visit the Barangay Hall during office hours.
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const info = await transport.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject,
+      text,
+      html,
+    });
+    console.log(`[mailer] Resident approval email sent to ${to}, messageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error(`[mailer] Failed to send resident approval email to ${to}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Sends an official notification email to a resident whose account is Pending Verification (no match in registry).
+ */
+async function sendResidentPendingVerificationEmail({
+  to,
+  residentName,
+  residentId,
+  loginUrl,
+}) {
+  if (!to) {
+    return { success: false, reason: 'Recipient email address is missing' };
+  }
+
+  const transport = createMailTransport();
+  if (!transport) {
+    console.warn('[mailer] SMTP not configured. Resident pending verification email could not be sent.');
+    return { success: false, reason: 'Email service is not configured on this server' };
+  }
+
+  const targetLoginUrl = loginUrl || (process.env.RESIDENT_FRONTEND_URL ? `${process.env.RESIDENT_FRONTEND_URL.replace(/\/$/, '')}/login` : 'http://localhost:5500/login');
+  const displayName = residentName || 'Resident';
+  const displayId = residentId || 'N/A';
+  const registrationDate = new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  const subject = '⏳ Registration Received - Pending Verification - Barangay Poblacion';
+
+  const text = `Hello ${displayName},\n\n`
+    + `Thank you for registering on the Barangay Poblacion Residents Portal.\n\n`
+    + `We conducted an automated lookup against the official Barangay Resident Database, but an existing matching record could not yet be found.\n\n`
+    + `Account Status: PENDING VERIFICATION (Limited Access)\n`
+    + `- Resident Name: ${displayName}\n`
+    + `- Resident ID: ${displayId}\n`
+    + `- Date Registered: ${registrationDate}\n\n`
+    + `LIMITED ACCESS RULE:\n`
+    + `You can now sign in to the Residents Portal and submit community complaints, incident reports, and view barangay advisories.\n\n`
+    + `Sign in at:\n`
+    + `${targetLoginUrl}\n\n`
+    + `Our barangay administrators will review your submitted identification documents. Once verified, full certification and clearance services will become available.\n\n`
+    + `Barangay Poblacion Administration\n`
+    + `Office of the Punong Barangay`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>${subject}</title>
+    </head>
+    <body style="margin: 0; padding: 24px 12px; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+      <div style="max-width: 620px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #ffffff; padding: 32px 24px; text-align: center;">
+          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; font-weight: 700;">Republic of the Philippines · Province of Cavite</p>
+          <h1 style="margin: 6px 0 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
+          <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1;">Office of the Punong Barangay · Online Residents Portal</p>
+          <div style="margin-top: 16px; display: inline-block; background-color: #f59e0b; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 18px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
+            ⏳ Registration Pending Verification
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 32px 28px;">
+          <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6;">
+            Dear <strong>${displayName}</strong>,
+          </p>
+          <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.7; color: #334155;">
+            Thank you for registering on the <strong>Barangay Poblacion Residents Portal</strong>. We performed an automated check against the official Barangay Resident Database, but an existing matching record could not yet be confirmed.
+          </p>
+
+          <!-- Status Notice Card -->
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong style="color: #92400e; font-size: 14px;">📋 Limited-Access Active</strong>
+              <span style="font-size: 11px; font-weight: 700; background-color: #fef3c7; color: #b45309; padding: 3px 10px; border-radius: 12px;">PENDING VERIFICATION</span>
+            </div>
+            <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.6;">
+              Under our <strong>limited-access policy</strong>, you can still sign in to file formal complaints, report community or infrastructure concerns, and track ongoing proceedings while awaiting administrator review.
+            </p>
+          </div>
+
+          <!-- Account Details Card -->
+          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin-bottom: 26px;">
+            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; width: 140px; font-weight: 600;">Applicant Name:</td>
+                <td style="padding: 5px 0; color: #0f172a; font-weight: 700;">${displayName}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; font-weight: 600;">Reference ID:</td>
+                <td style="padding: 5px 0; color: #334155; font-family: monospace; font-weight: 700;">${displayId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; font-weight: 600;">Registered Email:</td>
+                <td style="padding: 5px 0; color: #0f172a;">${to}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; color: #64748b; font-weight: 600;">Status:</td>
+                <td style="padding: 5px 0; color: #d97706; font-weight: 700;">⏳ Pending Verification</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Call To Action Button -->
+          <div style="text-align: center; margin: 26px 0 24px;">
+            <a href="${targetLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #ffffff; text-decoration: none; padding: 13px 30px; border-radius: 8px; font-weight: 700; font-size: 14px; letter-spacing: 0.3px; box-shadow: 0 4px 10px rgba(30, 41, 59, 0.25);">
+              Sign In with Limited Access →
+            </a>
+            <p style="margin: 10px 0 0; font-size: 12px; color: #64748b;">
+              Login portal: <a href="${targetLoginUrl}" style="color: #2563eb; text-decoration: underline;">${targetLoginUrl}</a>
+            </p>
+          </div>
+
+          <div style="background-color: #f1f5f9; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 12px; color: #64748b; line-height: 1.6;">
+            <strong>ℹ️ What happens next?</strong> Barangay administrators will review your submitted valid ID and selfie. Once verified, official clearance and certificate services will be unlocked.
+          </div>
+
+          <p style="margin: 0; font-size: 13px; color: #334155; line-height: 1.6;">
+            Sincerely,<br/>
+            <strong>Barangay Poblacion Administration</strong><br/>
+            Office of the Punong Barangay
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.6;">
+          This is an automated administrative notification sent from Barangay Poblacion.<br/>
+          Barangay Hall, Poblacion, Cavite
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  try {
+    const info = await transport.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to,
+      subject,
+      text,
+      html,
+    });
+    console.log(`[mailer] Resident pending verification email sent to ${to}, messageId: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error(`[mailer] Failed to send resident pending verification email to ${to}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   createMailTransport,
   sendMediationNoticeEmail,
   sendNextHearingNoticeEmail,
+  sendResidentApprovalEmail,
+  sendResidentPendingVerificationEmail,
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 import StatCard from '../components/StatCard.jsx';
 
 export default function ResidentRecords() {
@@ -8,13 +8,21 @@ export default function ResidentRecords() {
   const [stats, setStats] = useState({ total: 0, male: 0, female: 0, verified: 0 });
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
+  const [error, setError] = useState('');
+  const [brokenImages, setBrokenImages] = useState({});
 
   const fetchResidents = async (q = '') => {
     setLoading(true);
-    const { data } = await api.get('/residents', { params: { search: q } });
-    setResidents(data.residents);
-    setStats(data.stats);
-    setLoading(false);
+    try {
+      const { data } = await api.get('/residents', { params: { search: q } });
+      setResidents(data.residents);
+      setStats(data.stats);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to load resident records.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -24,6 +32,22 @@ export default function ResidentRecords() {
   const handleSearch = (e) => {
     e.preventDefault();
     fetchResidents(search);
+  };
+
+  const handleDelete = async (resident) => {
+    if (!window.confirm(`Are you sure you want to delete resident "${resident.fullName}"? This action cannot be undone.`)) {
+      return;
+    }
+    setError('');
+    setDeletingId(resident.id);
+    try {
+      await api.delete(`/residents/${resident.id}`);
+      await fetchResidents(search);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to delete resident.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -41,6 +65,19 @@ export default function ResidentRecords() {
         <StatCard label="Total Female" value={stats.female} accent="orange" />
         <StatCard label="Verified" value={stats.verified} accent="green" />
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setError('')}
+            className="text-red-500 hover:text-red-700 font-bold ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm">
         <div className="flex items-center justify-between p-5 border-b border-slate-100">
@@ -93,10 +130,11 @@ export default function ResidentRecords() {
               <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50">
                 <td className="px-5 py-3 font-medium text-slate-800">
                   <div className="flex items-center gap-3">
-                    {r.photoUrl ? (
+                    {r.photoUrl && !brokenImages[r.id] ? (
                       <img
-                        src={r.photoUrl}
+                        src={toAssetUrl(r.photoUrl)}
                         alt={r.fullName}
+                        onError={() => setBrokenImages((prev) => ({ ...prev, [r.id]: true }))}
                         className="h-8 w-8 rounded-full object-cover border border-slate-200"
                       />
                     ) : (
@@ -122,9 +160,19 @@ export default function ResidentRecords() {
                 <td className="px-5 py-3 text-slate-500">{(r.category || []).join(', ')}</td>
                 <td className="px-5 py-3 text-slate-500">{r.age ?? '-'}</td>
                 <td className="px-5 py-3">
-                  <Link to={`/residents/${r.id}`} className="text-blue-600 hover:underline text-xs">
-                    View
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link to={`/residents/${r.id}`} className="text-blue-600 hover:underline text-xs font-medium">
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r)}
+                      disabled={deletingId === r.id}
+                      className="text-red-500 hover:text-red-700 hover:underline text-xs font-medium disabled:opacity-50"
+                    >
+                      {deletingId === r.id ? 'Deleting…' : 'Delete'}
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

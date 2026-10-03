@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
-import { trackComplaint, getMyComplaints, getMyMediations, statusBadgeClass } from '../api.js';
+import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
+import { trackComplaint, getMyComplaints, getMyMediations, statusBadgeClass, toAssetUrl } from '../api.js';
 
 function Timeline({ c }) {
   const isMediation = c.status === 'Mediation' || !!c.mediationDate;
@@ -107,119 +108,317 @@ export default function Track() {
 
         {result && (
           <>
-            <div className="card" style={{ marginTop: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <h2 style={{ margin: '0 0 6px', color: 'var(--navy)' }}>{result.nature}</h2>
-                  <div style={{ color: 'var(--muted)', fontSize: '.85rem' }}>
-                    ID: {result.trackingId} · CURRENT STATUS: {result.status}
-                  </div>
-                </div>
-                <span className={`badge ${statusBadgeClass(result.status)}`} style={{ textTransform: 'uppercase', padding: '6px 14px', fontSize: '.78rem' }}>
-                  {result.status === 'Under Review' ? 'IN PROGRESS' : result.status}
-                </span>
-              </div>
-              <Timeline c={result} />
-            </div>
+            {(() => {
+              const isInfrastructure =
+                result.category === 'Infrastructure' ||
+                result.category === 'Public Works' ||
+                (result.id && result.id.startsWith('IN-')) ||
+                (result.trackingId && result.trackingId.startsWith('IN-')) ||
+                (result.nature && result.nature.startsWith('['));
 
-            <div className="two-col">
-              {/* Mediation Schedule Card */}
-              <div className="card">
-                <div className="card-title">⚖️ Mediation Schedule</div>
-                {result.mediationDate || caseMediation ? (
-                  <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #4f46e5', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <strong style={{ color: '#1e293b', fontSize: '0.92rem' }}>
-                        {result.hearingStage || caseMediation?.hearingStage || '1st Mediation Hearing'}
-                      </strong>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
-                        CONFIRMED SESSION
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
-                      <div>📅 <strong>Date:</strong> {result.mediationDate || caseMediation?.date}</div>
-                      {(result.mediationTime || caseMediation?.time) && (
-                        <div>⏰ <strong>Time:</strong> {result.mediationTime || caseMediation?.time}</div>
-                      )}
-                      <div>📍 <strong>Venue:</strong> {result.mediationVenue || caseMediation?.location || 'Barangay Poblacion Mediation Hall'}</div>
-                      {(result.mediator || caseMediation?.mediator) && (
-                        <div>👤 <strong>Presiding Officer:</strong> {result.mediator || caseMediation?.mediator}</div>
-                      )}
-                    </div>
-                    <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#64748b', background: '#ffffff', padding: '8px 10px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                      ✉️ An official Notice of Hearing has been issued and sent to your registered email. Please bring a valid government ID and arrive 15 minutes before the scheduled time.
-                    </p>
-
-                    {(caseMediation?.nextMeetingDate || result.nextMediationDate) && (
-                      <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                          <strong style={{ color: '#6d28d9', fontSize: '0.88rem' }}>
-                            🗓️ Next Follow-up Hearing Scheduled
-                          </strong>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9' }}>
-                            NEXT SESSION
+              return isInfrastructure ? (
+                <>
+                  <div className="card" style={{ marginTop: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: 4, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', letterSpacing: '0.04em' }}>
+                            INFRASTRUCTURE REPORT
+                          </span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>
+                            Case Ref: <strong style={{ color: 'var(--navy)' }}>{result.trackingId}</strong>
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.84rem', color: '#334155', lineHeight: 1.6 }}>
-                          <div>📅 <strong>Date:</strong> {caseMediation?.nextMeetingDate || result.nextMediationDate}</div>
-                          {(caseMediation?.nextMeetingTime || result.nextMediationTime) && (
-                            <div>⏰ <strong>Time:</strong> {caseMediation?.nextMeetingTime || result.nextMediationTime}</div>
-                          )}
-                          <div>📍 <strong>Venue:</strong> {caseMediation?.nextMeetingVenue || result.nextMediationVenue || 'Barangay Poblacion Mediation Hall'}</div>
+                        <h2 style={{ margin: '0 0 6px', color: 'var(--navy)' }}>{result.nature}</h2>
+                        <div style={{ color: 'var(--muted)', fontSize: '.85rem' }}>
+                          Reported by: <strong>{result.complainantName || result.resident}</strong> · Filed on: {result.filingDate || result.createdAt?.split('T')[0]}
                         </div>
-                        <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: '#6d28d9' }}>
-                          ✉️ An official Notice for this follow-up session has been dispatched to your Gmail. Please ensure compliance with previously agreed commitments.
-                        </p>
                       </div>
-                    )}
-                  </div>
-                ) : mediations.length > 0 ? (
-                  mediations.map((m) => (
-                    <div className="history-row" key={m.id} style={{ marginTop: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{m.hearingStage || 'Mediation Session'}</div>
-                        <div className="ref">Case Ref: {m.caseId} · {m.location || 'Barangay Hall'}</div>
-                      </div>
-                      <span style={{ color: 'var(--green-text)', fontWeight: 700, fontSize: '.85rem' }}>
-                        {m.date} {m.time ? `(${m.time})` : ''}
+                      <span className={`badge ${statusBadgeClass(result.status)}`} style={{ textTransform: 'uppercase', padding: '6px 14px', fontSize: '.78rem' }}>
+                        {result.status}
                       </span>
                     </div>
-                  ))
-                ) : (
-                  <p style={{ color: 'var(--muted)', padding: '14px 0' }}>
-                    No mediation hearing scheduled for this case yet. If conciliation is required, you will receive an email notice with the date and time.
-                  </p>
-                )}
-              </div>
-
-              {/* Recent History / Other Cases */}
-              <div className="card">
-                <div className="card-title">Recent History</div>
-                {history.length === 0 && upcoming.length === 0 && (
-                  <p style={{ color: 'var(--muted)', padding: '14px 0' }}>No other history yet.</p>
-                )}
-                {[...upcoming, ...history].map((c) => (
-                  <div
-                    className="history-row"
-                    key={c.id}
-                    onClick={() => { setRefInput(c.trackingId); doLookup(c.trackingId); }}
-                    style={{ cursor: 'pointer' }}
-                    title="Click to track this case"
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{c.nature}</div>
-                      <div className="ref">Ref No. {c.caseRef}</div>
-                    </div>
-                    <span className={`badge ${statusBadgeClass(c.status)}`}>{c.status.toUpperCase()}</span>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 14, marginTop: 24 }}>
-              <button className="btn btn-navy" style={{ flex: 1 }}>🎧 Contact Support</button>
-              <button className="btn btn-outline" style={{ flex: 1 }}>❓ Browse FAQ</button>
-            </div>
+                  {/* Dedicated Progress Timeline Card matching uploaded mockup */}
+                  <InfrastructureTimeline c={result} />
+
+                  <div className="two-col">
+                    {/* Work Order & Inspection Card */}
+                    <div className="card">
+                      <div className="card-title">🛠️ Inspection & Work Order Details</div>
+                      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #0284c7', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>
+                            {result.category || 'Infrastructure'} Case
+                          </strong>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#e0f2fe', color: '#0369a1' }}>
+                            WORK ORDER
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
+                          <div>📍 <strong>Specific Location:</strong> {result.nature || result.description}</div>
+                          {result.respondentName && (
+                            <div>🏢 <strong>Landmark / Nearby:</strong> {result.respondentName.replace('Nearby: ', '')}</div>
+                          )}
+                          <div>👥 <strong>Assigned Team:</strong> {result.assignedTeam || 'Barangay Maintenance & Engineering Team'}</div>
+                          <div>⚡ <strong>Current Status:</strong> <span style={{ fontWeight: 700, color: '#0284c7' }}>{result.status}</span></div>
+                          {result.reliefSought && (
+                            <div style={{ marginTop: 4 }}>🎯 <strong>Action Requested:</strong> {result.reliefSought}</div>
+                          )}
+                        </div>
+
+                        {result.narrative && (
+                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #cbd5e1', fontSize: '0.82rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                            {result.narrative}
+                          </div>
+                        )}
+
+                        {result.attachmentUrl && (
+                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                              Attached Site Evidence:
+                            </span>
+                            {/\.(mp4|webm|mov|mkv|avi)$/i.test(result.attachmentUrl) ? (
+                              <div style={{ marginTop: 6 }}>
+                                <video
+                                  controls
+                                  style={{ width: '100%', maxHeight: 220, borderRadius: 8, background: '#000' }}
+                                  preload="metadata"
+                                >
+                                  <source src={toAssetUrl(result.attachmentUrl)} />
+                                  Your browser does not support the video tag.
+                                </video>
+                                <a
+                                  href={toAssetUrl(result.attachmentUrl)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                                >
+                                  🎬 Open video in full screen ↗
+                                </a>
+                              </div>
+                            ) : /\.(jpe?g|png|gif|webp)$/i.test(result.attachmentUrl) ? (
+                              <div style={{ marginTop: 6 }}>
+                                <img
+                                  src={toAssetUrl(result.attachmentUrl)}
+                                  alt="Attached Evidence"
+                                  style={{ maxHeight: 180, maxWidth: '100%', borderRadius: 8, border: '1px solid #cbd5e1', objectFit: 'contain' }}
+                                />
+                                <a
+                                  href={toAssetUrl(result.attachmentUrl)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ display: 'block', fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                                >
+                                  📷 View full resolution photo ↗
+                                </a>
+                              </div>
+                            ) : (
+                              <a
+                                href={toAssetUrl(result.attachmentUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#2563eb', textDecoration: 'underline', fontWeight: 600 }}
+                              >
+                                📄 View Uploaded Document Evidence ↗
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Recent History / Other Cases */}
+                    <div className="card">
+                      <div className="card-title">Recent History</div>
+                      {history.length === 0 && upcoming.length === 0 && (
+                        <p style={{ color: 'var(--muted)', padding: '14px 0' }}>No other history yet.</p>
+                      )}
+                      {[...upcoming, ...history].map((c) => (
+                        <div
+                          className="history-row"
+                          key={c.id}
+                          onClick={() => { setRefInput(c.trackingId); doLookup(c.trackingId); }}
+                          style={{ cursor: 'pointer' }}
+                          title="Click to track this case"
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{c.nature}</div>
+                            <div className="ref">Ref No. {c.caseRef}</div>
+                          </div>
+                          <span className={`badge ${statusBadgeClass(c.status)}`}>{c.status.toUpperCase()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="card" style={{ marginTop: 20 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h2 style={{ margin: '0 0 6px', color: 'var(--navy)' }}>{result.nature}</h2>
+                        <div style={{ color: 'var(--muted)', fontSize: '.85rem' }}>
+                          ID: {result.trackingId} · CURRENT STATUS: {result.status}
+                        </div>
+                      </div>
+                      <span className={`badge ${statusBadgeClass(result.status)}`} style={{ textTransform: 'uppercase', padding: '6px 14px', fontSize: '.78rem' }}>
+                        {result.status === 'Under Review' ? 'IN PROGRESS' : result.status}
+                      </span>
+                    </div>
+                    <Timeline c={result} />
+                  </div>
+
+                  <div className="two-col">
+                    {/* Mediation Schedule Card */}
+                    <div className="card">
+                      <div className="card-title">⚖️ Mediation Schedule</div>
+                      {result.mediationDate || caseMediation ? (
+                        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #4f46e5', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                            <strong style={{ color: '#1e293b', fontSize: '0.92rem' }}>
+                              {result.hearingStage || caseMediation?.hearingStage || '1st Mediation Hearing'}
+                            </strong>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
+                              CONFIRMED SESSION
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
+                            <div>📅 <strong>Date:</strong> {result.mediationDate || caseMediation?.date}</div>
+                            {(result.mediationTime || caseMediation?.time) && (
+                              <div>⏰ <strong>Time:</strong> {result.mediationTime || caseMediation?.time}</div>
+                            )}
+                            <div>📍 <strong>Venue:</strong> {result.mediationVenue || caseMediation?.location || 'Barangay Poblacion Mediation Hall'}</div>
+                            {(result.mediator || caseMediation?.mediator) && (
+                              <div>👤 <strong>Presiding Officer:</strong> {result.mediator || caseMediation?.mediator}</div>
+                            )}
+                          </div>
+                          <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#64748b', background: '#ffffff', padding: '8px 10px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                            ✉️ An official Notice of Hearing has been issued and sent to your registered email. Please bring a valid government ID and arrive 15 minutes before the scheduled time.
+                          </p>
+
+                          {(caseMediation?.nextMeetingDate || result.nextMediationDate) && (
+                            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                <strong style={{ color: '#6d28d9', fontSize: '0.88rem' }}>
+                                  🗓️ Next Follow-up Hearing Scheduled
+                                </strong>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9' }}>
+                                  NEXT SESSION
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '0.84rem', color: '#334155', lineHeight: 1.6 }}>
+                                <div>📅 <strong>Date:</strong> {caseMediation?.nextMeetingDate || result.nextMediationDate}</div>
+                                {(caseMediation?.nextMeetingTime || result.nextMediationTime) && (
+                                  <div>⏰ <strong>Time:</strong> {caseMediation?.nextMeetingTime || result.nextMediationTime}</div>
+                                )}
+                                <div>📍 <strong>Venue:</strong> {caseMediation?.nextMeetingVenue || result.nextMediationVenue || 'Barangay Poblacion Mediation Hall'}</div>
+                              </div>
+                              <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: '#6d28d9' }}>
+                                ✉️ An official Notice for this follow-up session has been dispatched to your Gmail. Please ensure compliance with previously agreed commitments.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ) : mediations.length > 0 ? (
+                        mediations.map((m) => (
+                          <div className="history-row" key={m.id} style={{ marginTop: 8 }}>
+                            <div>
+                              <div style={{ fontWeight: 700 }}>{m.hearingStage || 'Mediation Session'}</div>
+                              <div className="ref">Case Ref: {m.caseId} · {m.location || 'Barangay Hall'}</div>
+                            </div>
+                            <span style={{ color: 'var(--green-text)', fontWeight: 700, fontSize: '.85rem' }}>
+                              {m.date} {m.time ? `(${m.time})` : ''}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p style={{ color: 'var(--muted)', padding: '14px 0' }}>
+                          No mediation hearing scheduled for this case yet. If conciliation is required, you will receive an email notice with the date and time.
+                        </p>
+                      )}
+
+                      {result.attachmentUrl && (
+                        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>
+                            Submitted Case Evidence:
+                          </span>
+                          {/\.(mp4|webm|mov|mkv|avi)$/i.test(result.attachmentUrl) ? (
+                            <div>
+                              <video
+                                controls
+                                style={{ width: '100%', maxHeight: 220, borderRadius: 8, background: '#000' }}
+                                preload="metadata"
+                              >
+                                <source src={toAssetUrl(result.attachmentUrl)} />
+                                Your browser does not support the video tag.
+                              </video>
+                              <a
+                                href={toAssetUrl(result.attachmentUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                              >
+                                🎬 Open video in full screen ↗
+                              </a>
+                            </div>
+                          ) : /\.(jpe?g|png|gif|webp)$/i.test(result.attachmentUrl) ? (
+                            <div>
+                              <img
+                                src={toAssetUrl(result.attachmentUrl)}
+                                alt="Case Evidence"
+                                style={{ maxHeight: 180, maxWidth: '100%', borderRadius: 8, border: '1px solid #cbd5e1', objectFit: 'contain' }}
+                              />
+                              <a
+                                href={toAssetUrl(result.attachmentUrl)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ display: 'block', fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                              >
+                                📷 View full resolution photo ↗
+                              </a>
+                            </div>
+                          ) : (
+                            <a
+                              href={toAssetUrl(result.attachmentUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#2563eb', textDecoration: 'underline', fontWeight: 600 }}
+                            >
+                              📄 View Attached Evidence File ↗
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Recent History / Other Cases */}
+                    <div className="card">
+                      <div className="card-title">Recent History</div>
+                      {history.length === 0 && upcoming.length === 0 && (
+                        <p style={{ color: 'var(--muted)', padding: '14px 0' }}>No other history yet.</p>
+                      )}
+                      {[...upcoming, ...history].map((c) => (
+                        <div
+                          className="history-row"
+                          key={c.id}
+                          onClick={() => { setRefInput(c.trackingId); doLookup(c.trackingId); }}
+                          style={{ cursor: 'pointer' }}
+                          title="Click to track this case"
+                        >
+                          <div>
+                            <div style={{ fontWeight: 700 }}>{c.nature}</div>
+                            <div className="ref">Ref No. {c.caseRef}</div>
+                          </div>
+                          <span className={`badge ${statusBadgeClass(c.status)}`}>{c.status.toUpperCase()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </>
         )}
       </div>

@@ -3,19 +3,33 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import StatCard from '../components/StatCard.jsx';
 
-const STATUS_OPTIONS = ['Pending', 'In Progress', 'Mediation', 'Resolved'];
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Closed'];
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
-  'In Progress': 'bg-blue-100 text-blue-700',
+  'Under Review': 'bg-blue-100 text-blue-700',
+  'In Progress': 'bg-amber-100 text-amber-700',
   Mediation: 'bg-purple-100 text-purple-700',
-  Resolved: 'bg-green-100 text-green-700',
+  Resolved: 'bg-emerald-100 text-emerald-700',
+  Closed: 'bg-slate-100 text-slate-700',
 };
+
+function getFilingAgeDays(filingDate) {
+  if (!filingDate) return null;
+
+  const date = new Date(`${String(filingDate).slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.floor((today - date) / 86400000);
+}
 
 export default function ComplaintsRecord() {
   const [complaints, setComplaints] = useState([]);
   const [stats, setStats] = useState({ active: 0, resolutionRate: 0 });
   const [search, setSearch] = useState('');
+  const [filingRecency, setFilingRecency] = useState('all');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
@@ -36,6 +50,16 @@ export default function ComplaintsRecord() {
     e.preventDefault();
     fetchComplaints(search);
   };
+
+  const visibleComplaints = complaints.filter((complaint) => {
+    if (filingRecency === 'all') return true;
+
+    const ageDays = getFilingAgeDays(complaint.filingDate);
+    if (ageDays === null || ageDays < 0) return false;
+    if (filingRecency === 'latest') return ageDays <= 7;
+    if (filingRecency === 'days') return ageDays >= 8 && ageDays <= 30;
+    return ageDays >= 31;
+  });
 
   const handleStatusChange = async (caseId, newStatus) => {
     setError('');
@@ -77,16 +101,29 @@ export default function ComplaintsRecord() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-slate-100">
           <h2 className="font-semibold text-slate-800">Active Repository</h2>
-          <form onSubmit={handleSearch}>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search case ID, resident name, or incident..."
-              className="w-80 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </form>
+          <div className="flex flex-wrap items-center gap-2">
+            <form onSubmit={handleSearch}>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search case ID, resident name, or incident..."
+                className="w-80 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </form>
+            <select
+              aria-label="Filter cases by filing date"
+              value={filingRecency}
+              onChange={(e) => setFilingRecency(e.target.value)}
+              className="w-48 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Any filing date</option>
+              <option value="latest">Latest (0-7 days)</option>
+              <option value="days">Days ago (8-30 days)</option>
+              <option value="months">Months ago (31+ days)</option>
+            </select>
+          </div>
         </div>
 
         <table className="w-full text-sm">
@@ -108,14 +145,14 @@ export default function ComplaintsRecord() {
                 </td>
               </tr>
             )}
-            {!loading && complaints.length === 0 && (
+            {!loading && visibleComplaints.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
-                  No cases found.
+                  {complaints.length === 0 ? 'No cases found.' : 'No cases match this filing-date filter.'}
                 </td>
               </tr>
             )}
-            {complaints.map((c) => (
+            {visibleComplaints.map((c) => (
               <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50">
                 <td className="px-5 py-3">
                   <Link to={`/complaints/${c.id}`} className="font-medium text-blue-600 hover:underline">

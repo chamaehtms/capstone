@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 
 function formatDate(value) {
   if (!value) return null;
@@ -14,10 +14,15 @@ export default function ResidentProfile() {
   const [resident, setResident] = useState(null);
   const [error, setError] = useState('');
   const [approving, setApproving] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const load = () => api
     .get(`/residents/${id}`)
-    .then((res) => setResident(res.data))
+    .then((res) => {
+      setResident(res.data);
+      setImgError(false);
+    })
     .catch(() => setError('Resident not found.'));
 
   useEffect(() => {
@@ -25,10 +30,34 @@ export default function ResidentProfile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      const res = await api.post(`/residents/${id}/photo`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setResident(res.data);
+      setImgError(false);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to update profile photo.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
   async function approve() {
     setApproving(true);
     try {
-      await api.put(`/residents/${id}`, { status: 'Verified' });
+      try {
+        await api.post(`/residents/${id}/approve`);
+      } catch {
+        await api.put(`/residents/${id}`, { status: 'Verified' });
+      }
       await load();
     } catch {
       setError('Unable to approve this resident. Please try again.');
@@ -66,17 +95,33 @@ export default function ResidentProfile() {
 
       <div className="bg-white rounded-xl shadow-sm p-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {resident.photoUrl ? (
-            <img
-              src={resident.photoUrl}
-              alt={resident.fullName}
-              className="h-16 w-16 rounded-full object-cover border border-slate-200"
-            />
-          ) : (
-            <div className="h-16 w-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-semibold">
-              {resident.fullName ? resident.fullName.slice(0, 2).toUpperCase() : '?'}
-            </div>
-          )}
+          <div className="relative group">
+            {resident.photoUrl && !imgError ? (
+              <img
+                src={toAssetUrl(resident.photoUrl)}
+                alt={resident.fullName}
+                onError={() => setImgError(true)}
+                className="h-16 w-16 rounded-full object-cover border border-slate-200"
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-semibold">
+                {resident.fullName ? resident.fullName.slice(0, 2).toUpperCase() : '?'}
+              </div>
+            )}
+            <label
+              className="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-semibold"
+              title="Click to change photo"
+            >
+              <span>{uploadingPhoto ? '…' : '📷 Change'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                disabled={uploadingPhoto}
+                className="hidden"
+              />
+            </label>
+          </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900">{resident.fullName}</h1>
             <p className="text-sm text-slate-500">
@@ -143,7 +188,7 @@ export default function ResidentProfile() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-slate-700">🪪 Valid ID Document</span>
                       <a
-                        href={resident.idDocumentUrl}
+                        href={toAssetUrl(resident.idDocumentUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[11px] text-blue-600 hover:underline"
@@ -153,7 +198,7 @@ export default function ResidentProfile() {
                     </div>
                     <div className="h-40 w-full flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1.5 overflow-hidden">
                       <img
-                        src={resident.idDocumentUrl}
+                        src={toAssetUrl(resident.idDocumentUrl)}
                         alt="Valid ID"
                         className="h-full w-auto object-contain rounded"
                       />
@@ -165,7 +210,7 @@ export default function ResidentProfile() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-slate-700">🤳 Selfie Holding Valid ID</span>
                       <a
-                        href={resident.selfieIdUrl}
+                        href={toAssetUrl(resident.selfieIdUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[11px] text-purple-700 hover:underline"
@@ -175,7 +220,7 @@ export default function ResidentProfile() {
                     </div>
                     <div className="h-40 w-full flex items-center justify-center bg-white rounded-lg border border-slate-200 p-1.5 overflow-hidden">
                       <img
-                        src={resident.selfieIdUrl}
+                        src={toAssetUrl(resident.selfieIdUrl)}
                         alt="Selfie Holding ID"
                         className="h-full w-auto object-contain rounded"
                       />
@@ -193,21 +238,6 @@ export default function ResidentProfile() {
             <p className="font-semibold text-slate-800">{resident.zone}</p>
             <p className="text-xs text-slate-400 mt-3">RESIDENCY PERIOD</p>
             <p className="text-sm text-slate-600">{resident.residencyYears || 0} yrs, Barangay Poblacion</p>
-          </div>
-
-          <div className="bg-navy-900 text-white rounded-xl shadow-sm p-5">
-            <p className="text-xs text-slate-300">COMPLIANCE</p>
-            <div className="flex items-center justify-between mt-2 text-sm">
-              <span>Voter Registration</span>
-              <span className="text-green-400 font-medium">Active</span>
-            </div>
-            <div className="flex items-center justify-between mt-2 text-sm">
-              <span>Barangay Clearance</span>
-              <span className="text-green-400 font-medium">Active</span>
-            </div>
-            <button className="w-full mt-4 bg-white/10 hover:bg-white/20 rounded-lg py-2 text-xs font-medium">
-              Request Renewal Visit
-            </button>
           </div>
         </div>
       </div>

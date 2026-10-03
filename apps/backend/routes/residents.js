@@ -5,6 +5,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
+const { sendResidentApprovalEmail } = require('../utils/mailer');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -142,7 +143,7 @@ router.get('/pending-registrations', async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT * FROM residents WHERE self_registered = true AND status = 'Pending'
-       AND email_verified = true ORDER BY created_at ASC`
+       ORDER BY created_at ASC`
     );
     res.json(rows.map(toResident));
   } catch (err) {
@@ -151,21 +152,37 @@ router.get('/pending-registrations', async (req, res) => {
   }
 });
 
-// POST /api/residents/:id/approve  (approve a self-registered account)
+// POST /api/residents/:id/approve  (approve a resident account)
 router.post('/:id/approve', async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `UPDATE residents SET status = 'Verified' WHERE id = $1 AND self_registered = true
-       AND email_verified = true RETURNING *`,
+      `UPDATE residents
+       SET status = 'Verified', email_verified = true
+       WHERE id = $1
+       RETURNING *`,
       [req.params.id]
     );
     if (rows.length === 0) {
-      const { rows: existing } = await pool.query('SELECT email_verified FROM residents WHERE id = $1', [req.params.id]);
-      if (existing.length === 0) return res.status(404).json({ message: 'Resident not found.' });
-      if (!existing[0].email_verified) return res.status(403).json({ message: 'Resident must verify their email before approval.' });
-      return res.status(409).json({ message: 'This resident is not awaiting registration approval.' });
+      return res.status(404).json({ message: 'Resident not found.' });
     }
-    res.json(toResident(rows[0]));
+
+    const approved = rows[0];
+
+    if (approved.email) {
+      try {
+        const loginUrl = (process.env.RESIDENT_FRONTEND_URL || 'http://localhost:5500').replace(/\/$/, '') + '/login';
+        await sendResidentApprovalEmail({
+          to: approved.email,
+          residentName: approved.full_name,
+          residentId: approved.id,
+          loginUrl,
+        });
+      } catch (mailErr) {
+        console.error('[residents] Failed to send approval email on approve:', mailErr);
+      }
+    }
+
+    res.json(toResident(approved));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Database error approving resident.' });
@@ -285,23 +302,56 @@ router.put('/:id', async (req, res) => {
     const existing = toResident(existingRows[0]);
     const merged = { ...existing, ...req.body };
 
-    if (req.body.birthDate && req.body.birthDate !== existing.birthDate) {
-      merged.age = Math.max(0, new Date().getFullYear() - new Date(req.body.birthDate).getFullYear());
+    const birthDateStr = merged.birthDate && String(merged.birthDate).trim() ? String(merged.birthDate).slice(0, 10) : null;
+    let age = null;
+    if (birthDateStr) {
+      const birth = new Date(birthDateStr);
+      if (!Number.isNaN(birth.getTime())) {
+        age = Math.max(0, new Date().getFullYear() - birth.getFullYear());
+      }
+    } else if (merged.age !== undefined && merged.age !== null && merged.age !== '') {
+      age = parseInt(merged.age, 10);
+      if (Number.isNaN(age)) age = null;
     }
+
+    const residencyYears = merged.residencyYears !== undefined && merged.residencyYears !== null && merged.residencyYears !== ''
+      ? (parseInt(merged.residencyYears, 10) || 0)
+      : 0;
+
+    const photoUrl = req.body.photoUrl !== undefined ? (req.body.photoUrl || null) : existing.photoUrl;
+
+    const wasPending = existing.status === 'Pending';
+    const isNowVerified = (merged.status === 'Verified');
+    const emailVerifiedVal = isNowVerified ? true : (existing.emailVerified !== undefined ? existing.emailVerified : true);
 
     const { rows } = await pool.query(
       `UPDATE residents SET
         full_name=$1, birth_date=$2, age=$3, gender=$4, occupation=$5, address=$6, zone=$7,
         residency_years=$8, contact=$9, email=$10, status=$11, category=$12, education=$13,
-        blood_type=$14, place_of_birth=$15, spouse=$16, household=$17
-       WHERE id=$18 RETURNING *`,
+        blood_type=$14, place_of_birth=$15, spouse=$16, household=$17, photo_url=$18,
+        email_verified=$19
+       WHERE id=$20 RETURNING *`,
       [
-        merged.fullName, merged.birthDate, merged.age, merged.gender, merged.occupation, merged.address,
-        merged.zone, merged.residencyYears, merged.contact, merged.email, merged.status,
-        JSON.stringify(merged.category || []), merged.education, merged.bloodType, merged.placeOfBirth,
-        merged.spouse, JSON.stringify(merged.household || []), req.params.id,
+        merged.fullName, birthDateStr, age, merged.gender || 'Unspecified', merged.occupation || '', merged.address,
+        merged.zone || '', residencyYears, merged.contact || '', merged.email || '', merged.status || 'Pending',
+        JSON.stringify(merged.category || []), merged.education || '', merged.bloodType || '', merged.placeOfBirth || '',
+        merged.spouse || '', JSON.stringify(merged.household || []), photoUrl, emailVerifiedVal, req.params.id,
       ]
     );
+
+    if (wasPending && isNowVerified && rows[0]?.email) {
+      try {
+        const loginUrl = (process.env.RESIDENT_FRONTEND_URL || 'http://localhost:5500').replace(/\/$/, '') + '/login';
+        await sendResidentApprovalEmail({
+          to: rows[0].email,
+          residentName: rows[0].full_name,
+          residentId: rows[0].id,
+          loginUrl,
+        });
+      } catch (mailErr) {
+        console.error('[residents] Failed to send approval email on PUT:', mailErr);
+      }
+    }
 
     res.json(toResident(rows[0]));
   } catch (err) {

@@ -1,8 +1,36 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { sendMediationNoticeEmail } = require('../utils/mailer');
+
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'complaint-evidence');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.jpg';
+      cb(null, `evidence-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for video evidence
+  fileFilter: (req, file, cb) => {
+    const ok = file.mimetype.startsWith('image/') ||
+      file.mimetype.startsWith('video/') ||
+      file.mimetype === 'application/pdf' ||
+      file.mimetype === 'application/msword' ||
+      file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    if (!ok) {
+      return cb(new Error('Only image, video, PDF, or document evidence files are allowed.'));
+    }
+    cb(null, true);
+  },
+});
 
 const router = express.Router();
 router.use(requireAuth);
@@ -31,7 +59,10 @@ function toComplaint(c) {
     filedByResidentId: c.filed_by_resident_id,
     submittedAt: c.created_at,
     underReviewAt: c.under_review_at,
+    inProgressAt: c.in_progress_at,
     resolvedAt: c.resolved_at,
+    closedAt: c.closed_at,
+    assignedTeam: c.assigned_team || 'Maintenance Team',
     mediationDate: c.mediation_date,
     mediationTime: c.mediation_time,
     mediationVenue: c.mediation_venue,
@@ -137,30 +168,85 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/complaints (File New Case)
-router.post('/', async (req, res) => {
+// POST /api/complaints (File New Case - Official KP Form / Lupong Tagapamayapa)
+router.post('/', (req, res, next) => {
+  upload.single('evidence')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message || 'Invalid evidence file upload.' });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
-    const { resident, category, description, priority } = req.body;
-    if (!resident || !category) {
-      return res.status(400).json({ message: 'Resident and category are required.' });
+    const resident = (req.body.resident || req.body.complainantName || '').trim();
+    const category = (req.body.category || 'Formal Complaint').trim();
+    const nature = (req.body.nature || req.body.description || '').trim();
+    const narrative = (req.body.narrative || '').trim();
+    const reliefSought = (req.body.reliefSought || '').trim();
+    const respondent = (req.body.respondent || req.body.respondentName || '').trim();
+    const complainantAddress = (req.body.complainantAddress || '').trim();
+    const respondentAddress = (req.body.respondentAddress || '').trim();
+    const priority = req.body.priority || 'Normal';
+    const barangayCaseNo = (req.body.barangayCaseNo || '').trim();
+
+    if (!resident) {
+      return res.status(400).json({ message: 'Resident / Complainant name is required.' });
     }
 
-    const { rows: countRows } = await pool.query('SELECT COUNT(*)::int AS count FROM complaints');
     const year = new Date().getFullYear();
-    const seq = String(countRows[0].count + 1).padStart(3, '0');
-    const id = `CASE-${year}-${seq}`;
+    let id = barangayCaseNo;
+
+    if (!id) {
+      const prefix = category === 'Infrastructure' || category === 'Public Works' ? 'IN' : 'BC';
+      const { rows: countRows } = await pool.query(
+        "SELECT COUNT(*)::int AS count FROM complaints WHERE id LIKE $1",
+        [`${prefix}-${year}-%`]
+      );
+      const seq = String(countRows[0].count + 1).padStart(5, '0');
+      id = `${prefix}-${year}-${seq}`;
+    }
+
+    // Attempt to link to resident account if exists
+    let filedByResidentId = req.body.filedByResidentId || req.body.residentId || null;
+    if (!filedByResidentId) {
+      const { rows: matchedResidents } = await pool.query(
+        'SELECT id FROM residents WHERE LOWER(TRIM(full_name)) = LOWER($1) LIMIT 1',
+        [resident]
+      );
+      if (matchedResidents.length > 0) {
+        filedByResidentId = matchedResidents[0].id;
+      }
+    }
+
+    const attachmentUrl = req.file ? `/uploads/complaint-evidence/${req.file.filename}` : (req.body.attachmentUrl || null);
 
     const { rows } = await pool.query(
-      `INSERT INTO complaints (id, resident, category, status, filing_date, description, priority)
-       VALUES ($1,$2,$3,'Pending',CURRENT_DATE,$4,$5)
+      `INSERT INTO complaints
+        (id, resident, category, status, filing_date, description, priority,
+         respondent, respondent_address, complainant_address, narrative, relief_sought,
+         attachment_url, filed_by_resident_id)
+       VALUES ($1,$2,$3,'Pending',CURRENT_DATE,$4,$5,$6,$7,$8,$9,$10,$11,$12)
        RETURNING *`,
-      [id, resident, category, description || '', priority || 'Normal']
+      [
+        id,
+        resident,
+        category,
+        nature || narrative || 'Formal Complaint',
+        priority,
+        respondent || null,
+        respondentAddress || null,
+        complainantAddress || null,
+        narrative || null,
+        reliefSought || null,
+        attachmentUrl,
+        filedByResidentId,
+      ]
     );
 
     res.status(201).json(toComplaint(rows[0]));
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Database error filing case.' });
+    res.status(500).json({ message: err.message || 'Database error filing case.' });
   }
 });
 
@@ -309,22 +395,33 @@ router.put('/:id', async (req, res) => {
     const merged = { ...existing, ...req.body };
 
     let underReviewAt = existingRaw.under_review_at;
+    let inProgressAt = existingRaw.in_progress_at;
     let resolvedAt = existingRaw.resolved_at;
-    if (merged.status !== 'Pending' && !underReviewAt) {
+    let closedAt = existingRaw.closed_at;
+
+    if ((merged.status === 'Under Review' || merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Closed') && !underReviewAt) {
       underReviewAt = new Date();
     }
-    if (merged.status === 'Resolved' && !resolvedAt) {
+    if ((merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Closed') && !inProgressAt) {
+      inProgressAt = new Date();
+    }
+    if ((merged.status === 'Resolved' || merged.status === 'Closed') && !resolvedAt) {
       resolvedAt = new Date();
+    }
+    if (merged.status === 'Closed' && !closedAt) {
+      closedAt = new Date();
     }
 
     const { rows } = await pool.query(
       `UPDATE complaints SET resident=$1, category=$2, status=$3, filing_date=$4, description=$5, priority=$6,
-        needs_escalation=$7, under_review_at=$8, resolved_at=$9,
-        mediation_date=$10, mediation_time=$11, mediation_venue=$12, mediator=$13, hearing_stage=$14
-       WHERE id=$15 RETURNING *`,
+        needs_escalation=$7, under_review_at=$8, in_progress_at=$9, resolved_at=$10, closed_at=$11,
+        assigned_team=COALESCE($12, assigned_team),
+        mediation_date=$13, mediation_time=$14, mediation_venue=$15, mediator=$16, hearing_stage=$17
+       WHERE id=$18 RETURNING *`,
       [
         merged.resident, merged.category, merged.status, merged.filingDate, merged.description, merged.priority,
-        merged.needsEscalation === true, underReviewAt, resolvedAt,
+        merged.needsEscalation === true, underReviewAt, inProgressAt, resolvedAt, closedAt,
+        merged.assignedTeam || null,
         merged.mediationDate || null, merged.mediationTime || null, merged.mediationVenue || null,
         merged.mediator || null, merged.hearingStage || null,
         req.params.id,

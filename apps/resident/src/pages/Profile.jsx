@@ -105,7 +105,33 @@ export default function Profile() {
     navigate('/');
   }
 
-  if (error) return (<><Navbar /><div className="page"><div className="error-msg" style={{ marginTop: 20 }}>{error}</div></div></>);
+  if (error) {
+    const isAuthError = /token|unauthorized|expired|401/i.test(error);
+    return (
+      <>
+        <Navbar />
+        <div className="page">
+          <div className="error-msg" style={{ marginTop: 20 }}>
+            {error}
+          </div>
+          {isAuthError && (
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                className="btn btn-navy"
+                onClick={() => {
+                  Session.clear();
+                  navigate('/login');
+                }}
+              >
+                Sign In Again →
+              </button>
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
   if (!data) return (<><Navbar /><div className="page"><p style={{ marginTop: 20, color: 'var(--muted)' }}>Loading…</p></div></>);
 
   const {
@@ -123,6 +149,12 @@ export default function Profile() {
       <div className="page">
         <h1 className="hero-title" style={{ marginTop: 24 }}>Resident Profile</h1>
 
+        {user.status === 'Pending' && (
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 18px', marginBottom: 20, color: '#92400e', fontSize: '0.88rem', lineHeight: 1.5 }}>
+            <strong>⏳ Account Pending Verification:</strong> Your registration details have not yet been verified against the official Barangay Resident Database. Your account currently has limited access to file and monitor complaints.
+          </div>
+        )}
+
         <div className="profile-grid">
           <div>
             <label htmlFor="profilePhoto" style={{ cursor: 'pointer', display: 'inline-block', position: 'relative' }}>
@@ -139,6 +171,17 @@ export default function Profile() {
             </label>
             <input id="profilePhoto" type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} disabled={uploadingPhoto} />
             <div className="profile-name">{user.fullName}</div>
+            <div style={{ margin: '4px 0 10px' }}>
+              {user.status === 'Verified' ? (
+                <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', padding: '2px 10px', borderRadius: 12, fontSize: '0.74rem', fontWeight: 700 }}>
+                  ✓ Verified Resident
+                </span>
+              ) : (
+                <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '2px 10px', borderRadius: 12, fontSize: '0.74rem', fontWeight: 700 }}>
+                  ⏳ Pending Verification (Limited Access)
+                </span>
+              )}
+            </div>
             <p className="profile-desc">
               Barangay Poblacion, Resident ID: {user.residentId}. Actively contributing to community safety and environmental initiatives.
             </p>
@@ -152,22 +195,32 @@ export default function Profile() {
               <div className="sub">{complaintsFiled ? `${complaintsResolved} successfully resolved` : 'No complaints filed by you'}</div>
             </div>
 
-            {complaintsAgainstMe > 0 && (
-              <div className="stat-card" style={{ background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b', marginTop: 12 }}>
-                <div className="label">
-                  <span style={{ color: '#fca5a5' }}>⚠️</span>
-                  <span style={{ color: '#fecaca', fontWeight: 700 }}>Complaints Against You</span>
-                </div>
-                <div className="value" style={{ color: '#ffffff' }}>{String(complaintsAgainstMe).padStart(2, '0')}</div>
-                <div className="sub" style={{ color: '#fca5a5' }}>
-                  {activeComplaintsAgainstMe > 0 ? `${activeComplaintsAgainstMe} active complaint notice(s)` : 'All complaints resolved'}
-                </div>
+            <div
+              className={`stat-card ${complaintsAgainstMe > 0 ? '' : 'light'}`}
+              style={
+                complaintsAgainstMe > 0
+                  ? { background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b' }
+                  : {}
+              }
+            >
+              <div className="label">
+                <span style={{ color: complaintsAgainstMe > 0 ? '#fca5a5' : undefined }}>
+                  {complaintsAgainstMe > 0 ? '⚠️' : '⚖️'}
+                </span>
+                <span style={{ color: complaintsAgainstMe > 0 ? '#fecaca' : undefined, fontWeight: 700 }}>
+                  Complaints Against You
+                </span>
               </div>
-            )}
-            <div className="stat-card light">
-              <div className="label"><span>♡</span><span>Community Points</span></div>
-              <div className="value">{user.communityPoints.toLocaleString()}</div>
-              <div className="sub">Tier: {user.tier}</div>
+              <div className="value" style={{ color: complaintsAgainstMe > 0 ? '#ffffff' : undefined }}>
+                {String(complaintsAgainstMe).padStart(2, '0')}
+              </div>
+              <div className="sub" style={{ color: complaintsAgainstMe > 0 ? '#fca5a5' : undefined }}>
+                {complaintsAgainstMe > 0
+                  ? (activeComplaintsAgainstMe > 0
+                      ? `${activeComplaintsAgainstMe} active complaint notice(s)`
+                      : 'All complaints resolved')
+                  : 'No complaints filed against you'}
+              </div>
             </div>
           </div>
 
@@ -228,6 +281,13 @@ export default function Profile() {
             ) : (
               <div className="card" style={{ marginBottom: 20 }}>
                 <div className="card-title">🪪 Personal Information</div>
+                <div className="info-grid"><div className="k">Account Status</div><div className="v">
+                  {user.status === 'Verified' ? (
+                    <span style={{ color: '#16a34a', fontWeight: 700 }}>● Verified Resident</span>
+                  ) : (
+                    <span style={{ color: '#d97706', fontWeight: 700 }}>⏳ Pending Verification (Limited Access)</span>
+                  )}
+                </div></div>
                 <div className="info-grid"><div className="k">Birthdate</div><div className="v">
                   {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}
                 </div></div>

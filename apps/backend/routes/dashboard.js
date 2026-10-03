@@ -34,13 +34,13 @@ router.get('/overview', async (req, res) => {
         filedByResidentId: c.filed_by_resident_id,
         createdAt: c.created_at,
         title: `New Case Filed: #${c.id}`,
-        detail: `Resident ${c.resident} registered a ${c.category.toLowerCase()} complaint.`,
+        detail: `Resident ${c.resident || 'Resident'} registered a ${(c.category || 'formal').toLowerCase()} complaint.`,
         when: 'Recently',
       })),
       ...recentMeetings.map((m) => ({
         type: 'meeting',
         title: 'Session Adjourned',
-        detail: `${m.title} concluded. Minutes and proposed resolutions have been uploaded to the archives.`,
+        detail: `${m.title || 'Barangay Session'} concluded. Minutes and proposed resolutions have been uploaded to the archives.`,
         when: 'Yesterday',
       })),
     ];

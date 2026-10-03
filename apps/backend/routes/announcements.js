@@ -3,8 +3,9 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
 // GET is public: announcements are shown on the resident dashboard
@@ -52,6 +53,22 @@ function deleteImageFile(imageUrl) {
 // GET /api/announcements
 router.get('/', async (req, res) => {
   try {
+    const authHeader = req.headers.authorization || '';
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        if (payload && payload.scope === 'resident') {
+          const { rows } = await pool.query('SELECT status FROM residents WHERE id = $1', [payload.id]);
+          if (rows.length > 0 && rows[0].status !== 'Verified') {
+            return res.json([]);
+          }
+        }
+      } catch {
+        // invalid or expired token, ignore
+      }
+    }
+
     const { rows } = await pool.query('SELECT * FROM announcements ORDER BY created_at DESC');
     res.json(rows.map(toAnnouncement));
   } catch (err) {

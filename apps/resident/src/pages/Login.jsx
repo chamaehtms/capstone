@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login, Session } from '../api.js';
+import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState('elena.santos@example.com');
-  const [password, setPassword] = useState('password123');
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +31,7 @@ export default function Login() {
 
   return (
     <div className="center-page auth-scene">
-      <div className="auth-card">
+      <div className="auth-card auth-login-card">
         <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" />
         <h1 className="auth-title">Barangay Poblacion</h1>
 
@@ -39,15 +40,15 @@ export default function Login() {
         <form onSubmit={handleSubmit}>
           <div className="field input-icon">
             <label className="field-label">Email</label>
-            <span className="icon">👤</span>
+            <ModernIcon name="mail" size={18} className="icon" />
             <input type="email" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="you@example.com" required />
           </div>
-          <div className="field input-icon">
+          <div className="field input-icon login-password-field">
             <div className="row-between" style={{ marginBottom: 6 }}>
               <label className="field-label" style={{ margin: 0 }}>Password</label>
               <Link to="/forgot-password" className="link-blue">Forgot Password?</Link>
             </div>
-            <span className="icon">🔒</span>
+            <ModernIcon name="key" size={18} className="icon" />
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
           </div>
           <div className="checkbox-row">

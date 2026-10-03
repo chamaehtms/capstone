@@ -5,17 +5,50 @@ import StatCard from '../components/StatCard.jsx';
 
 export default function Overview() {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const loadOverview = () => {
+    setLoading(true);
+    setError('');
     api
       .get('/dashboard/overview')
       .then((res) => setData(res.data))
-      .catch(() => setError('Unable to load dashboard data.'));
+      .catch((err) => {
+        console.error('Failed to load dashboard overview:', err);
+        setError(err.response?.data?.message || err.message || 'Unable to load dashboard data. Please make sure the server is running.');
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadOverview();
   }, []);
 
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (!data) return <p className="text-slate-500">Loading overview…</p>;
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Overview</h1>
+          <p className="text-sm text-slate-500">Poblacion Admin · Local Government Unit</p>
+        </div>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-5 py-4 rounded-xl flex items-center justify-between shadow-sm">
+          <div>
+            <p className="font-semibold text-sm">Unable to load dashboard data</p>
+            <p className="text-xs text-red-600 mt-1">{error}</p>
+          </div>
+          <button
+            onClick={loadOverview}
+            className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !data) return <p className="text-slate-500">Loading overview…</p>;
 
   return (
     <div className="space-y-6">
@@ -38,7 +71,7 @@ export default function Overview() {
             </span>
           )}
         </StatCard>
-        <StatCard label="Active Projects" value={String(data.activeProjects).padStart(2, '0')} accent="green">
+        <StatCard label="Resolved cases" value={String(data.activeProjects).padStart(2, '0')} accent="green">
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3">
             <div
               className="bg-green-500 h-1.5 rounded-full"

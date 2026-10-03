@@ -75,7 +75,11 @@ async function run() {
         ADD COLUMN IF NOT EXISTS email_verification_code_hash TEXT,
         ADD COLUMN IF NOT EXISTS email_verification_expires_at TIMESTAMPTZ,
         ADD COLUMN IF NOT EXISTS email_verification_sent_at TIMESTAMPTZ,
-        ADD COLUMN IF NOT EXISTS email_verification_attempts INT NOT NULL DEFAULT 0
+          ADD COLUMN IF NOT EXISTS email_verification_attempts INT NOT NULL DEFAULT 0,
+          ADD COLUMN IF NOT EXISTS password_reset_code_hash TEXT,
+          ADD COLUMN IF NOT EXISTS password_reset_expires_at TIMESTAMPTZ,
+          ADD COLUMN IF NOT EXISTS password_reset_sent_at TIMESTAMPTZ,
+          ADD COLUMN IF NOT EXISTS password_reset_attempts INT NOT NULL DEFAULT 0
   `);
 
   // Backfill: any resident row that already has a portal password was
@@ -105,7 +109,10 @@ async function run() {
       ADD COLUMN IF NOT EXISTS attachment_url TEXT,
       ADD COLUMN IF NOT EXISTS filed_by_resident_id TEXT REFERENCES residents(id) ON DELETE SET NULL,
       ADD COLUMN IF NOT EXISTS under_review_at TIMESTAMPTZ,
-      ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ
+      ADD COLUMN IF NOT EXISTS in_progress_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS assigned_team TEXT DEFAULT 'Maintenance Team'
   `);
 
   // The announcements table pre-dates the current schema in some existing

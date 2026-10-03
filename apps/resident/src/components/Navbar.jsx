@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { getAnnouncements, getMyEscalations, getMyMediations, getMyNotifications, markNotificationsRead } from '../api.js';
+import ModernIcon from './ModernIcons.jsx';
+import { getAnnouncements, getMyEscalations, getMyMediations, getMyNotifications, markNotificationsRead, Session } from '../api.js';
 
 export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
@@ -9,6 +10,8 @@ export default function Navbar() {
   const [newNotification, setNewNotification] = useState(null);
   const lastKnownIdsRef = useRef(new Set());
   const initialized = useRef(false);
+  const user = Session.getUser();
+  const isVerified = user?.status === 'Verified';
 
   useEffect(() => {
     let active = true;
@@ -16,24 +19,26 @@ export default function Navbar() {
     const loadNotifications = async () => {
       try {
         const [announcements, escalations, mediations, dbNotifs] = await Promise.all([
-          getAnnouncements(),
-          getMyEscalations(),
-          getMyMediations(),
-          getMyNotifications(),
+          isVerified ? getAnnouncements().catch(() => []) : Promise.resolve([]),
+          getMyEscalations().catch(() => []),
+          getMyMediations().catch(() => []),
+          getMyNotifications().catch(() => []),
         ]);
         if (!active) return;
 
         const seenIds = JSON.parse(localStorage.getItem('bp_seen_notifications') || '[]');
 
-        // Convert announcements into notification objects
-        const announcementNotifications = announcements.map((announcement) => ({
-          id: `announcement-${announcement.id}`,
-          title: '📢 Community Announcement',
-          message: announcement.title,
-          type: 'announcement',
-          link: '/services',
-          unread: !seenIds.includes(`announcement-${announcement.id}`),
-        }));
+        // Convert announcements into notification objects only for verified residents
+        const announcementNotifications = isVerified
+          ? announcements.map((announcement) => ({
+              id: `announcement-${announcement.id}`,
+              title: '📢 Community Announcement',
+              message: announcement.title,
+              type: 'announcement',
+              link: '/services',
+              unread: !seenIds.includes(`announcement-${announcement.id}`),
+            }))
+          : [];
 
         // Convert escalations
         const escalationNotifications = escalations.map((escalation) => ({
@@ -95,7 +100,7 @@ export default function Navbar() {
         // Check if any brand new notification arrived after initial load
         if (initialized.current) {
           const fresh = allNotifications.find((n) => !lastKnownIdsRef.current.has(n.id));
-          if (fresh) {
+          if (fresh && (isVerified || fresh.type !== 'announcement')) {
             setNewNotification(fresh);
           }
         }
@@ -115,7 +120,7 @@ export default function Navbar() {
       active = false;
       window.clearInterval(intervalId);
     };
-  }, []);
+  }, [isVerified]);
 
   async function openNotifications() {
     setShowNotifications((isOpen) => !isOpen);
@@ -136,17 +141,43 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="brand">
+      <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="brand-mark" />
         <span>Barangay Residents Portal</span>
+        {user?.status === 'Pending' && (
+          <span style={{
+            fontSize: '0.68rem',
+            background: '#fef3c7',
+            color: '#92400e',
+            border: '1px solid #fcd34d',
+            padding: '2px 8px',
+            borderRadius: 10,
+            fontWeight: 700,
+            whiteSpace: 'nowrap'
+          }}>
+            ⏳ Pending Verification
+          </span>
+        )}
       </div>
       <div className="nav-links">
-        <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>🏠 Home</NavLink>
-        <NavLink to="/services" className={({ isActive }) => isActive ? 'active' : ''}>⚏ Services</NavLink>
-        <NavLink to="/track" className={({ isActive }) => isActive ? 'active' : ''}>📈 Track</NavLink>
+        <NavLink to="/dashboard" className={({ isActive }) => isActive ? 'active' : ''}>
+          <span className="nav-item-label"><ModernIcon name="home" size={20} />Home</span>
+        </NavLink>
+        {isVerified ? (
+          <NavLink to="/services" className={({ isActive }) => isActive ? 'active' : ''}>
+            <span className="nav-item-label"><ModernIcon name="tool" size={20} />Services</span>
+          </NavLink>
+        ) : (
+          <NavLink to="/file-complaint" className={({ isActive }) => isActive ? 'active' : ''}>
+            <span className="nav-item-label"><ModernIcon name="megaphone" size={20} />File Complaint</span>
+          </NavLink>
+        )}
+        <NavLink to="/track" className={({ isActive }) => isActive ? 'active' : ''}>
+          <span className="nav-item-label"><ModernIcon name="chart" size={20} />Track</span>
+        </NavLink>
         <div className="notification-wrap">
           <button type="button" className="notification-button" onClick={openNotifications} aria-label="Open notifications">
-            🔔
+            <ModernIcon name="bell" size={20} />
             {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
           </button>
           {showNotifications && (
@@ -183,7 +214,9 @@ export default function Navbar() {
             </div>
           )}
         </div>
-        <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>◎ Profile</NavLink>
+        <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
+          <span className="nav-item-label"><ModernIcon name="profile" size={20} />Profile</span>
+        </NavLink>
       </div>
       {newNotification && (
         <div className="announcement-toast" role="status">

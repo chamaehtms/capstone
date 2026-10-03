@@ -82,6 +82,10 @@ CREATE TABLE IF NOT EXISTS residents (
   email_verification_expires_at TIMESTAMPTZ,
   email_verification_sent_at TIMESTAMPTZ,
   email_verification_attempts INT NOT NULL DEFAULT 0,
+  password_reset_code_hash TEXT,
+  password_reset_expires_at TIMESTAMPTZ,
+  password_reset_sent_at TIMESTAMPTZ,
+  password_reset_attempts INT NOT NULL DEFAULT 0,
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

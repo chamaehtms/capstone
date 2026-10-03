@@ -845,30 +845,30 @@ export default function MeetingMinutes() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-                <h3 className="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-2">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-400 overflow-hidden">
+              <div className="px-5 py-4 border-b border-slate-300 flex items-center justify-between bg-slate-50/70">
+                <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
                   <span>📂</span>
                   <span>Session & Hearing Directory ({filteredMeetings.length})</span>
                 </h3>
-                <span className="text-[11px] text-slate-500 hidden sm:inline">
+                <span className="text-xs text-slate-600 hidden sm:inline">
                   Click any row to open the complete minutes & sections (1 to 7)
                 </span>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full text-left text-sm border-collapse">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/90 text-slate-400 font-semibold uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-4">Date & Time</th>
-                      <th className="py-3 px-4">Title / Purpose</th>
-                      <th className="py-3 px-4">Type & Stage</th>
-                      <th className="py-3 px-4">Parties / Attendees</th>
-                      <th className="py-3 px-4">Agreements / Actions</th>
-                      <th className="py-3 px-4 text-right">Action</th>
+                    <tr className="border-b-2 border-slate-300 bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-xs">
+                      <th className="py-3.5 px-4 border-r border-slate-300">Date & Time</th>
+                      <th className="py-3.5 px-4 border-r border-slate-300">Title / Purpose</th>
+                      <th className="py-3.5 px-4 border-r border-slate-300">Type & Stage</th>
+                      <th className="py-3.5 px-4 border-r border-slate-300">Parties / Attendees</th>
+                      <th className="py-3.5 px-4 border-r border-slate-300">Agreements / Actions</th>
+                      <th className="py-3.5 px-4 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-300">
                     {filteredMeetings.map((m) => {
                       const isMed = m.meetingType === 'mediation';
                       const agreementCount = Array.isArray(m.resolutions) ? m.resolutions.length : 0;
@@ -879,27 +879,27 @@ export default function MeetingMinutes() {
                           onClick={() => setSelected(m)}
                           className="hover:bg-purple-50/40 cursor-pointer transition group"
                         >
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="font-bold text-slate-900">{formatMeetingDate(m.date)}</div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 font-medium">
+                          <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
+                            <div className="font-bold text-sm text-slate-900">{formatMeetingDate(m.date)}</div>
+                            <div className="text-xs text-slate-600 mt-1 flex items-center gap-1 font-medium">
                               <span>⏰</span> {m.time || '10:00 AM'}
                             </div>
                           </td>
-                          <td className="py-3.5 px-4">
-                            <div className="font-bold text-slate-900 group-hover:text-purple-700 transition">
+                          <td className="py-4 px-4 border-r border-slate-300">
+                            <div className="font-bold text-sm text-slate-900 group-hover:text-purple-700 transition">
                               {m.title}
                             </div>
-                            <div className="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-2">
+                            <div className="text-xs text-slate-600 mt-1 flex flex-wrap items-center gap-2">
                               <span>📍 {m.location || 'Barangay Session Hall'}</span>
                               {m.caseId && (
-                                <span className="font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+                                <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-300">
                                   Case #{m.caseId}
                                 </span>
                               )}
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold text-[11px] border ${
+                          <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full font-semibold text-xs border ${
                               isMed
                                 ? 'bg-purple-50 text-purple-700 border-purple-200'
                                 : 'bg-blue-50 text-blue-700 border-blue-200'
@@ -908,9 +908,9 @@ export default function MeetingMinutes() {
                               <span>{isMed ? (m.hearingStage || 'Mediation Hearing') : 'Council Session'}</span>
                             </span>
                           </td>
-                          <td className="py-3.5 px-4">
+                          <td className="py-4 px-4 border-r border-slate-300">
                             {isMed ? (
-                              <div className="text-[11px] space-y-0.5">
+                              <div className="text-xs space-y-1">
                                 <div className="font-medium text-slate-800">
                                   <span className="text-slate-400">Complainant:</span> {m.residentName || 'Complainant'}
                                 </div>
@@ -919,14 +919,14 @@ export default function MeetingMinutes() {
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-[11px] text-slate-600">
+                              <div className="text-xs text-slate-700">
                                 <span className="font-semibold text-slate-800">{m.attendees?.length || 0} attendees</span>
-                                {m.attendees?.[0] && <div className="text-slate-400 truncate max-w-[200px]">{m.attendees[0]}</div>}
+                                {m.attendees?.[0] && <div className="text-slate-500 truncate max-w-[200px] mt-1">{m.attendees[0]}</div>}
                               </div>
                             )}
                           </td>
-                          <td className="py-3.5 px-4 whitespace-nowrap">
-                            <div className="flex flex-col gap-1 text-[11px]">
+                          <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
+                            <div className="flex flex-col gap-1.5 text-xs">
                               <span className={`font-semibold ${agreementCount > 0 ? 'text-purple-700' : 'text-slate-400'}`}>
                                 ⚖️ {agreementCount} {isMed ? 'Agreements (KP-16)' : 'Resolutions'}
                               </span>
@@ -935,14 +935,14 @@ export default function MeetingMinutes() {
                               </span>
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                          <td className="py-4 px-4 text-right whitespace-nowrap">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSelected(m);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 transition shadow-2xs"
+                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-200 transition shadow-2xs"
                             >
                               <span>👁️</span>
                               <span>View (1–6)</span>

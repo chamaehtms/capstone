@@ -49,7 +49,15 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
     body: body === undefined ? undefined : (isFormData ? body : JSON.stringify(body))
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || data.error || `Request failed (${res.status})`);
+  if (!res.ok) {
+    if (res.status === 401 && auth) {
+      Session.clear();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/') {
+        window.location.href = '/login';
+      }
+    }
+    throw new Error(data.message || data.error || `Request failed (${res.status})`);
+  }
   return data;
 }
 
@@ -95,6 +103,7 @@ function toLegacyUser(r) {
     pushNotifications: !!r.pushNotifications,
     emailAnnouncements: !!r.emailAnnouncements,
     language: r.language,
+    status: r.status || 'Pending',
     role: 'resident',
     photoUrl: r.photoUrl,
     idDocumentUrl: r.idDocumentUrl,
@@ -130,10 +139,16 @@ function toLegacyComplaint(c) {
     nextMediationVenue: c.nextMediationVenue || null,
     createdAt: c.submittedAt || c.filingDate,
     filingDate: c.filingDate || c.submittedAt,
+    submittedAt: c.submittedAt || c.filingDate || c.createdAt,
+    underReviewAt: c.underReviewAt,
+    inProgressAt: c.inProgressAt,
+    resolvedAt: c.resolvedAt,
+    closedAt: c.closedAt,
+    assignedTeam: c.assignedTeam || 'Maintenance Team',
     isFiledByMe: c.isFiledByMe !== false && !isAgainstMe,
     isAgainstMe,
     role: c.role || (isAgainstMe ? 'respondent' : 'complainant'),
-    updatedAt: c.resolvedAt || c.underReviewAt || c.submittedAt,
+    updatedAt: c.closedAt || c.resolvedAt || c.inProgressAt || c.underReviewAt || c.submittedAt,
     events: [] // the admin backend drives progress off status/stage rather than a logged event timeline
   };
 }
@@ -170,9 +185,9 @@ export async function register(form) {
   if (form.selfieWithId) fd.append('selfieWithId', form.selfieWithId);
   const data = await request('/resident-auth/register', { method: 'POST', body: fd, auth: false });
   return {
-    pending: !!data.pending,
-    verificationRequired: !!data.verificationRequired,
-    email: data.email,
+    verified: !!data.verified,
+    status: data.status,
+    token: data.token,
     message: data.message,
     user: data.resident ? toLegacyUser(data.resident) : null,
   };
@@ -261,6 +276,14 @@ export async function uploadProfilePhoto(file) {
 
 export async function forgotPassword(email) {
   return request('/resident-auth/forgot-password', { method: 'POST', body: { email }, auth: false });
+}
+
+export async function resetPassword(email, code, newPassword) {
+  return request('/resident-auth/reset-password', {
+    method: 'POST',
+    body: { email, code, newPassword },
+    auth: false,
+  });
 }
 
 export async function fileComplaint(body) {
