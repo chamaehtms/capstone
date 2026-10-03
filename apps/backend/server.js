@@ -52,18 +52,30 @@ if (process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY) {
   app.set('trust proxy', 1);
 }
 
-// Configurable CORS: allow specific origins or fallback to permissive mode
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-  : null;
+function normalizeOrigin(value) {
+  const origin = String(value || '').trim();
+  if (!origin || origin === '*') return origin;
+  try {
+    return new URL(origin).origin;
+  } catch {
+    return origin.replace(/\/+$/, '');
+  }
+}
+
+const allowedOrigins = new Set([
+  'https://brgy-poblacion.site',
+  process.env.FRONTEND_URL,
+  process.env.RESIDENT_FRONTEND_URL,
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
+].map(normalizeOrigin).filter(Boolean));
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || !allowedOrigins || allowedOrigins.includes('*')) {
+      if (!origin || allowedOrigins.has('*')) {
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.has(normalizeOrigin(origin))) {
         return callback(null, true);
       }
       return callback(new Error(`CORS error: Origin ${origin} not allowed`));

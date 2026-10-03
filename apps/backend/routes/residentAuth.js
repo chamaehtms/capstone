@@ -74,6 +74,31 @@ function hashPasswordResetCode(residentId, code) {
   return crypto.createHmac('sha256', JWT_SECRET).update(`password-reset:${residentId}:${code}`).digest('hex');
 }
 
+async function sendPasswordResetEmail(resident, code) {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) throw new Error('RESEND_API_KEY is not configured.');
+
+  const from = process.env.RESEND_FROM?.trim() || 'Barangay Poblacion <onboarding@resend.dev>';
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to: [resident.email],
+      subject: 'Your Barangay Poblacion password reset code',
+      text: `Hello ${resident.full_name || 'Resident'},\n\nYour password reset code is: ${code}\n\nThis code expires in 10 minutes and can only be used once. If you did not request a password reset, you can ignore this email.`,
+    }),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`Resend rejected the password reset email (${response.status}): ${result.message || 'unknown error'}`);
+  }
+  return result;
+}
+
 async function sendVerificationCode(resident, mailTransport) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   const codeHash = hashVerificationCode(resident.id, code);
@@ -623,9 +648,8 @@ router.post('/forgot-password', async (req, res) => {
     return res.status(400).json({ message: 'Enter a valid email address.' });
   }
 
-  const mailTransport = createMailTransport();
-  if (!mailTransport) {
-    return res.status(503).json({ message: 'Email delivery is not configured. Contact the barangay administrator.' });
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    return res.status(503).json({ message: 'Password reset email is not configured. Contact the barangay administrator.' });
   }
 
   try {
@@ -652,12 +676,7 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     try {
-      await mailTransport.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: resident.email,
-        subject: 'Your Barangay Poblacion password reset code',
-        text: `Hello ${resident.full_name || 'Resident'},\n\nYour password reset code is: ${code}\n\nThis code expires in 10 minutes and can only be used once. If you did not request a password reset, you can ignore this email.`,
-      });
+      await sendPasswordResetEmail(resident, code);
     } catch (mailError) {
       await pool.query(
         `UPDATE residents SET password_reset_code_hash = NULL,
@@ -671,10 +690,7 @@ router.post('/forgot-password', async (req, res) => {
     return res.json({ message: genericMessage });
   } catch (err) {
     console.error('[resident-auth] Password reset code could not be sent:', err.message);
-    if (err.code === 'EAUTH' || err.responseCode === 535) {
-      return res.status(503).json({ message: 'Password reset email is unavailable. Please contact the barangay administrator.' });
-    }
-    return res.status(500).json({ message: 'Unable to send a password reset code right now. Please try again later.' });
+    return res.status(503).json({ message: 'Password reset email is unavailable. Please contact the barangay administrator.' });
   }
 });
 
