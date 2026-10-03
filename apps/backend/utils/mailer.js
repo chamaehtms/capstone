@@ -60,7 +60,7 @@ async function sendMediationNoticeEmail({
         
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #ffffff; padding: 28px 24px; text-align: center;">
-          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #93c5fd; font-weight: 700;">Republic of the Philippines · Province of Cavite</p>
+          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #93c5fd; font-weight: 700;">Republic of the Philippines · Municipality of Cordova</p>
           <h1 style="margin: 6px 0 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
           <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1;">Office of the Lupong Tagapamayapa · Katarungang Pambarangay</p>
           <div style="margin-top: 14px; display: inline-block; background-color: #3b82f6; color: #ffffff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 5px 14px; border-radius: 20px;">
@@ -366,7 +366,7 @@ async function sendResidentApprovalEmail({
 
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%); color: #ffffff; padding: 32px 24px; text-align: center;">
-          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #a7f3d0; font-weight: 700;">Republic of the Philippines · Province of Cavite</p>
+          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #a7f3d0; font-weight: 700;">Republic of the Philippines · Municipality of Cordova</p>
           <h1 style="margin: 6px 0 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
           <p style="margin: 4px 0 0; font-size: 13px; color: #d1fae5;">Office of the Punong Barangay · Online Residents Portal</p>
           <div style="margin-top: 16px; display: inline-block; background-color: #10b981; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 18px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
@@ -515,7 +515,7 @@ async function sendResidentPendingVerificationEmail({
 
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #ffffff; padding: 32px 24px; text-align: center;">
-          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; font-weight: 700;">Republic of the Philippines · Province of Cavite</p>
+          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; font-weight: 700;">Republic of the Philippines · Municipality of Cordova</p>
           <h1 style="margin: 6px 0 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
           <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1;">Office of the Punong Barangay · Online Residents Portal</p>
           <div style="margin-top: 16px; display: inline-block; background-color: #f59e0b; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 18px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
@@ -589,7 +589,7 @@ async function sendResidentPendingVerificationEmail({
         <!-- Footer -->
         <div style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 11px; color: #94a3b8; line-height: 1.6;">
           This is an automated administrative notification sent from Barangay Poblacion.<br/>
-          Barangay Hall, Poblacion, Cavite
+          Barangay Hall, Poblacion, Cordova
         </div>
       </div>
     </body>
