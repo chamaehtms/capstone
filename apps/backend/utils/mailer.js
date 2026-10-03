@@ -1,23 +1,23 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-function createMailTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
-  if (!SMTP_USER || !SMTP_PASS) return null;
-  if (SMTP_USER.includes('your-sending-account') || SMTP_PASS.includes('your-16-character')) return null;
+function isResendConfigured() {
+  return Boolean(process.env.RESEND_API_KEY?.trim() && process.env.RESEND_FROM?.trim());
+}
 
-  if (SMTP_SERVICE === 'gmail' || (!SMTP_HOST && SMTP_USER.includes('@gmail.com'))) {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
-  }
+async function sendEmail({ to, subject, text, html }) {
+  if (!to) throw new Error('Recipient email address is missing.');
+  if (!isResendConfigured()) throw new Error('Resend email configuration is missing.');
 
-  return nodemailer.createTransport({
-    host: SMTP_HOST || 'smtp.gmail.com',
-    port: Number(SMTP_PORT || 587),
-    secure: SMTP_SECURE === 'true',
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  const resend = new Resend(process.env.RESEND_API_KEY.trim());
+  const { data, error } = await resend.emails.send({
+    from: process.env.RESEND_FROM.trim(),
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    text,
+    html,
   });
+  if (error) throw new Error(error.message || 'Resend could not send the email.');
+  return { success: true, messageId: data?.id };
 }
 
 /**
@@ -37,12 +37,6 @@ async function sendMediationNoticeEmail({
 }) {
   if (!to) {
     return { success: false, reason: 'Recipient email address is missing' };
-  }
-
-  const transport = createMailTransport();
-  if (!transport) {
-    console.warn('[mailer] SMTP not configured. Notification email could not be sent.');
-    return { success: false, reason: 'Email service is not configured on this server' };
   }
 
   const stageLabel = hearingStage || 'Mediation Hearing';
@@ -156,8 +150,7 @@ async function sendMediationNoticeEmail({
   `;
 
   try {
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    const info = await sendEmail({
       to,
       subject,
       html,
@@ -187,12 +180,6 @@ async function sendNextHearingNoticeEmail({
 }) {
   if (!to) {
     return { success: false, reason: 'Recipient email address is missing' };
-  }
-
-  const transport = createMailTransport();
-  if (!transport) {
-    console.warn('[mailer] SMTP not configured. Next session notification email could not be sent.');
-    return { success: false, reason: 'Email service is not configured on this server' };
   }
 
   const displayCase = caseId ? `Case #${caseId}` : 'Mediation Proceeding';
@@ -316,8 +303,7 @@ async function sendNextHearingNoticeEmail({
   `;
 
   try {
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    const info = await sendEmail({
       to,
       subject,
       html,
@@ -341,12 +327,6 @@ async function sendResidentApprovalEmail({
 }) {
   if (!to) {
     return { success: false, reason: 'Recipient email address is missing' };
-  }
-
-  const transport = createMailTransport();
-  if (!transport) {
-    console.warn('[mailer] SMTP not configured. Resident approval email could not be sent.');
-    return { success: false, reason: 'Email service is not configured on this server' };
   }
 
   const targetLoginUrl = loginUrl || (process.env.RESIDENT_FRONTEND_URL ? `${process.env.RESIDENT_FRONTEND_URL.replace(/\/$/, '')}/login` : 'http://localhost:5500/login');
@@ -470,8 +450,7 @@ async function sendResidentApprovalEmail({
   `;
 
   try {
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    const info = await sendEmail({
       to,
       subject,
       text,
@@ -496,12 +475,6 @@ async function sendResidentPendingVerificationEmail({
 }) {
   if (!to) {
     return { success: false, reason: 'Recipient email address is missing' };
-  }
-
-  const transport = createMailTransport();
-  if (!transport) {
-    console.warn('[mailer] SMTP not configured. Resident pending verification email could not be sent.');
-    return { success: false, reason: 'Email service is not configured on this server' };
   }
 
   const targetLoginUrl = loginUrl || (process.env.RESIDENT_FRONTEND_URL ? `${process.env.RESIDENT_FRONTEND_URL.replace(/\/$/, '')}/login` : 'http://localhost:5500/login');
@@ -624,8 +597,7 @@ async function sendResidentPendingVerificationEmail({
   `;
 
   try {
-    const info = await transport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    const info = await sendEmail({
       to,
       subject,
       text,
@@ -640,7 +612,8 @@ async function sendResidentPendingVerificationEmail({
 }
 
 module.exports = {
-  createMailTransport,
+  isResendConfigured,
+  sendEmail,
   sendMediationNoticeEmail,
   sendNextHearingNoticeEmail,
   sendResidentApprovalEmail,

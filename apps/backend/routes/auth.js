@@ -5,11 +5,11 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
-const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { JWT_SECRET, requireAuth } = require('../middleware/auth');
+const { isResendConfigured, sendEmail } = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -98,35 +98,11 @@ async function deleteLocalUpload(file) {
   fs.unlink(file.path, () => {});
 }
 
-function createMailTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
-  if (!SMTP_USER || !SMTP_PASS) return null;
-  if (SMTP_USER.includes('your-sending-account') || SMTP_PASS.includes('your-16-character')) return null;
-
-  if (SMTP_SERVICE === 'gmail' || (!SMTP_HOST && SMTP_USER.includes('@gmail.com'))) {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    });
-  }
-
-  return nodemailer.createTransport({
-    host: SMTP_HOST || 'smtp.gmail.com',
-    port: Number(SMTP_PORT || 587),
-    secure: SMTP_SECURE === 'true',
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
-}
-
 function hashVerificationCode(requestId, code) {
   return crypto.createHmac('sha256', JWT_SECRET).update(`${requestId}:${code}`).digest('hex');
 }
 
-async function sendAdminVerificationCode(request, mailTransport) {
-  if (!mailTransport) {
-    throw new Error('Gmail sending is not configured. Please set your Gmail address and 16-character Google App Password in backend/.env.');
-  }
-
+async function sendAdminVerificationCode(request) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   const codeHash = hashVerificationCode(request.id, code);
 
@@ -142,8 +118,7 @@ async function sendAdminVerificationCode(request, mailTransport) {
   );
 
   try {
-    await mailTransport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    await sendEmail({
       to: request.email,
       subject: 'Your Barangay Poblacion System Verification Code',
       text: `Hello ${request.full_name || 'Administrator'},\n\nYour 6-digit verification code for Barangay Poblacion System is:\n\n${code}\n\nThis code will expire in 15 minutes. Enter this code on the registration page to verify your institutional email address.\n\nIf you did not request administrative access, please ignore this email.`,
@@ -157,13 +132,13 @@ async function sendAdminVerificationCode(request, mailTransport) {
             Hello <strong>${request.full_name || 'Applicant'}</strong>,
           </p>
           <p style="color: #334155; font-size: 14px; line-height: 1.6;">
-            Use the following 6-digit verification code to verify your Gmail address and complete your administrative enrollment request in <strong>Barangay Poblacion System</strong>:
+            Use the following 6-digit verification code to verify your email address and complete your administrative enrollment request in <strong>Barangay Poblacion System</strong>:
           </p>
           <div style="text-align: center; margin: 28px 0; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 18px;">
             <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1e3a8a; font-family: monospace;">${code}</span>
           </div>
           <p style="color: #64748b; font-size: 12px; line-height: 1.5;">
-            ⏱️ This code expires in <strong>15 minutes</strong>. Check your Gmail inbox or spam folder. If you did not initiate this request, you can safely ignore this message.
+            ⏱️ This code expires in <strong>15 minutes</strong>. Check your inbox or spam folder. If you did not initiate this request, you can safely ignore this message.
           </p>
           <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
           <p style="color: #94a3b8; font-size: 11px; text-align: center;">
@@ -174,8 +149,8 @@ async function sendAdminVerificationCode(request, mailTransport) {
     });
     console.log(`[EMAIL DISPATCHED] 6-digit verification code sent to Gmail: ${request.email}`);
   } catch (err) {
-    console.error('[SMTP ERROR] Failed to send email via Gmail:', err.message);
-    throw new Error('Unable to send code to Gmail: ' + err.message);
+    console.error('[EMAIL ERROR] Failed to send admin verification code:', err.message);
+    throw new Error('Unable to send verification code: ' + err.message);
   }
 
   return code;
@@ -409,18 +384,15 @@ router.post('/request-access', (req, res) => {
         );
       }
 
-      const mailTransport = createMailTransport();
-      if (!mailTransport) {
+      if (!isResendConfigured()) {
         cleanupFiles();
         return res.status(503).json({
-          message:
-            'Gmail sending is not yet configured. Please add your real Gmail address and 16-character Google App Password to backend/.env so the code can be delivered to your Gmail app.',
+          message: 'Email delivery is not configured. Contact the system administrator.',
         });
       }
 
       await sendAdminVerificationCode(
-        { id: requestId, email: normalizedEmail, full_name: finalFullName },
-        mailTransport
+        { id: requestId, email: normalizedEmail, full_name: finalFullName }
       );
 
       if (uploadedIdUrl) {
@@ -558,18 +530,16 @@ router.post('/resend-code', async (req, res) => {
       return res.status(429).json({ message: `Please wait ${waitSec} seconds before requesting a new code.` });
     }
 
-    const mailTransport = createMailTransport();
-    if (!mailTransport) {
+    if (!isResendConfigured()) {
       return res.status(503).json({
-        message:
-          'Gmail sending is not yet configured. Please add your real Gmail address and 16-character Google App Password to backend/.env so the code can be delivered to your Gmail app.',
+        message: 'Email delivery is not configured. Contact the system administrator.',
       });
     }
 
-    await sendAdminVerificationCode(request, mailTransport);
+    await sendAdminVerificationCode(request);
 
     return res.json({
-      message: `A new 6-digit verification code has been dispatched to your Gmail (${request.email}). Please check your Gmail app.`,
+      message: 'A new 6-digit verification code has been sent to your email. Please check your inbox.',
     });
   } catch (err) {
     console.error('Resend code error:', err);
@@ -609,8 +579,7 @@ router.post('/resend-verification', async (req, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     return res.status(400).json({ message: 'Enter a valid email address.' });
   }
-  const mailTransport = createMailTransport();
-  if (!mailTransport) {
+  if (!isResendConfigured()) {
     return res.status(503).json({ message: 'Email verification is not configured. Contact the system administrator.' });
   }
 
@@ -634,8 +603,7 @@ router.post('/resend-verification', async (req, res) => {
     );
     const verificationUrl = new URL('/verify-email', process.env.FRONTEND_URL || 'http://localhost:5173');
     verificationUrl.searchParams.set('token', token);
-    await mailTransport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    await sendEmail({
       to: normalizedEmail,
       subject: 'Verify your Barangay Poblacion admin request',
       text: `Hello ${request.full_name},\n\nUse this link to verify your email address:\n${verificationUrl.toString()}\n\nThis link expires in 24 hours. If you did not request access, you can ignore this message.`,

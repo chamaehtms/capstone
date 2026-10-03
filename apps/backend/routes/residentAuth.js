@@ -4,12 +4,16 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const multer = require('multer');
-const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { JWT_SECRET, requireResidentAuth } = require('../middleware/auth');
-const { sendResidentApprovalEmail, sendResidentPendingVerificationEmail } = require('../utils/mailer');
+const {
+  isResendConfigured,
+  sendEmail,
+  sendResidentApprovalEmail,
+  sendResidentPendingVerificationEmail,
+} = require('../utils/mailer');
 
 const router = express.Router();
 
@@ -44,28 +48,6 @@ const residentRegistrationUpload = idUpload.fields([
   { name: 'selfieWithId', maxCount: 1 },
 ]);
 
-function createMailTransport() {
-  const { SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
-  const smtpUser = SMTP_USER?.trim();
-  const smtpPass = SMTP_PASS?.replace(/\s+/g, '');
-  if (!smtpUser || !smtpPass) return null;
-  if (smtpUser.includes('your-sending-account') || smtpPass.includes('your-16-character')) return null;
-
-  if (SMTP_SERVICE === 'gmail' || (!SMTP_HOST && smtpUser.includes('@gmail.com'))) {
-    return nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: smtpUser, pass: smtpPass },
-    });
-  }
-
-  return nodemailer.createTransport({
-    host: SMTP_HOST || 'smtp.gmail.com',
-    port: Number(SMTP_PORT || 587),
-    secure: SMTP_SECURE === 'true',
-    auth: { user: smtpUser, pass: smtpPass },
-  });
-}
-
 function hashVerificationCode(residentId, code) {
   return crypto.createHmac('sha256', JWT_SECRET).update(`${residentId}:${code}`).digest('hex');
 }
@@ -75,31 +57,14 @@ function hashPasswordResetCode(residentId, code) {
 }
 
 async function sendPasswordResetEmail(resident, code) {
-  const apiKey = process.env.RESEND_API_KEY?.trim();
-  if (!apiKey) throw new Error('RESEND_API_KEY is not configured.');
-
-  const from = process.env.RESEND_FROM?.trim() || 'Barangay Poblacion <onboarding@resend.dev>';
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: [resident.email],
-      subject: 'Your Barangay Poblacion password reset code',
-      text: `Hello ${resident.full_name || 'Resident'},\n\nYour password reset code is: ${code}\n\nThis code expires in 10 minutes and can only be used once. If you did not request a password reset, you can ignore this email.`,
-    }),
+  return sendEmail({
+    to: resident.email,
+    subject: 'Your Barangay Poblacion password reset code',
+    text: `Hello ${resident.full_name || 'Resident'},\n\nYour password reset code is: ${code}\n\nThis code expires in 10 minutes and can only be used once. If you did not request a password reset, you can ignore this email.`,
   });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(`Resend rejected the password reset email (${response.status}): ${result.message || 'unknown error'}`);
-  }
-  return result;
 }
 
-async function sendVerificationCode(resident, mailTransport) {
+async function sendVerificationCode(resident) {
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
   const codeHash = hashVerificationCode(resident.id, code);
   await pool.query(
@@ -110,8 +75,7 @@ async function sendVerificationCode(resident, mailTransport) {
     [codeHash, resident.id]
   );
   try {
-    await mailTransport.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    await sendEmail({
       to: resident.email,
       subject: 'Your Barangay Poblacion System verification code',
       text: `Hello ${resident.fullName},\n\nYour 6-digit email verification code for Barangay Poblacion System is: ${code}. It expires in 10 minutes.\n\nIf you did not start this registration, you can ignore this message.`,
@@ -448,8 +412,7 @@ router.post('/resend-email-code', async (req, res) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ message: 'Enter a valid email address.' });
   }
-  const mailTransport = createMailTransport();
-  if (!mailTransport) {
+  if (!isResendConfigured()) {
     return res.status(503).json({ message: 'Email verification is not configured. Contact the system administrator.' });
   }
   try {
@@ -466,7 +429,7 @@ router.post('/resend-email-code', async (req, res) => {
     if (lastSent && Date.now() - lastSent < 60000) {
       return res.status(429).json({ message: 'Wait one minute before requesting another code.' });
     }
-    await sendVerificationCode(resident, mailTransport);
+    await sendVerificationCode(resident);
     res.json({ message: 'A new six-digit verification code has been sent to your email.' });
   } catch (err) {
     console.error(err);
