@@ -143,6 +143,8 @@ export default function Profile() {
     complaintsAgainstMeList = [],
   } = data;
 
+  const resolutionRate = complaintsFiled > 0 ? Math.round((complaintsResolved / complaintsFiled) * 100) : 0;
+
   return (
     <>
       <Navbar />
@@ -195,31 +197,16 @@ export default function Profile() {
               <div className="sub">{complaintsFiled ? `${complaintsResolved} successfully resolved` : 'No complaints filed by you'}</div>
             </div>
 
-            <div
-              className={`stat-card ${complaintsAgainstMe > 0 ? '' : 'light'}`}
-              style={
-                complaintsAgainstMe > 0
-                  ? { background: '#7f1d1d', color: '#fff', border: '1px solid #991b1b' }
-                  : {}
-              }
-            >
+            <div className="stat-card light">
               <div className="label">
-                <span style={{ color: complaintsAgainstMe > 0 ? '#fca5a5' : undefined }}>
-                  {complaintsAgainstMe > 0 ? '⚠️' : '⚖️'}
-                </span>
-                <span style={{ color: complaintsAgainstMe > 0 ? '#fecaca' : undefined, fontWeight: 700 }}>
-                  Complaints Against You
-                </span>
+                <span>📈</span>
+                <span style={{ fontWeight: 700 }}>Resolution Rate</span>
               </div>
-              <div className="value" style={{ color: complaintsAgainstMe > 0 ? '#ffffff' : undefined }}>
-                {String(complaintsAgainstMe).padStart(2, '0')}
-              </div>
-              <div className="sub" style={{ color: complaintsAgainstMe > 0 ? '#fca5a5' : undefined }}>
-                {complaintsAgainstMe > 0
-                  ? (activeComplaintsAgainstMe > 0
-                      ? `${activeComplaintsAgainstMe} active complaint notice(s)`
-                      : 'All complaints resolved')
-                  : 'No complaints filed against you'}
+              <div className="value">{String(resolutionRate).padStart(2, '0')}%</div>
+              <div className="sub">
+                {complaintsFiled > 0
+                  ? `${complaintsResolved} of ${complaintsFiled} complaints resolved`
+                  : 'No complaints filed by you'}
               </div>
             </div>
           </div>

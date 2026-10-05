@@ -63,6 +63,11 @@ export default function Register() {
   }
 
   function update(field, value) {
+    if (field === 'contactNumber') {
+      const clean = value.replace(/\D/g, '').slice(0, 10);
+      setForm(f => ({ ...f, [field]: clean }));
+      return;
+    }
     setForm(f => ({ ...f, [field]: value }));
   }
 
@@ -71,6 +76,10 @@ export default function Register() {
     setError('');
     if (!form.purok) { setError('Please select your Purok / Zone.'); return; }
     if (!form.email.trim()) { setError('Email is required — it doubles as your login and login recovery address.'); return; }
+    if (!/^\+?\d{10,13}$/.test('+63' + form.contactNumber.trim())) {
+      setError('Contact number must start with +63 and contain 10 digits after the country code.');
+      return;
+    }
     if (!idFile) { setError('Please upload your valid ID card or document.'); return; }
     if (!selfieFile) { setError('Please upload a selfie holding your ID to confirm your identity.'); return; }
 
@@ -307,7 +316,14 @@ export default function Register() {
                 <label className="field-label">Contact Number</label>
                 <div className="phone-row">
                   <input value="+63" disabled />
-                  <input value={form.contactNumber} onChange={e => update('contactNumber', e.target.value)} placeholder="917 123 4567" required />
+                  <input
+                    value={form.contactNumber}
+                    onChange={e => update('contactNumber', e.target.value)}
+                    placeholder="917 123 4567"
+                    maxLength={10}
+                    inputMode="numeric"
+                    required
+                  />
                 </div>
               </div>
             </div>
@@ -322,7 +338,7 @@ export default function Register() {
                 <option>Housing</option>
                 <option>Puso</option>
                 <option> Intra </option>
-                <option>crossroad </option>
+                <option>Crossroad </option>
 
               </select>
             </div>

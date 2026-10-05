@@ -7,6 +7,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -49,7 +50,22 @@ export default function Login() {
               <Link to="/forgot-password" className="link-blue">Forgot Password?</Link>
             </div>
             <ModernIcon name="key" size={18} className="icon" />
-            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="show-password-toggle"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0 }}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
           </div>
           <div className="checkbox-row">
             <input type="checkbox" id="staySignedIn" style={{ width: 'auto' }} />

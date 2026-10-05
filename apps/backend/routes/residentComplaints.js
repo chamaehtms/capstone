@@ -56,6 +56,29 @@ async function hasValidFileSignature(file) {
   return false;
 }
 
+function extractSightengineScore(payload) {
+  if (!payload || typeof payload !== 'object') return null;
+
+  const candidates = [];
+  const visit = (value) => {
+    if (value == null) return;
+    if (typeof value === 'number') candidates.push(value);
+    else if (typeof value === 'string' && value.trim() !== '') {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) candidates.push(parsed);
+    } else if (Array.isArray(value)) {
+      value.forEach(visit);
+    } else if (typeof value === 'object') {
+      Object.values(value).forEach(visit);
+    }
+  };
+
+  visit(payload);
+
+  const score = candidates.find((value) => value >= 0 && value <= 1);
+  return score == null ? null : Number(score);
+}
+
 async function scanWithSightengine(file) {
   if (!file || !file.mimetype.startsWith('image/')) return { status: 'manual_review', score: null };
   const userId = process.env.SIGHTENGINE_USER_ID;
@@ -71,14 +94,32 @@ async function scanWithSightengine(file) {
     form.append('api_secret', apiSecret);
     const response = await fetch('https://api.sightengine.com/1.0/check.json', { method: 'POST', body: form });
     if (!response.ok) throw new Error(`Sightengine returned ${response.status}`);
+
     const data = await response.json();
-    const score = Number(data.type?.ai_generated ?? data.ai_generated ?? data.genai?.ai_generated ?? data.genai?.score);
-    if (!Number.isFinite(score)) return { status: 'manual_review', score: null };
-    return { status: score >= 0.8 ? 'possibly_ai_generated' : score <= 0.2 ? 'likely_authentic' : 'manual_review', score };
+    const score = extractSightengineScore(data) ?? extractSightengineScore(data?.type) ?? extractSightengineScore(data?.genai);
+
+    if (!Number.isFinite(score)) {
+      return { status: 'manual_review', score: null };
+    }
+
+    return {
+      status: score >= 0.8 ? 'possibly_ai_generated' : score <= 0.2 ? 'likely_authentic' : 'manual_review',
+      score,
+    };
   } catch (err) {
     console.error('[sightengine] scan failed:', err.message);
     return { status: 'provider_unavailable', score: null };
   }
+}
+
+function normalizeDateString(value) {
+  if (!value) return null;
+  const input = typeof value === 'string' ? value : String(value);
+  if (/^\d{4}-\d{2}-\d{2}T/.test(input)) return input;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return `${input}T00:00:00`;
+  const date = new Date(input);
+  if (Number.isNaN(date.getTime())) return input;
+  return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString();
 }
 
 function toComplaint(c, currentResidentId) {
@@ -92,7 +133,7 @@ function toComplaint(c, currentResidentId) {
     complainantName: isAgainstMe ? 'Confidential Complainant' : c.resident,
     category: c.category,
     status: c.status,
-    filingDate: c.filing_date,
+    filingDate: normalizeDateString(c.filing_date),
     description: c.description,
     priority: c.priority,
     aiScanStatus: c.ai_scan_status,

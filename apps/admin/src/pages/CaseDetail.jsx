@@ -50,6 +50,8 @@ export default function CaseDetail() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   // Mediation modal state
   const [isMediationModalOpen, setIsMediationModalOpen] = useState(false);
@@ -107,6 +109,29 @@ export default function CaseDetail() {
       setComplaint(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update escalation decision.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleRejectComplaint = async () => {
+    if (!rejectReason) {
+      setError('Please select a rejection reason.');
+      return;
+    }
+
+    setUpdating(true);
+    setError('');
+    try {
+      const { data } = await api.put(`/complaints/${id}`, {
+        status: 'Rejected',
+      });
+      setComplaint(data);
+      setIsRejectModalOpen(false);
+      setRejectReason('');
+      setMessage('Complaint rejected successfully.');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to reject complaint.');
     } finally {
       setUpdating(false);
     }
@@ -240,6 +265,14 @@ export default function CaseDetail() {
             ))}
           </select>
 
+          <button
+            type="button"
+            onClick={() => setIsRejectModalOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition shadow-xs"
+          >
+            Reject Complaint
+          </button>
+
           {!isInfrastructure && (
             <button
               type="button"
@@ -252,6 +285,62 @@ export default function CaseDetail() {
           )}
         </div>
       </div>
+
+      {isRejectModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setIsRejectModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-900">Reject Complaint</h3>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <label className="block text-sm font-semibold text-slate-700">
+                Reason for rejection:
+              </label>
+              <select
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="">Select reason</option>
+                <option value="Duplicate complaint">Duplicate complaint</option>
+                <option value="Invalid information">Invalid information</option>
+                <option value="Outside barangay jurisdiction">Outside barangay jurisdiction</option>
+                <option value="Insufficient evidence/documentation">Insufficient evidence/documentation</option>
+                <option value="Not a valid complaint">Not a valid complaint</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsRejectModalOpen(false);
+                    setRejectReason('');
+                  }}
+                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectComplaint}
+                  disabled={updating || !rejectReason}
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-sm disabled:opacity-50"
+                >
+                  Reject Complaint
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PROGRESS TIMELINE FOR INFRASTRUCTURAL REPORTS */}
       {isInfrastructure && (

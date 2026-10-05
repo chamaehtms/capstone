@@ -14,6 +14,21 @@ const statusStyles = {
   Closed: 'bg-slate-100 text-slate-700',
 };
 
+function formatFilingDate(value) {
+  if (!value) return '—';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function getFilingAgeDays(filingDate) {
   if (!filingDate) return null;
 
@@ -70,6 +85,22 @@ export default function ComplaintsRecord() {
       await fetchComplaints(search);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleDeleteComplaint = async (caseId) => {
+    const confirmed = window.confirm('Are you sure you want to delete this complaint record? This action cannot be undone.');
+    if (!confirmed) return;
+
+    setError('');
+    setUpdatingId(caseId);
+    try {
+      await api.delete(`/complaints/${caseId}`);
+      await fetchComplaints(search);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to delete complaint record.');
     } finally {
       setUpdatingId(null);
     }
@@ -135,6 +166,7 @@ export default function ComplaintsRecord() {
               <th className="px-5 py-3 font-medium">STATUS</th>
               <th className="px-5 py-3 font-medium">ESCALATION</th>
               <th className="px-5 py-3 font-medium">FILING DATE</th>
+              <th className="px-5 py-3 font-medium text-right">ACTION</th>
             </tr>
           </thead>
           <tbody>
@@ -147,7 +179,7 @@ export default function ComplaintsRecord() {
             )}
             {!loading && visibleComplaints.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
                   {complaints.length === 0 ? 'No cases found.' : 'No cases match this filing-date filter.'}
                 </td>
               </tr>
@@ -191,7 +223,25 @@ export default function ComplaintsRecord() {
                     <span className="text-[11px] text-slate-400">Not marked</span>
                   )}
                 </td>
-                <td className="px-5 py-3 text-slate-500">{c.filingDate}</td>
+                <td className="px-5 py-3 text-slate-500">{formatFilingDate(c.filingDate)}</td>
+                <td className="px-5 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      to={`/complaints/${c.id}`}
+                      className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteComplaint(c.id)}
+                      disabled={updatingId === c.id}
+                      className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 transition-colors disabled:opacity-60"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
