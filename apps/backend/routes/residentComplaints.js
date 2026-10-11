@@ -103,7 +103,7 @@ async function scanWithSightengine(file) {
     }
 
     return {
-      status: score >= 0.8 ? 'possibly_ai_generated' : score <= 0.2 ? 'likely_authentic' : 'manual_review',
+      status: score >= 0.8 ? 'ai_detected' : score <= 0.2 ? 'likely_authentic' : 'manual_review',
       score,
     };
   } catch (err) {

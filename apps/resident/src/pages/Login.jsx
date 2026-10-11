@@ -39,33 +39,36 @@ export default function Login() {
         {error && <div className="error-msg">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="field input-icon">
+          <div className="field">
             <label className="field-label">Email</label>
-            <ModernIcon name="mail" size={18} className="icon" />
-            <input type="email" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="you@example.com" required />
+            <div className="input-icon">
+              <ModernIcon name="mail" size={18} className="icon" />
+              <input type="email" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="you@example.com" required />
+            </div>
           </div>
-          <div className="field input-icon login-password-field">
+          <div className="field">
             <div className="row-between" style={{ marginBottom: 6 }}>
               <label className="field-label" style={{ margin: 0 }}>Password</label>
               <Link to="/forgot-password" className="link-blue">Forgot Password?</Link>
             </div>
-            <ModernIcon name="key" size={18} className="icon" />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="show-password-toggle"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 12, fontWeight: 700, padding: 0 }}
-            >
-              {showPassword ? 'Hide' : 'Show'}
-            </button>
+            <div className="input-icon">
+              <ModernIcon name="key" size={18} className="icon" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="show-password-toggle"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <ModernIcon name={showPassword ? 'eye-off' : 'eye'} size={18} />
+              </button>
+            </div>
           </div>
           <div className="checkbox-row">
             <input type="checkbox" id="staySignedIn" style={{ width: 'auto' }} />

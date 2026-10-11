@@ -72,10 +72,11 @@ textarea{resize:vertical;min-height:90px}
 .tabs{display:flex;background:#eef0f6;border-radius:var(--radius-pill);padding:4px;margin-bottom:22px}
 .tabs button{flex:1;border:none;background:transparent;padding:10px;border-radius:var(--radius-pill);font-weight:700;color:var(--muted);cursor:pointer}
 .tabs button.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.input-icon{position:relative;text-align:left}
-.input-icon input{padding-left:44px}
-.input-icon .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#64748b}
-.login-password-field .icon{top:calc(50% + 8px)}
+.input-icon{position:relative;text-align:left;display:flex;align-items:center}
+.input-icon input{padding-left:44px;padding-right:44px;width:100%}
+.input-icon .icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#64748b;display:inline-flex;align-items:center;justify-content:center;pointer-events:none}
+.input-icon .show-password-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:#64748b;cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;transition:color .15s ease}
+.input-icon .show-password-toggle:hover{color:#0f172a}
 .row-between{display:flex;align-items:center;justify-content:space-between;margin:2px 0 10px}
 .link-blue{color:var(--blue);font-weight:600;font-size:.85rem}
 .checkbox-row{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);margin-bottom:18px;justify-content:flex-start;text-align:left}

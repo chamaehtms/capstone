@@ -525,10 +525,22 @@ export default function CaseDetail() {
 
           {complaint.attachmentUrl && (
             <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-semibold text-slate-800 mb-3">AI Evidence Scan</h2>
-              <p className={`text-sm font-semibold ${complaint.aiScanStatus === 'possibly_ai_generated' ? 'text-red-600' : complaint.aiScanStatus === 'likely_authentic' ? 'text-green-600' : 'text-amber-600'}`}>
-                {complaint.aiScanStatus === 'possibly_ai_generated'
-                  ? 'Possibly AI-generated'
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-slate-800">AI Evidence Scan</h2>
+                {(complaint.aiScanStatus === 'ai_detected' || complaint.aiScanStatus === 'possibly_ai_generated') && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                    AI Detected
+                  </span>
+                )}
+                {complaint.aiScanStatus === 'likely_authentic' && (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                    Authentic
+                  </span>
+                )}
+              </div>
+              <p className={`text-sm font-semibold ${(complaint.aiScanStatus === 'ai_detected' || complaint.aiScanStatus === 'possibly_ai_generated') ? 'text-red-600' : complaint.aiScanStatus === 'likely_authentic' ? 'text-green-600' : 'text-amber-600'}`}>
+                {(complaint.aiScanStatus === 'ai_detected' || complaint.aiScanStatus === 'possibly_ai_generated')
+                  ? 'AI detected'
                   : complaint.aiScanStatus === 'likely_authentic'
                     ? 'Likely authentic'
                     : complaint.aiScanStatus === 'not_configured'

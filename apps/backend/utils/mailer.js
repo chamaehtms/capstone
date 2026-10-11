@@ -203,7 +203,7 @@ async function sendNextHearingNoticeEmail({
         
         <!-- Header with Distinct Purple/Indigo Accent for Next Session -->
         <div style="background: linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%); color: #ffffff; padding: 28px 24px; text-align: center;">
-          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; font-weight: 700;">Republic of the Philippines · Province of Cavite</p>
+          <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #c7d2fe; font-weight: 700;">Republic of the Philippines · Province of Cebu</p>
           <h1 style="margin: 6px 0 0; font-size: 22px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
           <p style="margin: 4px 0 0; font-size: 13px; color: #e0e7ff;">Office of the Lupong Tagapamayapa · Katarungang Pambarangay</p>
           <div style="margin-top: 14px; display: inline-block; background-color: #7c3aed; color: #ffffff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 5px 16px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">

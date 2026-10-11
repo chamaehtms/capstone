@@ -195,6 +195,11 @@ export default function ComplaintsRecord() {
                       Resident Portal
                     </span>
                   )}
+                  {(c.aiScanStatus === 'ai_detected' || c.aiScanStatus === 'possibly_ai_generated') && (
+                    <span className="ml-2 text-[10px] font-semibold bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200">
+                      AI Detected
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-3 text-slate-700">{c.resident}</td>
                 <td className="px-5 py-3 text-slate-500">{c.category}</td>
