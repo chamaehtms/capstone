@@ -66,7 +66,7 @@ export default function Login() {
                 className="show-password-toggle"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <ModernIcon name={showPassword ? 'eye' : 'eye-off'} size={18} />
+                <ModernIcon name={showPassword ? 'eye-off' : 'eye'} size={18} />
               </button>
             </div>
           </div>
