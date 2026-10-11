@@ -50,7 +50,7 @@ export default function Login() {
           </div>
           <div className="field">
             <div className="row-between" style={{ marginBottom: 6 }}>
-              <label className="field-label" style={{ margin: 0, textAlign: 'left' }}>Password</label>
+              <label className="field-label" style={{ margin: 0 }}>Password</label>
               <Link to="/forgot-password" className="link-blue">Forgot Password?</Link>
             </div>
             <div className="input-icon">
@@ -81,7 +81,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="footer-note">Don't have an account? <Link to="/register" className="link-blue">Register your Household</Link></p>
+        <p className="footer-note">Don't have an account? <Link to="/register" className="link-blue">Register here</Link></p>
 
         <p className="footer-note">© 2026 Barangay Poblacion Digital Bureau</p>
       </div>
