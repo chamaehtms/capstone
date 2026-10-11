@@ -409,17 +409,17 @@ router.put('/:id', async (req, res) => {
     let resolvedAt = existingRaw.resolved_at;
     let closedAt = existingRaw.closed_at;
 
-    if ((merged.status === 'Under Review' || merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Closed') && !underReviewAt) {
+    if ((merged.status === 'Under Review' || merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Escalated' || merged.status === 'Closed') && !underReviewAt) {
       underReviewAt = new Date();
     }
-    if ((merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Closed') && !inProgressAt) {
+    if ((merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Escalated' || merged.status === 'Closed') && !inProgressAt) {
       inProgressAt = new Date();
     }
-    if ((merged.status === 'Resolved' || merged.status === 'Closed') && !resolvedAt) {
+    if ((merged.status === 'Resolved') && !resolvedAt) {
       resolvedAt = new Date();
     }
-    if (merged.status === 'Closed' && !closedAt) {
-      closedAt = new Date();
+    if (merged.status === 'Escalated') {
+      merged.needsEscalation = true;
     }
 
     const { rows } = await pool.query(

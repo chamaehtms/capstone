@@ -34,9 +34,7 @@ export default function InfrastructureTimeline({ c }) {
   const normStatus = status.toLowerCase();
 
   let currentStage = 1;
-  if (normStatus === 'closed') {
-    currentStage = 5;
-  } else if (normStatus === 'resolved') {
+  if (normStatus === 'resolved' || normStatus === 'escalated' || normStatus === 'closed') {
     currentStage = 4;
   } else if (normStatus === 'in progress' || normStatus === 'in_progress') {
     currentStage = 3;
@@ -77,13 +75,9 @@ export default function InfrastructureTimeline({ c }) {
   let resolvedSubtitle = 'Pending';
   if (currentStage >= 4) {
     const rDate = c.resolvedAt ? formatTimelineDate(c.resolvedAt) : formatTimelineDate(c.updatedAt || new Date());
-    resolvedSubtitle = `${rDate} | Inspection Verified & Completed`;
-  }
-
-  let closedSubtitle = 'Pending';
-  if (currentStage >= 5) {
-    const clDate = c.closedAt ? formatTimelineDate(c.closedAt) : formatTimelineDate(c.updatedAt || new Date());
-    closedSubtitle = `${clDate} | Official Report Closed`;
+    resolvedSubtitle = normStatus === 'escalated'
+      ? `${rDate} | Escalated for Formal Legal Action`
+      : `${rDate} | Inspection Verified & Completed`;
   }
 
   const steps = [
@@ -244,10 +238,10 @@ export default function InfrastructureTimeline({ c }) {
     {
       id: 'resolved',
       stepNum: 4,
-      label: 'Resolved',
+      label: normStatus === 'escalated' ? 'Escalated' : 'Resolved',
       subtitle: resolvedSubtitle,
-      titleColor: currentStage >= 4 ? '#10b981' : '#475569',
-      lineColorToNext: currentStage >= 5 ? '#10b981' : '#cbd5e1',
+      titleColor: currentStage >= 4 ? (normStatus === 'escalated' ? '#e11d48' : '#10b981') : '#475569',
+      lineColorToNext: null,
       renderIcon: () => {
         if (currentStage >= 4) {
           return (
@@ -256,65 +250,16 @@ export default function InfrastructureTimeline({ c }) {
                 width: 28,
                 height: 28,
                 borderRadius: '50%',
-                background: '#10b981',
+                background: normStatus === 'escalated' ? '#e11d48' : '#10b981',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#ffffff',
                 flexShrink: 0,
                 zIndex: 1,
-                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
-              }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-          );
-        }
-        return (
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              border: '2px solid #cbd5e1',
-              background: '#ffffff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-              zIndex: 1,
-            }}
-          >
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#94a3b8' }} />
-          </div>
-        );
-      },
-    },
-    {
-      id: 'closed',
-      stepNum: 5,
-      label: 'Closed',
-      subtitle: closedSubtitle,
-      titleColor: currentStage >= 5 ? '#10b981' : '#475569',
-      lineColorToNext: null,
-      renderIcon: () => {
-        if (currentStage >= 5) {
-          return (
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: '#10b981',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#ffffff',
-                flexShrink: 0,
-                zIndex: 1,
-                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.25)',
+                boxShadow: normStatus === 'escalated'
+                  ? '0 2px 4px rgba(225, 29, 72, 0.25)'
+                  : '0 2px 4px rgba(16, 185, 129, 0.25)',
               }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">

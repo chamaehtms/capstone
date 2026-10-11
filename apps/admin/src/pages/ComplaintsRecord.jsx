@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import StatCard from '../components/StatCard.jsx';
 
-const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Closed'];
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Escalated'];
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
@@ -11,7 +11,7 @@ const statusStyles = {
   'In Progress': 'bg-amber-100 text-amber-700',
   Mediation: 'bg-purple-100 text-purple-700',
   Resolved: 'bg-emerald-100 text-emerald-700',
-  Closed: 'bg-slate-100 text-slate-700',
+  Escalated: 'bg-rose-100 text-rose-700',
 };
 
 function formatFilingDate(value) {
@@ -80,7 +80,11 @@ export default function ComplaintsRecord() {
     setError('');
     setUpdatingId(caseId);
     try {
-      await api.put(`/complaints/${caseId}`, { status: newStatus });
+      const payload = { status: newStatus };
+      if (newStatus === 'Escalated') {
+        payload.needsEscalation = true;
+      }
+      await api.put(`/complaints/${caseId}`, payload);
       // Refresh so both the row and the stat cards (active count, resolution rate) stay accurate.
       await fetchComplaints(search);
     } catch (err) {

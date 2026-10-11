@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import api, { toAssetUrl } from '../api';
 import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
 
-const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Closed'];
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Escalated'];
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
@@ -11,7 +11,7 @@ const statusStyles = {
   'In Progress': 'bg-amber-100 text-amber-700',
   Mediation: 'bg-purple-100 text-purple-700',
   Resolved: 'bg-emerald-100 text-emerald-700',
-  Closed: 'bg-slate-100 text-slate-700',
+  Escalated: 'bg-rose-100 text-rose-700',
 };
 
 function formatDateTime(value) {
@@ -90,7 +90,11 @@ export default function CaseDetail() {
 
     setUpdating(true);
     try {
-      const { data } = await api.put(`/complaints/${id}`, { status: newStatus });
+      const payload = { status: newStatus };
+      if (newStatus === 'Escalated') {
+        payload.needsEscalation = true;
+      }
+      const { data } = await api.put(`/complaints/${id}`, payload);
       setComplaint(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update status.');
