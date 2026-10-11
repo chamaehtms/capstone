@@ -39,8 +39,8 @@ export default function Login() {
         {error && <div className="error-msg">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label className="field-label">Email</label>
+          <div className="field" style={{ textAlign: 'left' }}>
+            <label className="field-label" style={{ textAlign: 'left', marginBottom: 6 }}>Email</label>
             <div className="input-icon">
               <ModernIcon name="mail" size={18} className="icon" />
               <input type="email" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="you@example.com" required />

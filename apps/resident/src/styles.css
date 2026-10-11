@@ -52,7 +52,7 @@ a{text-decoration:none;color:inherit}
 .btn:disabled{opacity:.6;cursor:not-allowed}
 
 /* Forms */
-label.field-label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+label.field-label{display:block;font-size:.72rem;font-weight:700;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;text-align:left}
 input, select, textarea{
   width:100%;padding:13px 14px;border-radius:12px;border:1px solid transparent;background:#eef0f6;
   font-size:.95rem;color:var(--text);font-family:inherit;
@@ -60,7 +60,7 @@ input, select, textarea{
 input::placeholder, textarea::placeholder{color:#9298b0}
 input:focus, select:focus, textarea:focus{outline:2px solid var(--blue);background:#fff}
 textarea{resize:vertical;min-height:90px}
-.field{margin-bottom:16px}
+.field{margin-bottom:16px;text-align:left}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .phone-row{display:grid;grid-template-columns:70px 1fr;gap:10px}
 
