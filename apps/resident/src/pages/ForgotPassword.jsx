@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { forgotPassword, resetPassword } from '../api.js';
+import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -61,10 +62,12 @@ export default function ForgotPassword() {
           <form onSubmit={handleSubmit}>
             {!codeSent ? (
               <>
-                <div className="field input-icon">
+                <div className="field">
                   <label className="field-label">Email</label>
-                  <span className="icon">👤</span>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required />
+                  <div className="input-icon">
+                    <ModernIcon name="mail" size={18} className="icon" />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required />
+                  </div>
                 </div>
                 <button type="submit" className="btn btn-navy btn-block" disabled={loading}>
                   {loading ? 'Sending code…' : 'Email Reset Code'}
