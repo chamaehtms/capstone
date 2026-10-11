@@ -40,9 +40,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="field">
-            <div className="row-between" style={{ marginBottom: 6 }}>
-              <label className="field-label" style={{ margin: 0, textAlign: 'left' }}>Email</label>
-            </div>
+            <label className="field-label" style={{ margin: '0 0 6px', textAlign: 'left', display: 'block' }}>Email</label>
             <div className="input-icon">
               <ModernIcon name="mail" size={18} className="icon" />
               <input type="email" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="you@example.com" required />

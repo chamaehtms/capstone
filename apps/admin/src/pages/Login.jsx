@@ -19,7 +19,7 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Unable to log in. Please try again.');
+      setError(err.response?.data?.message || err.response?.data?.error || err.message || 'Unable to log in. Please try again.');
     } finally {
       setLoading(false);
     }

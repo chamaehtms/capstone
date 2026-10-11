@@ -66,6 +66,14 @@ const allowedOrigins = new Set([
   'https://brgy-poblacion.site',
   process.env.FRONTEND_URL,
   process.env.RESIDENT_FRONTEND_URL,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5500',
+  'http://127.0.0.1:5500',
+  'http://localhost:5505',
+  'http://127.0.0.1:5505',
+  'http://localhost:4000',
+  'http://127.0.0.1:4000',
   ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
 ].map(normalizeOrigin).filter(Boolean));
 
@@ -75,7 +83,12 @@ app.use(
       if (!origin || allowedOrigins.has('*')) {
         return callback(null, true);
       }
-      if (allowedOrigins.has(normalizeOrigin(origin))) {
+      const norm = normalizeOrigin(origin);
+      if (allowedOrigins.has(norm)) {
+        return callback(null, true);
+      }
+      // Allow any localhost, 127.0.0.1, or LAN network address in development
+      if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS error: Origin ${origin} not allowed`));
