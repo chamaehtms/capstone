@@ -16,6 +16,7 @@ const statusStyles = {
   Resolved: 'bg-emerald-100 text-emerald-700',
   Escalated: 'bg-rose-100 text-rose-700',
   Closed: 'bg-emerald-100 text-emerald-700',
+  Rejected: 'bg-rose-100 text-rose-700',
 };
 
 function formatFilingDate(value) {
@@ -49,6 +50,7 @@ export default function ComplaintsRecord() {
   const [stats, setStats] = useState({ active: 0, resolutionRate: 0 });
   const [search, setSearch] = useState('');
   const [filingRecency, setFilingRecency] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
@@ -71,6 +73,11 @@ export default function ComplaintsRecord() {
   };
 
   const visibleComplaints = complaints.filter((complaint) => {
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'Rejected' && complaint.status !== 'Rejected') return false;
+      if (statusFilter !== 'Rejected' && complaint.status !== statusFilter) return false;
+    }
+
     if (filingRecency === 'all') return true;
 
     const ageDays = getFilingAgeDays(complaint.filingDate);
@@ -147,14 +154,29 @@ export default function ComplaintsRecord() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search case ID, resident name, or incident..."
-                className="w-80 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-72 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </form>
+            <select
+              aria-label="Filter cases by status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-40 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Under Review">Under Review</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Mediation">Mediation</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Escalated">Escalated</option>
+              <option value="Rejected">✕ Rejected</option>
+            </select>
             <select
               aria-label="Filter cases by filing date"
               value={filingRecency}
               onChange={(e) => setFilingRecency(e.target.value)}
-              className="w-48 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-44 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Any filing date</option>
               <option value="latest">Latest (0-7 days)</option>
@@ -171,7 +193,7 @@ export default function ComplaintsRecord() {
               <th className="px-5 py-3 font-medium">RESIDENT</th>
               <th className="px-5 py-3 font-medium">CATEGORY</th>
               <th className="px-5 py-3 font-medium">STATUS</th>
-              <th className="px-5 py-3 font-medium">ESCALATION</th>
+              <th className="px-5 py-3 font-medium">ESCALATION / OUTCOME</th>
               <th className="px-5 py-3 font-medium">FILING DATE</th>
               <th className="px-5 py-3 font-medium text-right">ACTION</th>
             </tr>
@@ -179,7 +201,7 @@ export default function ComplaintsRecord() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
                   Loading cases…
                 </td>
               </tr>
@@ -187,71 +209,105 @@ export default function ComplaintsRecord() {
             {!loading && visibleComplaints.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
-                  {complaints.length === 0 ? 'No cases found.' : 'No cases match this filing-date filter.'}
+                  {complaints.length === 0 ? 'No cases found.' : 'No cases match the selected filters.'}
                 </td>
               </tr>
             )}
-            {visibleComplaints.map((c) => (
-              <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50">
-                <td className="px-5 py-3">
-                  <Link to={`/complaints/${c.id}`} className="font-medium text-blue-600 hover:underline">
-                    {c.id}
-                  </Link>
-                  {c.filedByResidentId && (
-                    <span className="ml-2 text-[10px] font-medium bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded">
-                      Resident Portal
-                    </span>
-                  )}
-                  {(c.aiScanStatus === 'ai_detected' || c.aiScanStatus === 'possibly_ai_generated') && (
-                    <span className="ml-2 text-[10px] font-semibold bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200">
-                      AI Detected
-                    </span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-slate-700">{c.resident}</td>
-                <td className="px-5 py-3 text-slate-500">{c.category}</td>
-                <td className="px-5 py-3">
-                  <StatusDropdown
-                    status={c.status}
-                    needsEscalation={c.needsEscalation}
-                    disabled={updatingId === c.id}
-                    onChange={(newStatus, needsEsc) => handleStatusUpdate(c.id, newStatus, needsEsc)}
-                  />
-                </td>
-                <td className="px-5 py-3">
-                  {c.needsEscalation ? (
-                    <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                      <span>↗</span> Escalated Case
-                    </span>
-                  ) : (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') ? (
-                    <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                      <span>✓</span> Resolved (Settled)
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-slate-400">Not marked</span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-slate-500">{formatFilingDate(c.filingDate)}</td>
-                <td className="px-5 py-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    <Link
-                      to={`/complaints/${c.id}`}
-                      className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
-                    >
-                      View
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteComplaint(c.id)}
+            {visibleComplaints.map((c) => {
+              const isRejected = c.status === 'Rejected';
+              return (
+                <tr
+                  key={c.id}
+                  className={`border-b border-slate-50 transition-colors ${
+                    isRejected ? 'bg-rose-50/30 hover:bg-rose-50/50' : 'hover:bg-slate-50'
+                  }`}
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      <Link to={`/complaints/${c.id}`} className="font-medium text-blue-600 hover:underline">
+                        {c.id}
+                      </Link>
+                      {c.filedByResidentId && (
+                        <span className="text-[10px] font-medium bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded">
+                          Resident Portal
+                        </span>
+                      )}
+                      {isRejected && (
+                        <span
+                          className="text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 shadow-2xs"
+                          title={c.rejectionReason ? `Reason: ${c.rejectionReason}` : 'Case was rejected'}
+                        >
+                          <span className="text-xs leading-none">✕</span> Rejected
+                        </span>
+                      )}
+                      {(c.aiScanStatus === 'ai_detected' || c.aiScanStatus === 'possibly_ai_generated') && (
+                        <span className="text-[10px] font-semibold bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200">
+                          AI Detected
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-slate-700">
+                    <div className="flex items-center gap-1.5">
+                      <span>{c.resident}</span>
+                      {isRejected && (
+                        <span className="text-[10px] text-rose-500 font-medium">
+                          (Dismissed)
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-slate-500">{c.category}</td>
+                  <td className="px-5 py-3">
+                    <StatusDropdown
+                      status={c.status}
+                      needsEscalation={c.needsEscalation}
                       disabled={updatingId === c.id}
-                      className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 transition-colors disabled:opacity-60"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      onChange={(newStatus, needsEsc) => handleStatusUpdate(c.id, newStatus, needsEsc)}
+                    />
+                  </td>
+                  <td className="px-5 py-3">
+                    {isRejected ? (
+                      <span
+                        className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full inline-flex items-center gap-1 border border-rose-200"
+                        title={c.rejectionReason ? `Reason: ${c.rejectionReason}` : 'Case was rejected'}
+                      >
+                        <span>✕</span> Rejected{c.rejectionReason ? `: ${c.rejectionReason}` : ''}
+                      </span>
+                    ) : c.needsEscalation ? (
+                      <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                        <span>↗</span> Escalated Case
+                      </span>
+                    ) : (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') ? (
+                      <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                        <span>✓</span> Resolved (Settled)
+                      </span>
+                    ) : (
+                      <span className="text-[11px] text-slate-400">Not marked</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-slate-500">{formatFilingDate(c.filingDate)}</td>
+                  <td className="px-5 py-3 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        to={`/complaints/${c.id}`}
+                        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+                      >
+                        View
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteComplaint(c.id)}
+                        disabled={updatingId === c.id}
+                        className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 transition-colors disabled:opacity-60"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -69,13 +69,33 @@ const allowedOrigins = new Set([
   ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
 ].map(normalizeOrigin).filter(Boolean));
 
+function isOriginAllowed(origin) {
+  if (!origin || allowedOrigins.has('*')) return true;
+  const normalized = normalizeOrigin(origin);
+  if (allowedOrigins.has(normalized)) return true;
+
+  // Allow any localhost or 127.0.0.1 port for local development
+  try {
+    const url = new URL(origin);
+    if (
+      url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname === '::1' ||
+      url.hostname.endsWith('.localhost')
+    ) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.has('*')) {
-        return callback(null, true);
-      }
-      if (allowedOrigins.has(normalizeOrigin(origin))) {
+      if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS error: Origin ${origin} not allowed`));

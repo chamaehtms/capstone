@@ -251,6 +251,8 @@ hr.dash{border:none;border-top:1px dashed var(--border);margin:20px 0}
 .badge.resolved{background:var(--green-bg);color:var(--green-text)}
 .badge.closed{background:var(--gray-bg);color:var(--gray-text)}
 .badge.progress{background:var(--sky);color:var(--navy)}
+.badge.rejected{background:var(--red-bg);color:var(--red-text);border:1px solid rgba(224,96,79,.3)}
+.badge.escalated{background:#fde8e8;color:#c81e1e}
 
 /* Profile page */
 .profile-grid{display:grid;grid-template-columns:280px 1fr;gap:24px;margin-top:24px}

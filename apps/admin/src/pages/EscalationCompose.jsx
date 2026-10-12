@@ -7,7 +7,6 @@ export default function EscalationCompose() {
   const [form, setForm] = useState({
     category: searchParams.get('category') || 'Infrastructure Discrepancy',
     reason: 'Formal Escalation',
-    priority: 'High',
     toDepartment: 'Department of Urban Infrastructure & Planning',
     toRecipient: 'Director Sarah Montgomery',
     subject: 'Formal Escalation - Infrastructure Discrepancy',
@@ -72,7 +71,7 @@ export default function EscalationCompose() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold text-slate-500">CATEGORY</label>
             <input
@@ -88,18 +87,6 @@ export default function EscalationCompose() {
               onChange={update('reason')}
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-500">PRIORITY</label>
-            <select
-              value={form.priority}
-              onChange={update('priority')}
-              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option>Medium</option>
-              <option>High</option>
-              <option>Critical</option>
-            </select>
           </div>
         </div>
 

@@ -159,6 +159,8 @@ function toComplaint(c, currentResidentId) {
     nextMediationDate: c.next_mediation_date || '',
     nextMediationTime: c.next_mediation_time || '',
     nextMediationVenue: c.next_mediation_venue || '',
+    rejectionReason: c.rejection_reason || null,
+    rejectedAt: c.rejected_at || null,
     isFiledByMe,
     isAgainstMe,
     role: isAgainstMe ? 'respondent' : 'complainant',

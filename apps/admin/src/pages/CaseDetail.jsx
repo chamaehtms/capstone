@@ -139,6 +139,7 @@ export default function CaseDetail() {
     try {
       const { data } = await api.put(`/complaints/${id}`, {
         status: 'Rejected',
+        rejectionReason: rejectReason,
       });
       setComplaint(data);
       setIsRejectModalOpen(false);
@@ -239,10 +240,41 @@ export default function CaseDetail() {
         </div>
       )}
 
+      {complaint.status === 'Rejected' && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-3 shadow-2xs">
+          <span className="text-xl leading-none">⚠️</span>
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <strong className="text-sm font-bold text-rose-800">
+                This Case Was Officially Rejected / Dismissed
+              </strong>
+              {complaint.rejectedAt && (
+                <span className="text-[11px] text-rose-600">
+                  {formatDateTime(complaint.rejectedAt)}
+                </span>
+              )}
+            </div>
+            {complaint.rejectionReason && (
+              <p className="mt-1 text-xs text-rose-700">
+                <span className="font-semibold">Stated Grounds:</span> {complaint.rejectionReason}
+              </p>
+            )}
+            <p className="mt-1 text-[11px] text-rose-600">
+              Proceedings and mediation for this complaint have been halted. To reopen or re-file, please register a new blotter or formal complaint.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <h1 className="text-xl font-bold text-slate-900">{complaint.category}</h1>
+            {complaint.status === 'Rejected' && (
+              <span className="text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded inline-flex items-center gap-1 shadow-2xs">
+                <span>✕</span> Case Rejected
+              </span>
+            )}
             {isFromPortal && (
               <span className="text-[11px] font-medium bg-sky-50 text-sky-600 px-2 py-0.5 rounded">
                 Filed via Resident Portal
@@ -271,13 +303,23 @@ export default function CaseDetail() {
             onChange={(newStatus, needsEsc) => handleStatusUpdate(newStatus, needsEsc)}
           />
 
-          <button
-            type="button"
-            onClick={() => setIsRejectModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition shadow-xs"
-          >
-            Reject Complaint
-          </button>
+          {complaint.status === 'Rejected' ? (
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-100 rounded-lg border border-rose-200"
+              title={complaint.rejectionReason ? `Reason: ${complaint.rejectionReason}` : 'Case is already rejected'}
+            >
+              <span>✕</span>
+              <span>Already Rejected</span>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsRejectModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition shadow-xs"
+            >
+              Reject Complaint
+            </button>
+          )}
 
           {!isInfrastructure && (
             <button
@@ -581,11 +623,24 @@ export default function CaseDetail() {
               </div>
               <div>
                 <p className="text-xs text-slate-400">
-                  {(complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated')
+                  {complaint.status === 'Rejected'
+                    ? 'CASE STATUS'
+                    : (complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated')
                     ? 'RESOLUTION OUTCOME'
                     : 'ESCALATION DECISION'}
                 </p>
-                {(complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated') ? (
+                {complaint.status === 'Rejected' ? (
+                  <div className="mt-2 p-3 rounded-lg bg-rose-50 border border-rose-200">
+                    <p className="text-xs font-bold text-rose-700 flex items-center gap-1.5">
+                      <span>✕</span> Case Rejected / Dismissed
+                    </p>
+                    {complaint.rejectionReason && (
+                      <p className="mt-1 text-xs text-rose-600">
+                        Reason: {complaint.rejectionReason}
+                      </p>
+                    )}
+                  </div>
+                ) : (complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated') ? (
                   <div className="mt-2 space-y-2">
                     <p className={`text-xs font-semibold ${complaint.needsEscalation ? 'text-rose-600' : 'text-emerald-600'}`}>
                       Current: {complaint.needsEscalation ? 'Escalated for Formal Action' : 'Amicably Resolved'}
@@ -657,12 +712,24 @@ export default function CaseDetail() {
                   {complaint.scheduledMeeting ? `${formatDate(complaint.scheduledMeeting.date)} (${complaint.scheduledMeeting.time || '10:00 AM'})` : 'Not yet'}
                 </p>
               </div>
-              <div>
-                <p className={complaint.resolvedAt ? 'font-medium text-white' : 'text-slate-400'}>
-                  Resolved / Escalated
-                </p>
-                <p className="text-slate-300">{formatDateTime(complaint.resolvedAt) || 'Not yet'}</p>
-              </div>
+              {complaint.status === 'Rejected' ? (
+                <div>
+                  <p className="font-semibold text-rose-400 flex items-center gap-1">
+                    <span>✕</span> Case Rejected
+                  </p>
+                  <p className="text-rose-300">{formatDateTime(complaint.rejectedAt || complaint.resolvedAt) || 'Rejected'}</p>
+                  {complaint.rejectionReason && (
+                    <p className="text-[11px] text-rose-200/90 mt-0.5 italic">"{complaint.rejectionReason}"</p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <p className={complaint.resolvedAt ? 'font-medium text-white' : 'text-slate-400'}>
+                    Resolved / Escalated
+                  </p>
+                  <p className="text-slate-300">{formatDateTime(complaint.resolvedAt) || 'Not yet'}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

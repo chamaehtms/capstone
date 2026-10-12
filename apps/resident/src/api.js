@@ -69,6 +69,7 @@ export function initials(name) {
 }
 
 export function statusBadgeClass(status) {
+  if (status === 'Rejected') return 'rejected';
   if (status === 'Resolved/Escalated' || status === 'Resolved / Escalated' || status === 'Resolved' || status === 'Closed') return 'resolved';
   if (status === 'Escalated') return 'escalated';
   return 'progress';
@@ -148,6 +149,8 @@ function toLegacyComplaint(c) {
     nextMediationDate: c.nextMediationDate || null,
     nextMediationTime: c.nextMediationTime || null,
     nextMediationVenue: c.nextMediationVenue || null,
+    rejectionReason: c.rejectionReason || null,
+    rejectedAt: c.rejectedAt || null,
     createdAt: c.submittedAt || c.filingDate,
     filingDate: c.filingDate || c.submittedAt,
     submittedAt: c.submittedAt || c.filingDate || c.createdAt,

@@ -8,6 +8,7 @@ const statusPillStyles = {
   Resolved: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
   Escalated: 'bg-rose-100 text-rose-700 hover:bg-rose-200',
   'Resolved/Escalated': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
+  Rejected: 'bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-200',
 };
 
 export default function StatusDropdown({
@@ -137,6 +138,25 @@ export default function StatusDropdown({
                   <span>Escalated</span>
                 </button>
               </div>
+            </div>
+
+            {/* Divider & REJECTED Section */}
+            <div className="my-2 border-t border-slate-100" />
+
+            <div className="px-1 pt-0.5 pb-1">
+              <button
+                type="button"
+                onClick={() => handleSelectStatus('Rejected')}
+                title="Mark case as Rejected"
+                className={`w-full py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  displayLabel === 'Rejected'
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                }`}
+              >
+                <span>✕</span>
+                <span>{displayLabel === 'Rejected' ? 'Case Rejected' : 'Mark as Rejected'}</span>
+              </button>
             </div>
           </div>
         </>

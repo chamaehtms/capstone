@@ -85,7 +85,6 @@ export default function LetterIssued() {
           <p><span className="font-semibold">Attention:</span> {escalation?.toRecipient || 'Concerned Officer'}</p>
           <p className="pt-4"><span className="font-semibold">Subject:</span> {escalation?.subject || 'Escalation Letter'}</p>
           {escalation?.caseRef && <p><span className="font-semibold">Case Reference:</span> {escalation.caseRef}</p>}
-          <p><span className="font-semibold">Priority:</span> {escalation?.priority || 'Medium'}</p>
         </div>
 
         <p className="mt-8 whitespace-pre-wrap leading-8 text-[15px]">
