@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { toAssetUrl } from '../api';
 import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
+import StatusDropdown from '../components/StatusDropdown.jsx';
 
 const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved/Escalated'];
 
@@ -55,7 +56,6 @@ export default function CaseDetail() {
   const [updating, setUpdating] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
-  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
 
   // Mediation modal state
   const [isMediationModalOpen, setIsMediationModalOpen] = useState(false);
@@ -86,7 +86,7 @@ export default function CaseDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const handleStatusChange = async (newStatus) => {
+  const handleStatusUpdate = async (newStatus, needsEscalation = false) => {
     if (newStatus === 'Mediation' && !complaint?.scheduledMeeting) {
       openMediationModal();
       return;
@@ -94,8 +94,18 @@ export default function CaseDetail() {
 
     setUpdating(true);
     try {
-      const { data } = await api.put(`/complaints/${id}`, { status: newStatus });
+      const { data } = await api.put(`/complaints/${id}`, {
+        status: newStatus,
+        needsEscalation: needsEscalation === true,
+      });
       setComplaint(data);
+      if (newStatus === 'Resolved/Escalated') {
+        setMessage(
+          needsEscalation
+            ? 'Case marked as Escalated for formal legal proceedings.'
+            : 'Case marked as Successfully Resolved (Amicable Settlement).'
+        );
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update status.');
     } finally {
@@ -113,27 +123,6 @@ export default function CaseDetail() {
       setComplaint(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update escalation decision.');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleResolutionOutcome = async (outcome) => {
-    setUpdating(true);
-    setError('');
-    try {
-      const { data } = await api.put(`/complaints/${id}`, {
-        status: 'Resolved/Escalated',
-        needsEscalation: outcome === 'Escalated',
-      });
-      setComplaint(data);
-      setMessage(
-        outcome === 'Escalated'
-          ? 'Case marked as Escalated for formal legal proceedings.'
-          : 'Case marked as Successfully Resolved (Amicable Settlement).'
-      );
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to update resolution outcome.');
     } finally {
       setUpdating(false);
     }
@@ -232,13 +221,6 @@ export default function CaseDetail() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      {statusDropdownOpen && (
-        <div
-          className="fixed inset-0 z-20"
-          onClick={() => setStatusDropdownOpen(false)}
-        />
-      )}
-
       <Link to="/complaints" className="text-sm text-blue-600 hover:underline">
         ← Back to Complaints Record
       </Link>
@@ -282,90 +264,12 @@ export default function CaseDetail() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative inline-block text-left">
-            <button
-              type="button"
-              onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-              disabled={updating}
-              className={`text-sm font-medium px-3.5 py-1.5 rounded-full border-0 cursor-pointer inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 transition ${
-                complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated'
-                  ? (complaint.needsEscalation ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700')
-                  : (statusStyles[complaint.status] || 'bg-slate-100 text-slate-700')
-              }`}
-            >
-              <span>
-                {complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated'
-                  ? (complaint.needsEscalation ? 'Escalated' : 'Resolved')
-                  : complaint.status}
-              </span>
-              <svg className="w-3.5 h-3.5 opacity-70" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-              </svg>
-            </button>
-
-            {statusDropdownOpen && (
-              <div className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30">
-                {['Pending', 'Under Review', 'In Progress', 'Mediation'].map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => {
-                      handleStatusChange(opt);
-                      setStatusDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs font-medium transition flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
-                      complaint.status === opt ? 'text-blue-600 bg-blue-50/60 font-semibold' : 'text-slate-700'
-                    }`}
-                  >
-                    <span>{opt}</span>
-                    {complaint.status === opt && <span className="text-blue-600 font-bold">✓</span>}
-                  </button>
-                ))}
-
-                <div className="my-1 border-t border-slate-100" />
-
-                <div className="px-3 py-2 bg-slate-50/80 rounded-b-lg">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                    RESOLVED / ESCALATED
-                  </p>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleResolutionOutcome('Resolved');
-                        setStatusDropdownOpen(false);
-                      }}
-                      title="Mark as Amicably Resolved"
-                      className={`flex-1 text-center py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer ${
-                        (complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Closed') && !complaint.needsEscalation
-                          ? 'bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-600'
-                          : 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <span>✓</span>
-                      <span>Resolved</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleResolutionOutcome('Escalated');
-                        setStatusDropdownOpen(false);
-                      }}
-                      title="Mark as Escalated for Legal Action"
-                      className={`flex-1 text-center py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer ${
-                        (complaint.status === 'Resolved/Escalated' || complaint.status === 'Escalated') && complaint.needsEscalation
-                          ? 'bg-rose-600 text-white shadow-xs ring-1 ring-rose-600'
-                          : 'bg-white text-rose-700 border border-rose-300 hover:bg-rose-50'
-                      }`}
-                    >
-                      <span>↗</span>
-                      <span>Escalated</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <StatusDropdown
+            status={complaint.status}
+            needsEscalation={complaint.needsEscalation}
+            disabled={updating}
+            onChange={(newStatus, needsEsc) => handleStatusUpdate(newStatus, needsEsc)}
+          />
 
           <button
             type="button"
@@ -682,9 +586,37 @@ export default function CaseDetail() {
                     : 'ESCALATION DECISION'}
                 </p>
                 {(complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated') ? (
-                  <p className={`mt-1 text-sm font-semibold ${complaint.needsEscalation ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    {complaint.needsEscalation ? '↗ Escalated for Formal Legal Action' : '✓ Amicably Resolved'}
-                  </p>
+                  <div className="mt-2 space-y-2">
+                    <p className={`text-xs font-semibold ${complaint.needsEscalation ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      Current: {complaint.needsEscalation ? 'Escalated for Formal Action' : 'Amicably Resolved'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionOutcome('Resolved')}
+                        disabled={updating}
+                        className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition border flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                          !complaint.needsEscalation
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>✓</span> Resolved
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionOutcome('Escalated')}
+                        disabled={updating}
+                        className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition border flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                          complaint.needsEscalation
+                            ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>↗</span> Escalated
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <p className={`mt-1 text-sm font-semibold ${complaint.needsEscalation ? 'text-red-600' : 'text-slate-500'}`}>
