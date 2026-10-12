@@ -69,9 +69,8 @@ export function initials(name) {
 }
 
 export function statusBadgeClass(status) {
-  if (status === 'Resolved') return 'resolved';
+  if (status === 'Resolved/Escalated' || status === 'Resolved / Escalated' || status === 'Resolved' || status === 'Closed') return 'resolved';
   if (status === 'Escalated') return 'escalated';
-  if (status === 'Closed') return 'resolved';
   return 'progress';
 }
 
@@ -112,7 +111,18 @@ function toLegacyUser(r) {
   };
 }
 
-const STAGE_BY_STATUS = { Submitted: 1, Pending: 1, 'Under Review': 2, 'In Progress': 2, Mediation: 2, Resolved: 3, Escalated: 3, Closed: 3 };
+const STAGE_BY_STATUS = {
+  Submitted: 1,
+  Pending: 1,
+  'Under Review': 2,
+  'In Progress': 2,
+  Mediation: 2,
+  'Resolved/Escalated': 3,
+  'Resolved / Escalated': 3,
+  Resolved: 3,
+  Escalated: 3,
+  Closed: 3,
+};
 
 function toLegacyComplaint(c) {
   const isAgainstMe = c.isAgainstMe === true;
@@ -218,8 +228,8 @@ export async function getProfile() {
   const complaints = rawComplaints.map(toLegacyComplaint);
   const filedByMe = complaints.filter(c => !c.isAgainstMe);
   const againstMe = complaints.filter(c => c.isAgainstMe);
-  const resolvedFiled = filedByMe.filter(c => c.status === 'Resolved').length;
-  const activeAgainstMe = againstMe.filter(c => c.status !== 'Resolved' && c.status !== 'Closed').length;
+  const resolvedFiled = filedByMe.filter(c => c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed').length;
+  const activeAgainstMe = againstMe.filter(c => c.status !== 'Resolved' && c.status !== 'Escalated' && c.status !== 'Closed').length;
 
   return {
     user: toLegacyUser(resident),

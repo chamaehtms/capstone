@@ -113,7 +113,7 @@ router.get('/', async (req, res) => {
 
     const { rows: statRows } = await pool.query(`
       SELECT
-        COUNT(*) FILTER (WHERE status <> 'Resolved')::int AS active,
+        COUNT(*) FILTER (WHERE status NOT IN ('Resolved', 'Escalated', 'Closed'))::int AS active,
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'Resolved')::int AS resolved
       FROM complaints
@@ -409,13 +409,20 @@ router.put('/:id', async (req, res) => {
     let resolvedAt = existingRaw.resolved_at;
     let closedAt = existingRaw.closed_at;
 
-    if ((merged.status === 'Under Review' || merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Escalated' || merged.status === 'Closed') && !underReviewAt) {
+    const isTerminalStatus =
+      merged.status === 'Resolved/Escalated' ||
+      merged.status === 'Resolved / Escalated' ||
+      merged.status === 'Resolved' ||
+      merged.status === 'Escalated' ||
+      merged.status === 'Closed';
+
+    if ((merged.status === 'Under Review' || merged.status === 'In Progress' || isTerminalStatus) && !underReviewAt) {
       underReviewAt = new Date();
     }
-    if ((merged.status === 'In Progress' || merged.status === 'Resolved' || merged.status === 'Escalated' || merged.status === 'Closed') && !inProgressAt) {
+    if ((merged.status === 'In Progress' || isTerminalStatus) && !inProgressAt) {
       inProgressAt = new Date();
     }
-    if ((merged.status === 'Resolved') && !resolvedAt) {
+    if (isTerminalStatus && !resolvedAt) {
       resolvedAt = new Date();
     }
     if (merged.status === 'Escalated') {

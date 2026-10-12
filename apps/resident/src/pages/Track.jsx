@@ -6,7 +6,12 @@ import { trackComplaint, getMyComplaints, getMyMediations, statusBadgeClass, toA
 
 function Timeline({ c }) {
   const isMediation = c.status === 'Mediation' || !!c.mediationDate;
-  const isResolved = c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed';
+  const isResolved =
+    c.status === 'Resolved/Escalated' ||
+    c.status === 'Resolved / Escalated' ||
+    c.status === 'Resolved' ||
+    c.status === 'Escalated' ||
+    c.status === 'Closed';
 
   const stages = [
     { label: 'Submitted', desc: 'Request successfully logged by system.', done: true },
@@ -20,8 +25,10 @@ function Timeline({ c }) {
       current: isMediation && !isResolved,
     },
     {
-      label: c.status === 'Escalated' ? 'Escalated' : 'Resolved',
-      desc: c.status === 'Escalated' ? 'Case escalated for formal legal proceedings.' : 'Case completion & amicable settlement.',
+      label: c.status === 'Escalated' || c.needsEscalation ? 'Escalated' : 'Resolved/Escalated',
+      desc: c.status === 'Escalated' || c.needsEscalation
+        ? 'Case escalated for formal legal proceedings.'
+        : 'Case completion, amicable settlement, or resolution.',
       done: isResolved,
     },
   ];

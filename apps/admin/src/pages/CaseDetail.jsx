@@ -3,15 +3,18 @@ import { useParams, Link } from 'react-router-dom';
 import api, { toAssetUrl } from '../api';
 import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
 
-const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Escalated'];
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved/Escalated'];
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
   'Under Review': 'bg-blue-100 text-blue-700',
   'In Progress': 'bg-amber-100 text-amber-700',
   Mediation: 'bg-purple-100 text-purple-700',
+  'Resolved/Escalated': 'bg-emerald-100 text-emerald-700',
+  'Resolved / Escalated': 'bg-emerald-100 text-emerald-700',
   Resolved: 'bg-emerald-100 text-emerald-700',
   Escalated: 'bg-rose-100 text-rose-700',
+  Closed: 'bg-emerald-100 text-emerald-700',
 };
 
 function formatDateTime(value) {
@@ -90,11 +93,7 @@ export default function CaseDetail() {
 
     setUpdating(true);
     try {
-      const payload = { status: newStatus };
-      if (newStatus === 'Escalated') {
-        payload.needsEscalation = true;
-      }
-      const { data } = await api.put(`/complaints/${id}`, payload);
+      const { data } = await api.put(`/complaints/${id}`, { status: newStatus });
       setComplaint(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update status.');
@@ -113,6 +112,27 @@ export default function CaseDetail() {
       setComplaint(data);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update escalation decision.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleResolutionOutcome = async (outcome) => {
+    setUpdating(true);
+    setError('');
+    try {
+      const { data } = await api.put(`/complaints/${id}`, {
+        status: 'Resolved/Escalated',
+        needsEscalation: outcome === 'Escalated',
+      });
+      setComplaint(data);
+      setMessage(
+        outcome === 'Escalated'
+          ? 'Case marked as Escalated for formal legal proceedings.'
+          : 'Case marked as Successfully Resolved (Amicable Settlement).'
+      );
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to update resolution outcome.');
     } finally {
       setUpdating(false);
     }
@@ -255,11 +275,15 @@ export default function CaseDetail() {
         </div>
         <div className="flex items-center gap-3">
           <select
-            value={complaint.status}
+            value={
+              complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated'
+                ? 'Resolved/Escalated'
+                : complaint.status
+            }
             onChange={(e) => handleStatusChange(e.target.value)}
             disabled={updating}
             className={`text-sm font-medium px-3.5 py-1.5 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 ${
-              statusStyles[complaint.status] || 'bg-slate-100 text-slate-600'
+              statusStyles[complaint.status] || statusStyles['Resolved/Escalated'] || 'bg-slate-100 text-slate-600'
             }`}
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -268,6 +292,39 @@ export default function CaseDetail() {
               </option>
             ))}
           </select>
+
+          {(complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated') && (
+            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 gap-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => handleResolutionOutcome('Resolved')}
+                disabled={updating}
+                title="Mark as Amicably Resolved"
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                  !complaint.needsEscalation
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800'
+                }`}
+              >
+                <span>✓</span>
+                <span>Resolved</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleResolutionOutcome('Escalated')}
+                disabled={updating}
+                title="Mark as Escalated for Legal Action"
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                  complaint.needsEscalation
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-rose-700 hover:bg-rose-100 hover:text-rose-800'
+                }`}
+              >
+                <span>↗</span>
+                <span>Escalated</span>
+              </button>
+            </div>
+          )}
 
           <button
             type="button"
@@ -578,18 +635,58 @@ export default function CaseDetail() {
                 <p className="text-slate-700">{complaint.priority}</p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">ESCALATION DECISION</p>
-                <p className={`mt-1 text-sm font-semibold ${complaint.needsEscalation ? 'text-red-600' : 'text-slate-500'}`}>
-                  {complaint.needsEscalation ? 'Needs Escalation' : 'No Escalation Needed'}
+                <p className="text-xs text-slate-400">
+                  {(complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated')
+                    ? 'RESOLUTION OUTCOME'
+                    : 'ESCALATION DECISION'}
                 </p>
-                <button
-                  type="button"
-                  onClick={handleEscalationChange}
-                  disabled={updating}
-                  className="mt-3 text-xs font-medium text-blue-600 hover:underline disabled:opacity-60"
-                >
-                  {complaint.needsEscalation ? 'Clear Escalation Flag' : 'Mark for Escalation'}
-                </button>
+                {(complaint.status === 'Resolved/Escalated' || complaint.status === 'Resolved' || complaint.status === 'Escalated' || complaint.status === 'Closed' || complaint.status === 'Resolved / Escalated') ? (
+                  <div className="mt-2 space-y-2">
+                    <p className={`text-xs font-semibold ${complaint.needsEscalation ? 'text-rose-600' : 'text-emerald-600'}`}>
+                      Current: {complaint.needsEscalation ? 'Escalated for Formal Action' : 'Amicably Resolved'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionOutcome('Resolved')}
+                        disabled={updating}
+                        className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition border flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                          !complaint.needsEscalation
+                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>✓</span> Resolved
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionOutcome('Escalated')}
+                        disabled={updating}
+                        className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition border flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                          complaint.needsEscalation
+                            ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>↗</span> Escalated
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className={`mt-1 text-sm font-semibold ${complaint.needsEscalation ? 'text-red-600' : 'text-slate-500'}`}>
+                      {complaint.needsEscalation ? 'Needs Escalation' : 'No Escalation Needed'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleEscalationChange}
+                      disabled={updating}
+                      className="mt-3 text-xs font-medium text-blue-600 hover:underline disabled:opacity-60 cursor-pointer"
+                    >
+                      {complaint.needsEscalation ? 'Clear Escalation Flag' : 'Mark for Escalation'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -617,7 +714,7 @@ export default function CaseDetail() {
               </div>
               <div>
                 <p className={complaint.resolvedAt ? 'font-medium text-white' : 'text-slate-400'}>
-                  Resolved
+                  Resolved / Escalated
                 </p>
                 <p className="text-slate-300">{formatDateTime(complaint.resolvedAt) || 'Not yet'}</p>
               </div>

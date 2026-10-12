@@ -34,7 +34,7 @@ export default function InfrastructureTimeline({ c }) {
   const normStatus = status.toLowerCase();
 
   let currentStage = 1;
-  if (normStatus === 'resolved' || normStatus === 'escalated' || normStatus === 'closed') {
+  if (normStatus === 'resolved/escalated' || normStatus === 'resolved / escalated' || normStatus === 'resolved' || normStatus === 'escalated' || normStatus === 'closed') {
     currentStage = 4;
   } else if (normStatus === 'in progress' || normStatus === 'in_progress') {
     currentStage = 3;
@@ -238,7 +238,7 @@ export default function InfrastructureTimeline({ c }) {
     {
       id: 'resolved',
       stepNum: 4,
-      label: normStatus === 'escalated' ? 'Escalated' : 'Resolved',
+      label: normStatus === 'escalated' ? 'Escalated' : 'Resolved/Escalated',
       subtitle: resolvedSubtitle,
       titleColor: currentStage >= 4 ? (normStatus === 'escalated' ? '#e11d48' : '#10b981') : '#475569',
       lineColorToNext: null,

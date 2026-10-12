@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import StatCard from '../components/StatCard.jsx';
 
-const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved', 'Escalated'];
+const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved/Escalated'];
 
 const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
   'Under Review': 'bg-blue-100 text-blue-700',
   'In Progress': 'bg-amber-100 text-amber-700',
   Mediation: 'bg-purple-100 text-purple-700',
+  'Resolved/Escalated': 'bg-emerald-100 text-emerald-700',
+  'Resolved / Escalated': 'bg-emerald-100 text-emerald-700',
   Resolved: 'bg-emerald-100 text-emerald-700',
   Escalated: 'bg-rose-100 text-rose-700',
+  Closed: 'bg-emerald-100 text-emerald-700',
 };
 
 function formatFilingDate(value) {
@@ -80,15 +83,27 @@ export default function ComplaintsRecord() {
     setError('');
     setUpdatingId(caseId);
     try {
-      const payload = { status: newStatus };
-      if (newStatus === 'Escalated') {
-        payload.needsEscalation = true;
-      }
-      await api.put(`/complaints/${caseId}`, payload);
+      await api.put(`/complaints/${caseId}`, { status: newStatus });
       // Refresh so both the row and the stat cards (active count, resolution rate) stay accurate.
       await fetchComplaints(search);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to update status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleResolutionOutcome = async (caseId, outcome) => {
+    setError('');
+    setUpdatingId(caseId);
+    try {
+      await api.put(`/complaints/${caseId}`, {
+        status: 'Resolved/Escalated',
+        needsEscalation: outcome === 'Escalated',
+      });
+      await fetchComplaints(search);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to update resolution outcome.');
     } finally {
       setUpdatingId(null);
     }
@@ -209,11 +224,15 @@ export default function ComplaintsRecord() {
                 <td className="px-5 py-3 text-slate-500">{c.category}</td>
                 <td className="px-5 py-3">
                   <select
-                    value={c.status}
+                    value={
+                      c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated'
+                        ? 'Resolved/Escalated'
+                        : c.status
+                    }
                     onChange={(e) => handleStatusChange(c.id, e.target.value)}
                     disabled={updatingId === c.id}
                     className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 ${
-                      statusStyles[c.status] || 'bg-slate-100 text-slate-600'
+                      statusStyles[c.status] || statusStyles['Resolved/Escalated'] || 'bg-slate-100 text-slate-600'
                     }`}
                   >
                     {STATUS_OPTIONS.map((opt) => (
@@ -222,9 +241,52 @@ export default function ComplaintsRecord() {
                       </option>
                     ))}
                   </select>
+
+                  {(c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated') && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionOutcome(c.id, 'Resolved')}
+                        disabled={updatingId === c.id}
+                        title="Mark as Amicably Resolved"
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                          !c.needsEscalation
+                            ? 'bg-emerald-600 text-white shadow-xs'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span>✓</span>
+                        <span>Resolved</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleResolutionOutcome(c.id, 'Escalated')}
+                        disabled={updatingId === c.id}
+                        title="Mark as Escalated for Formal Legal Action"
+                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
+                          c.needsEscalation
+                            ? 'bg-rose-600 text-white shadow-xs'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                        }`}
+                      >
+                        <span>↗</span>
+                        <span>Escalated</span>
+                      </button>
+                    </div>
+                  )}
                 </td>
                 <td className="px-5 py-3">
-                  {c.needsEscalation ? (
+                  {(c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated') ? (
+                    c.needsEscalation ? (
+                      <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                        <span>↗</span> Escalated Case
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                        <span>✓</span> Resolved (Settled)
+                      </span>
+                    )
+                  ) : c.needsEscalation ? (
                     <span className="text-[11px] font-semibold bg-red-100 text-red-700 px-2 py-1 rounded-full">
                       Needs Escalation
                     </span>

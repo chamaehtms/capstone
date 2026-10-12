@@ -256,7 +256,7 @@ export default function InfrastructureTimeline({ c }) {
     {
       id: 'resolved',
       stepNum: 4,
-      label: normStatus === 'escalated' ? 'Escalated' : 'Resolved',
+      label: normStatus === 'escalated' || c.needsEscalation ? 'Escalated' : 'Resolved/Escalated',
       subtitle: resolvedSubtitle,
       isCompleted: currentStage >= 4,
       isActive: currentStage === 4,
