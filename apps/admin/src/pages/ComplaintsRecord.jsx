@@ -221,7 +221,11 @@ export default function ComplaintsRecord() {
                 <td className="px-5 py-3">
                   {c.needsEscalation ? (
                     <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                      <span>↗</span> Needs Escalation
+                      <span>↗</span> Escalated Case
+                    </span>
+                  ) : (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') ? (
+                    <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                      <span>✓</span> Resolved (Settled)
                     </span>
                   ) : (
                     <span className="text-[11px] text-slate-400">Not marked</span>
