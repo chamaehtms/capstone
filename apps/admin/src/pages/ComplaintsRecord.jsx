@@ -50,6 +50,7 @@ export default function ComplaintsRecord() {
   const [filingRecency, setFilingRecency] = useState('all');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
   const [error, setError] = useState('');
 
   const fetchComplaints = async (q = '') => {
@@ -150,6 +151,13 @@ export default function ComplaintsRecord() {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
+      {openDropdownId && (
+        <div
+          className="fixed inset-0 z-20"
+          onClick={() => setOpenDropdownId(null)}
+        />
+      )}
+
       <div className="bg-white rounded-xl shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-slate-100">
           <h2 className="font-semibold text-slate-800">Active Repository</h2>
@@ -223,57 +231,90 @@ export default function ComplaintsRecord() {
                 <td className="px-5 py-3 text-slate-700">{c.resident}</td>
                 <td className="px-5 py-3 text-slate-500">{c.category}</td>
                 <td className="px-5 py-3">
-                  <select
-                    value={
-                      c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated'
-                        ? 'Resolved/Escalated'
-                        : c.status
-                    }
-                    onChange={(e) => handleStatusChange(c.id, e.target.value)}
-                    disabled={updatingId === c.id}
-                    className={`text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 ${
-                      statusStyles[c.status] || statusStyles['Resolved/Escalated'] || 'bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    {STATUS_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt} className="bg-white text-slate-700">
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative inline-block text-left">
+                    <button
+                      type="button"
+                      onClick={() => setOpenDropdownId(openDropdownId === c.id ? null : c.id)}
+                      disabled={updatingId === c.id}
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full border-0 cursor-pointer inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 transition ${
+                        c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated'
+                          ? (c.needsEscalation ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700')
+                          : (statusStyles[c.status] || 'bg-slate-100 text-slate-700')
+                      }`}
+                    >
+                      <span>
+                        {c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated'
+                          ? (c.needsEscalation ? 'Escalated' : 'Resolved')
+                          : c.status}
+                      </span>
+                      <svg className="w-3 h-3 opacity-70" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                      </svg>
+                    </button>
 
-                  {(c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated') && (
-                    <div className="flex items-center gap-1.5 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => handleResolutionOutcome(c.id, 'Resolved')}
-                        disabled={updatingId === c.id}
-                        title="Mark as Amicably Resolved"
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
-                          !c.needsEscalation
-                            ? 'bg-emerald-600 text-white shadow-xs'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-                        }`}
-                      >
-                        <span>✓</span>
-                        <span>Resolved</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleResolutionOutcome(c.id, 'Escalated')}
-                        disabled={updatingId === c.id}
-                        title="Mark as Escalated for Formal Legal Action"
-                        className={`text-[11px] font-semibold px-2.5 py-1 rounded-md transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 ${
-                          c.needsEscalation
-                            ? 'bg-rose-600 text-white shadow-xs'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
-                        }`}
-                      >
-                        <span>↗</span>
-                        <span>Escalated</span>
-                      </button>
-                    </div>
-                  )}
+                    {openDropdownId === c.id && (
+                      <div className="absolute left-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30">
+                        {['Pending', 'Under Review', 'In Progress', 'Mediation'].map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              handleStatusChange(c.id, opt);
+                              setOpenDropdownId(null);
+                            }}
+                            className={`w-full text-left px-3.5 py-2 text-xs font-medium transition flex items-center justify-between hover:bg-slate-50 cursor-pointer ${
+                              c.status === opt ? 'text-blue-600 bg-blue-50/60 font-semibold' : 'text-slate-700'
+                            }`}
+                          >
+                            <span>{opt}</span>
+                            {c.status === opt && <span className="text-blue-600 font-bold">✓</span>}
+                          </button>
+                        ))}
+
+                        <div className="my-1 border-t border-slate-100" />
+
+                        <div className="px-3 py-2 bg-slate-50/80 rounded-b-lg">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+                            RESOLVED / ESCALATED
+                          </p>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleResolutionOutcome(c.id, 'Resolved');
+                                setOpenDropdownId(null);
+                              }}
+                              title="Mark as Amicably Resolved"
+                              className={`flex-1 text-center py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer ${
+                                (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') && !c.needsEscalation
+                                  ? 'bg-emerald-600 text-white shadow-xs ring-1 ring-emerald-600'
+                                  : 'bg-white text-emerald-700 border border-emerald-300 hover:bg-emerald-50'
+                              }`}
+                            >
+                              <span>✓</span>
+                              <span>Resolved</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleResolutionOutcome(c.id, 'Escalated');
+                                setOpenDropdownId(null);
+                              }}
+                              title="Mark as Escalated for Legal Action"
+                              className={`flex-1 text-center py-1.5 px-2 rounded-md text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer ${
+                                (c.status === 'Resolved/Escalated' || c.status === 'Escalated') && c.needsEscalation
+                                  ? 'bg-rose-600 text-white shadow-xs ring-1 ring-rose-600'
+                                  : 'bg-white text-rose-700 border border-rose-300 hover:bg-rose-50'
+                              }`}
+                            >
+                              <span>↗</span>
+                              <span>Escalated</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </td>
                 <td className="px-5 py-3">
                   {(c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Escalated' || c.status === 'Closed' || c.status === 'Resolved / Escalated') ? (
