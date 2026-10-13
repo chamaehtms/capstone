@@ -18,8 +18,10 @@ export default function RequestAccess() {
   });
   const [idPhoto, setIdPhoto] = useState(null);
   const [idPhotoPreview, setIdPhotoPreview] = useState('');
+  const [idPhotoError, setIdPhotoError] = useState('');
   const [selfiePhoto, setSelfiePhoto] = useState(null);
   const [selfiePhotoPreview, setSelfiePhotoPreview] = useState('');
+  const [selfiePhotoError, setSelfiePhotoError] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -51,13 +53,14 @@ export default function RequestAccess() {
 
   const handlePhotoSelect = (e) => {
     const file = e.target.files?.[0];
+    setIdPhotoError('');
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPG, PNG, or WebP) for your ID.');
+      setIdPhotoError('Please select a valid image file (JPG, PNG, or WebP) for your ID.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('ID image file size must be less than 5MB.');
+      setIdPhotoError('ID image file size must be less than 5MB.');
       return;
     }
     setError('');
@@ -68,17 +71,19 @@ export default function RequestAccess() {
   const handleRemovePhoto = () => {
     setIdPhoto(null);
     setIdPhotoPreview('');
+    setIdPhotoError('');
   };
 
   const handleSelfieSelect = (e) => {
     const file = e.target.files?.[0];
+    setSelfiePhotoError('');
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPG, PNG, or WebP) for your selfie holding ID.');
+      setSelfiePhotoError('Please select a valid image file (JPG, PNG, or WebP) for your selfie holding ID.');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setError('Selfie image file size must be less than 5MB.');
+      setSelfiePhotoError('Selfie image file size must be less than 5MB.');
       return;
     }
     setError('');
@@ -89,6 +94,7 @@ export default function RequestAccess() {
   const handleRemoveSelfie = () => {
     setSelfiePhoto(null);
     setSelfiePhotoPreview('');
+    setSelfiePhotoError('');
   };
 
   const handleSubmit = async (e) => {
@@ -164,7 +170,18 @@ export default function RequestAccess() {
         setStep('completed');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Unable to submit request.');
+      const errMsg = err.response?.data?.message || 'Unable to submit request.';
+      const rejectedField = err.response?.data?.rejectedField;
+      setError(errMsg);
+      if (rejectedField === 'idPhoto' || rejectedField === 'idDocument') {
+        setIdPhoto(null);
+        setIdPhotoPreview('');
+        setIdPhotoError(errMsg);
+      } else if (rejectedField === 'selfiePhoto' || rejectedField === 'selfieWithId') {
+        setSelfiePhoto(null);
+        setSelfiePhotoPreview('');
+        setSelfiePhotoError(errMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -297,7 +314,9 @@ export default function RequestAccess() {
 
             <div className="mt-8 space-y-6">
               <div className="flex gap-3">
-                <span className="text-2xl">🛡️</span>
+                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
                 <div>
                   <p className="font-semibold text-slate-800">Identity Verification</p>
                   <p className="text-sm text-slate-500">
@@ -307,7 +326,9 @@ export default function RequestAccess() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <span className="text-2xl">✉️</span>
+                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
+                </span>
                 <div>
                   <p className="font-semibold text-slate-800">Gmail Verification Code</p>
                   <p className="text-sm text-slate-500">
@@ -317,7 +338,9 @@ export default function RequestAccess() {
                 </div>
               </div>
               <div className="flex gap-3">
-                <span className="text-2xl">🔒</span>
+                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </span>
                 <div>
                   <p className="font-semibold text-slate-800">Encrypted Ledger</p>
                   <p className="text-sm text-slate-500">
@@ -449,7 +472,9 @@ export default function RequestAccess() {
                     </div>
                   ) : (
                     <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg p-4 bg-white/60 hover:bg-white/80 transition-colors cursor-pointer text-center group">
-                      <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🪪</span>
+                      <span className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h2M15 12h2M7 16h10"/></svg>
+                      </span>
                       <span className="text-xs font-semibold text-slate-700">
                         Click to upload your ID card
                       </span>
@@ -463,6 +488,17 @@ export default function RequestAccess() {
                         className="hidden"
                       />
                     </label>
+                  )}
+                  {idPhotoError && (
+                    <div className="mt-1.5 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-start gap-1.5">
+                      <span className="shrink-0 mt-0.5 text-red-600">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-semibold">ID Document Error</p>
+                        <p>{idPhotoError}</p>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -508,7 +544,9 @@ export default function RequestAccess() {
                     </div>
                   ) : (
                     <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg p-4 bg-white/60 hover:bg-white/80 transition-colors cursor-pointer text-center group">
-                      <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">🤳</span>
+                      <span className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M7.5 18a4.5 4.5 0 0 1 9 0"/><circle cx="12" cy="5" r="0.8" fill="currentColor"/></svg>
+                      </span>
                       <span className="text-xs font-semibold text-slate-700">
                         Click to upload selfie holding your ID
                       </span>
@@ -522,6 +560,17 @@ export default function RequestAccess() {
                         className="hidden"
                       />
                     </label>
+                  )}
+                  {selfiePhotoError && (
+                    <div className="mt-1.5 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-start gap-1.5">
+                      <span className="shrink-0 mt-0.5 text-red-600">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-semibold">Selfie Error</p>
+                        <p>{selfiePhotoError}</p>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -768,19 +817,19 @@ export default function RequestAccess() {
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-slate-500">Email Verification:</span>
                   <span className="text-green-600 font-bold flex items-center gap-1">
-                    <span>✓</span> Verified
+                    <AdminIcon name="check" size={13} /> Verified
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-1 border-t border-slate-200">
                   <span className="font-semibold text-slate-500">Account Status:</span>
-                  <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 font-bold text-[11px] px-2.5 py-0.5 rounded-full border border-amber-300">
-                    ⏳ Waiting for Approval
+                  <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-[11px] px-2.5 py-0.5 rounded-full border border-amber-300">
+                    <AdminIcon name="clock" size={11} className="text-amber-700" /> Waiting for Approval
                   </span>
                 </div>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 text-blue-900 text-xs rounded-lg p-3 text-left flex gap-2.5">
-                <span className="text-base">📋</span>
+                <AdminIcon name="clipboard" size={16} className="text-blue-600 shrink-0 mt-0.5" />
                 <p>
                   Your registration details and ID document have been sent to the <strong>Pending Requests</strong> queue. You will be able to log in once an active Administrator approves your request.
                 </p>

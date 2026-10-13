@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 const TAGS = ['General', 'Advisory', 'Event', 'Health', 'Safety', 'Utilities'];
 
@@ -131,7 +132,9 @@ export default function Announcements() {
               {imagePreview ? (
                 <img src={imagePreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover border border-slate-200" />
               ) : (
-                <div className="w-16 h-16 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-300 text-xl">🖼️</div>
+                <div className="w-16 h-16 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-400 bg-slate-50">
+                  <AdminIcon name="image" size={24} />
+                </div>
               )}
               <label className="text-sm text-blue-600 hover:underline cursor-pointer">
                 {imagePreview ? 'Change photo' : 'Upload a photo'}

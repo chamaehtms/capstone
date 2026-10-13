@@ -5,6 +5,7 @@ import {
   getProfile, updateSecurity, updatePreferences, updateProfile, changePassword,
   uploadProfilePhoto, Session, initials, toAssetUrl, statusBadgeClass
 } from '../api.js';
+import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function Profile() {
   const [mode, setMode] = useState('view'); // 'view' | 'edit' | 'password'
   const [editForm, setEditForm] = useState(null);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPw, setShowPw] = useState({ current: false, new: false, confirm: false });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -359,15 +361,107 @@ export default function Profile() {
                 {formError && <div className="error-msg" style={{ marginBottom: 12 }}>{formError}</div>}
                 <div className="field">
                   <label className="field-label">Current Password</label>
-                  <input type="password" value={pwForm.currentPassword} onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))} required />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showPw.current ? 'text' : 'password'}
+                      value={pwForm.currentPassword}
+                      onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))}
+                      style={{ width: '100%', paddingRight: '44px' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(p => ({ ...p, current: !p.current }))}
+                      aria-label={showPw.current ? 'Hide current password' : 'Show current password'}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        padding: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <ModernIcon name={showPw.current ? 'eye' : 'eye-off'} size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div className="field">
                   <label className="field-label">New Password</label>
-                  <input type="password" value={pwForm.newPassword} onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))} required minLength={8} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showPw.new ? 'text' : 'password'}
+                      value={pwForm.newPassword}
+                      onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))}
+                      style={{ width: '100%', paddingRight: '44px' }}
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(p => ({ ...p, new: !p.new }))}
+                      aria-label={showPw.new ? 'Hide new password' : 'Show new password'}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        padding: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <ModernIcon name={showPw.new ? 'eye' : 'eye-off'} size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div className="field">
                   <label className="field-label">Confirm New Password</label>
-                  <input type="password" value={pwForm.confirmPassword} onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))} required minLength={8} />
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showPw.confirm ? 'text' : 'password'}
+                      value={pwForm.confirmPassword}
+                      onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                      style={{ width: '100%', paddingRight: '44px' }}
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(p => ({ ...p, confirm: !p.confirm }))}
+                      aria-label={showPw.confirm ? 'Hide confirm new password' : 'Show confirm new password'}
+                      style={{
+                        position: 'absolute',
+                        right: 12,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        padding: 4,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: 6,
+                      }}
+                    >
+                      <ModernIcon name={showPw.confirm ? 'eye' : 'eye-off'} size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
                   <button type="submit" className="btn btn-navy" style={{ flex: 1 }} disabled={saving}>{saving ? 'Saving…' : 'Update Password'}</button>

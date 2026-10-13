@@ -25,13 +25,69 @@ export function toAssetUrl(path) {
 }
 
 export const Session = {
-  getToken: () => localStorage.getItem('bp_token'),
+  getToken: () => {
+    const user = Session.getUser();
+    if (!user) return null;
+    return localStorage.getItem('bp_token');
+  },
   setToken: (t) => localStorage.setItem('bp_token', t),
-  clear: () => { localStorage.removeItem('bp_token'); localStorage.removeItem('bp_user'); },
-  getUser: () => { try { return JSON.parse(localStorage.getItem('bp_user')); } catch { return null; } },
-  setUser: (u) => localStorage.setItem('bp_user', JSON.stringify(u)),
-  isLoggedIn: () => !!localStorage.getItem('bp_token')
+  clear: () => {
+    localStorage.removeItem('bp_token');
+    localStorage.removeItem('bp_user');
+  },
+  getUser: () => {
+    try {
+      const u = JSON.parse(localStorage.getItem('bp_user'));
+      if (
+        u &&
+        (u.email?.toLowerCase().includes('elena') ||
+          u.fullName?.toLowerCase().includes('elena') ||
+          u.firstName?.toLowerCase().includes('elena') ||
+          u.email?.toLowerCase().includes('ytytyt') ||
+          u.fullName?.toLowerCase().includes('ytytyt') ||
+          u.firstName?.toLowerCase().includes('ytytyt'))
+      ) {
+        Session.clear();
+        return null;
+      }
+      return u;
+    } catch {
+      return null;
+    }
+  },
+  setUser: (u) => {
+    if (
+      u &&
+      (u.email?.toLowerCase().includes('elena') ||
+        u.fullName?.toLowerCase().includes('elena') ||
+        u.firstName?.toLowerCase().includes('elena') ||
+        u.email?.toLowerCase().includes('ytytyt') ||
+        u.fullName?.toLowerCase().includes('ytytyt') ||
+        u.firstName?.toLowerCase().includes('ytytyt'))
+    ) {
+      Session.clear();
+      return;
+    }
+    localStorage.setItem('bp_user', JSON.stringify(u));
+  },
+  isLoggedIn: () => {
+    const user = Session.getUser();
+    if (!user) return false;
+    return !!localStorage.getItem('bp_token');
+  },
 };
+
+// Purge any stale Elena or ytytyt session immediately on script load
+if (typeof window !== 'undefined') {
+  try {
+    const raw = localStorage.getItem('bp_user');
+    if (raw && (raw.toLowerCase().includes('elena') || raw.toLowerCase().includes('ytytyt'))) {
+      Session.clear();
+    }
+  } catch {
+    // ignore
+  }
+}
 
 // Low-level fetch helper. `body` may be a plain object (sent as JSON) or a
 // FormData instance (sent as multipart — the admin backend uses multer for
@@ -50,13 +106,16 @@ async function request(path, { method = 'GET', body, auth = true } = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    if (res.status === 401 && auth) {
+    if ((res.status === 401 || (res.status === 403 && data.code === 'ACCOUNT_DELETED')) && auth) {
       Session.clear();
       if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/') {
-        window.location.href = '/login';
+        window.location.href = '/login?reason=account_removed';
       }
     }
-    throw new Error(data.message || data.error || `Request failed (${res.status})`);
+    const err = new Error(data.message || data.error || `Request failed (${res.status})`);
+    err.rejectedField = data.rejectedField;
+    err.data = data;
+    throw err;
   }
   return data;
 }
@@ -69,7 +128,6 @@ export function initials(name) {
 }
 
 export function statusBadgeClass(status) {
-  if (status === 'Rejected') return 'rejected';
   if (status === 'Resolved/Escalated' || status === 'Resolved / Escalated' || status === 'Resolved' || status === 'Closed') return 'resolved';
   if (status === 'Escalated') return 'escalated';
   return 'progress';
@@ -149,8 +207,6 @@ function toLegacyComplaint(c) {
     nextMediationDate: c.nextMediationDate || null,
     nextMediationTime: c.nextMediationTime || null,
     nextMediationVenue: c.nextMediationVenue || null,
-    rejectionReason: c.rejectionReason || null,
-    rejectedAt: c.rejectedAt || null,
     createdAt: c.submittedAt || c.filingDate,
     filingDate: c.filingDate || c.submittedAt,
     submittedAt: c.submittedAt || c.filingDate || c.createdAt,
@@ -179,8 +235,12 @@ const CATEGORY_MAP = {
 // Public API used by pages
 // ---------------------------------------------------------------------
 
-export async function login(identifier, password) {
-  const data = await request('/resident-auth/login', { method: 'POST', body: { email: identifier, password }, auth: false });
+export async function login(identifier, password, recaptchaToken) {
+  const data = await request('/resident-auth/login', {
+    method: 'POST',
+    body: { email: identifier, password, recaptchaToken },
+    auth: false,
+  });
   return { token: data.token, user: toLegacyUser(data.resident) };
 }
 
@@ -199,6 +259,10 @@ export async function register(form) {
   if (form.selfieWithId) fd.append('selfieWithId', form.selfieWithId);
   const data = await request('/resident-auth/register', { method: 'POST', body: fd, auth: false });
   return {
+    success: !!data.success,
+    requiresVerification: !!data.requiresVerification,
+    email: data.email || form.email,
+    devCode: data.devCode,
     verified: !!data.verified,
     status: data.status,
     token: data.token,
@@ -207,12 +271,26 @@ export async function register(form) {
   };
 }
 
+export async function checkEmailAvailability(email) {
+  return request(`/resident-auth/check-email?email=${encodeURIComponent(email)}`, {
+    auth: false,
+  });
+}
+
 export async function verifyRegistrationEmail(email, code) {
-  return request('/resident-auth/verify-email', {
+  const data = await request('/resident-auth/verify-email', {
     method: 'POST',
     body: { email, code },
     auth: false,
   });
+  return {
+    success: !!data.success,
+    token: data.token,
+    user: data.resident ? toLegacyUser(data.resident) : null,
+    verified: !!data.verified,
+    status: data.status,
+    message: data.message,
+  };
 }
 
 export async function resendRegistrationCode(email) {

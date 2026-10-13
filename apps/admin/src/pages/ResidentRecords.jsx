@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api, { toAssetUrl } from '../api';
 import StatCard from '../components/StatCard.jsx';
+import AdminIcon from '../components/AdminIcons';
 
 export default function ResidentRecords() {
   const [residents, setResidents] = useState([]);
@@ -72,9 +73,10 @@ export default function ResidentRecords() {
           <button
             type="button"
             onClick={() => setError('')}
-            className="text-red-500 hover:text-red-700 font-bold ml-2"
+            className="text-red-500 hover:text-red-700 p-1 ml-2"
+            aria-label="Dismiss alert"
           >
-            ✕
+            <AdminIcon name="x" size={14} />
           </button>
         </div>
       )}

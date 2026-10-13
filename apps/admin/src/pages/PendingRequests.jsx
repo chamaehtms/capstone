@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import AdminIcon from '../components/AdminIcons';
 
 export default function PendingRequests() {
   const [requests, setRequests] = useState([]);
@@ -89,7 +90,59 @@ export default function PendingRequests() {
     }
   };
 
-  const openPreview = (person, defaultTab = 'compare') => {
+  const [scanningId, setScanningId] = useState(null);
+
+  const handleScanResidentId = async (id) => {
+    setScanningId(id);
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.post(`/residents/${id}/scan-id`);
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, ...data } : r))
+      );
+      setMessage(`AI ID validation complete for ${data.fullName}.`);
+      if (previewDoc && previewDoc.id === id) {
+        setPreviewDoc((p) => ({
+          ...p,
+          idAiStatus: data.idAiStatus,
+          idAiScore: data.idAiScore,
+          idAiSummary: data.idAiSummary,
+        }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to run AI ID validation.');
+    } finally {
+      setScanningId(null);
+    }
+  };
+
+  const handleScanAdminId = async (id) => {
+    setScanningId(id);
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.post(`/auth/access-requests/${id}/scan-id`);
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, ...data } : r))
+      );
+      setMessage('AI ID validation completed for access request.');
+      if (previewDoc && previewDoc.id === id) {
+        setPreviewDoc((p) => ({
+          ...p,
+          idAiStatus: data.idAiStatus,
+          idAiScore: data.idAiScore,
+          idAiSummary: data.idAiSummary,
+        }));
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to run AI ID validation.');
+    } finally {
+      setScanningId(null);
+    }
+  };
+
+  const openPreview = (person, defaultTab = 'compare', type = 'resident') => {
     const hasId = !!person.idDocumentUrl;
     const hasSelfie = !!person.selfieIdUrl;
     let tab = defaultTab;
@@ -97,11 +150,146 @@ export default function PendingRequests() {
       tab = hasId ? 'id' : 'selfie';
     }
     setPreviewDoc({
+      id: person.id,
       name: person.fullName,
       idUrl: person.idDocumentUrl,
       selfieUrl: person.selfieIdUrl,
+      idAiStatus: person.idAiStatus,
+      idAiScore: person.idAiScore,
+      idAiSummary: person.idAiSummary,
+      idAiCheckedAt: person.idAiCheckedAt,
+      type,
       tab,
     });
+  };
+
+  const renderAiBadge = (item, onReScan) => {
+    const status = item.idAiStatus || 'not_scanned';
+    const isScanning = scanningId === item.id;
+
+    if (isScanning) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
+          <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+          <span>AI Analyzing…</span>
+        </span>
+      );
+    }
+
+    if (status === 'likely_authentic') {
+      const percent = item.idAiScore != null ? Math.round((1 - item.idAiScore) * 100) : 100;
+      return (
+        <div className="flex flex-col items-start gap-0.5">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs"
+            title={item.idAiSummary || 'Likely Authentic ID'}
+          >
+            <AdminIcon name="check" size={12} color="#065f46" />
+            <span>Authentic ({percent}%)</span>
+          </span>
+          <span className="text-[10px] text-emerald-700 font-medium">Valid Physical ID</span>
+        </div>
+      );
+    }
+
+    if (status === 'ai_detected') {
+      const percent = item.idAiScore != null ? Math.round(item.idAiScore * 100) : 95;
+      return (
+        <div className="flex flex-col items-start gap-0.5">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs animate-pulse"
+            title={item.idAiSummary || 'AI Generated / Deepfake Warning'}
+          >
+            <AdminIcon name="warning" size={12} color="#9f1239" />
+            <span>AI Fake ({percent}%)</span>
+          </span>
+          <span className="text-[10px] text-rose-700 font-semibold">Flagged: Deepfake / AI</span>
+        </div>
+      );
+    }
+
+    if (status === 'suspicious') {
+      const percent = item.idAiScore != null ? Math.round(item.idAiScore * 100) : 50;
+      return (
+        <div className="flex flex-col items-start gap-0.5">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs"
+            title={item.idAiSummary || 'Suspicious ID Artifacts'}
+          >
+            <AdminIcon name="warning" size={12} color="#92400e" />
+            <span>Suspicious ({percent}%)</span>
+          </span>
+          <span className="text-[10px] text-amber-700 font-medium">Inspect Carefully</span>
+        </div>
+      );
+    }
+
+    if (status === 'blurry') {
+      return (
+        <div className="flex flex-col items-start gap-0.5">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs"
+            title={item.idAiSummary || 'Blurry Image'}
+          >
+            <AdminIcon name="eye" size={12} color="#78350f" />
+            <span>Blurry Image</span>
+          </span>
+          <span className="text-[10px] text-amber-700 font-medium">Unreadable / Low Focus</span>
+        </div>
+      );
+    }
+
+    if (status === 'expired') {
+      return (
+        <div className="flex flex-col items-start gap-0.5">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-900 border border-rose-300 shadow-2xs"
+            title={item.idAiSummary || 'Expired ID'}
+          >
+            <AdminIcon name="calendar" size={12} color="#9f1239" />
+            <span>Expired ID</span>
+          </span>
+          <span className="text-[10px] text-rose-700 font-medium">Past Expiry Date</span>
+        </div>
+      );
+    }
+
+    if (status === 'unsupported_id') {
+      return (
+        <div className="flex flex-col items-start gap-0.5">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 text-orange-900 border border-orange-300 shadow-2xs"
+            title={item.idAiSummary || 'Unsupported ID document'}
+          >
+            <AdminIcon name="x" size={12} color="#9a3412" />
+            <span>Unsupported ID</span>
+          </span>
+          <span className="text-[10px] text-orange-700 font-medium">Not A Valid Gov ID</span>
+        </div>
+      );
+    }
+
+    if (status === 'document_pdf') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
+          <AdminIcon name="document" size={12} color="#334155" />
+          <span>PDF Document</span>
+        </span>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => onReScan(item.id)}
+        disabled={isScanning}
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 border border-slate-200 transition"
+        title="Trigger AI scan on this ID"
+      >
+        <AdminIcon name="robot" size={13} color="#2563eb" />
+        <span>Run AI Check</span>
+      </button>
+    );
   };
 
   return (
@@ -134,6 +322,7 @@ export default function PendingRequests() {
               <th className="px-5 py-3 font-medium">ZONE</th>
               <th className="px-5 py-3 font-medium">CONTACT</th>
               <th className="px-5 py-3 font-medium">VALID ID</th>
+              <th className="px-5 py-3 font-medium">AI ID VALIDATION</th>
               <th className="px-5 py-3 font-medium">SELFIE W/ ID</th>
               <th className="px-5 py-3 font-medium">ACTIONS</th>
             </tr>
@@ -141,14 +330,14 @@ export default function PendingRequests() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={8} className="px-5 py-6 text-center text-slate-400">
                   Loading registrations…
                 </td>
               </tr>
             )}
             {!loading && registrations.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={8} className="px-5 py-6 text-center text-slate-400">
                   No pending registrations.
                 </td>
               </tr>
@@ -166,7 +355,7 @@ export default function PendingRequests() {
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => openPreview(r, 'id')}
+                        onClick={() => openPreview(r, 'id', 'resident')}
                         className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100"
                         title="Click to preview ID card"
                       >
@@ -176,21 +365,24 @@ export default function PendingRequests() {
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          🔍
+                          <AdminIcon name="search" size={14} color="#ffffff" />
                         </div>
                       </button>
                       <button
                         type="button"
-                        onClick={() => openPreview(r, 'id')}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
+                        onClick={() => openPreview(r, 'id', 'resident')}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
                       >
-                        <span>🪪</span>
+                        <AdminIcon name="id-card" size={13} color="#1d4ed8" />
                         <span>ID</span>
                       </button>
                     </div>
                   ) : (
                     <span className="text-xs text-slate-400">None</span>
                   )}
+                </td>
+                <td className="px-5 py-3">
+                  {renderAiBadge(r, handleScanResidentId)}
                 </td>
                 <td className="px-5 py-3">
                   {r.selfieIdUrl ? (
@@ -207,15 +399,15 @@ export default function PendingRequests() {
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          🔍
+                          <AdminIcon name="search" size={14} color="#ffffff" />
                         </div>
                       </button>
                       <button
                         type="button"
                         onClick={() => openPreview(r, 'selfie')}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition"
                       >
-                        <span>🤳</span>
+                        <AdminIcon name="selfie" size={13} color="#6d28d9" />
                         <span>Selfie</span>
                       </button>
                     </div>
@@ -270,6 +462,7 @@ export default function PendingRequests() {
               <th className="px-5 py-3 font-medium">DEPARTMENT</th>
               <th className="px-5 py-3 font-medium">EMPLOYEE ID</th>
               <th className="px-5 py-3 font-medium">ID CARD</th>
+              <th className="px-5 py-3 font-medium">AI ID VALIDATION</th>
               <th className="px-5 py-3 font-medium">SELFIE W/ ID</th>
               <th className="px-5 py-3 font-medium">REQUESTED</th>
               <th className="px-5 py-3 font-medium">ACTIONS</th>
@@ -278,14 +471,14 @@ export default function PendingRequests() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={10} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={11} className="px-5 py-6 text-center text-slate-400">
                   Loading requests…
                 </td>
               </tr>
             )}
             {!loading && requests.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={11} className="px-5 py-6 text-center text-slate-400">
                   No pending requests.
                 </td>
               </tr>
@@ -310,7 +503,7 @@ export default function PendingRequests() {
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => openPreview(r, 'id')}
+                        onClick={() => openPreview(r, 'id', 'staff')}
                         className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100"
                         title="Click to preview ID photo"
                       >
@@ -320,21 +513,24 @@ export default function PendingRequests() {
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          🔍
+                          <AdminIcon name="search" size={14} color="#ffffff" />
                         </div>
                       </button>
                       <button
                         type="button"
-                        onClick={() => openPreview(r, 'id')}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
+                        onClick={() => openPreview(r, 'id', 'staff')}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
                       >
-                        <span>🪪</span>
+                        <AdminIcon name="id-card" size={13} color="#1d4ed8" />
                         <span>ID</span>
                       </button>
                     </div>
                   ) : (
                     <span className="text-xs text-slate-400">None</span>
                   )}
+                </td>
+                <td className="px-5 py-3">
+                  {renderAiBadge(r, handleScanAdminId)}
                 </td>
                 <td className="px-5 py-3">
                   {r.selfieIdUrl ? (
@@ -351,15 +547,15 @@ export default function PendingRequests() {
                           className="w-full h-full object-cover group-hover:scale-105 transition"
                         />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          🔍
+                          <AdminIcon name="search" size={14} color="#ffffff" />
                         </div>
                       </button>
                       <button
                         type="button"
                         onClick={() => openPreview(r, 'selfie')}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition"
                       >
-                        <span>🤳</span>
+                        <AdminIcon name="selfie" size={13} color="#6d28d9" />
                         <span>Selfie</span>
                       </button>
                     </div>
@@ -423,7 +619,7 @@ export default function PendingRequests() {
                 onClick={() => setPreviewDoc(null)}
                 className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-500 flex items-center justify-center text-lg font-bold"
               >
-                ✕
+                <AdminIcon name="close" size={18} color="#64748b" />
               </button>
             </div>
 
@@ -433,38 +629,110 @@ export default function PendingRequests() {
                 <button
                   type="button"
                   onClick={() => setPreviewDoc((p) => ({ ...p, tab: 'compare' }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                     previewDoc.tab === 'compare'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  🔍 Side-by-Side Comparison
+                  <AdminIcon name="search" size={13} color={previewDoc.tab === 'compare' ? '#ffffff' : '#475569'} />
+                  <span>Side-by-Side Comparison</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewDoc((p) => ({ ...p, tab: 'id' }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                     previewDoc.tab === 'id'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  🪪 Valid ID Card Only
+                  <AdminIcon name="id-card" size={13} color={previewDoc.tab === 'id' ? '#ffffff' : '#475569'} />
+                  <span>Valid ID Card Only</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewDoc((p) => ({ ...p, tab: 'selfie' }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
                     previewDoc.tab === 'selfie'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  🤳 Selfie Holding ID Only
+                  <AdminIcon name="selfie" size={13} color={previewDoc.tab === 'selfie' ? '#ffffff' : '#475569'} />
+                  <span>Selfie Holding ID Only</span>
                 </button>
               </div>
             )}
+
+            {/* AI ID Validation Insight Banner */}
+            <div className="mt-3 p-3 rounded-xl border flex items-center justify-between gap-3 bg-slate-50 border-slate-200">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                  {previewDoc.idAiStatus === 'likely_authentic' ? (
+                    <AdminIcon name="shield" size={18} color="#059669" />
+                  ) : previewDoc.idAiStatus === 'ai_detected' ? (
+                    <AdminIcon name="alert" size={18} color="#e11d48" />
+                  ) : previewDoc.idAiStatus === 'suspicious' ? (
+                    <AdminIcon name="warning" size={18} color="#d97706" />
+                  ) : (
+                    <AdminIcon name="robot" size={18} color="#2563eb" />
+                  )}
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-900">AI ID Authenticity Analysis:</span>
+                    {previewDoc.idAiStatus === 'likely_authentic' && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Likely Authentic Physical ID ({previewDoc.idAiScore != null ? Math.round((1 - previewDoc.idAiScore) * 100) : 100}%)
+                      </span>
+                    )}
+                    {previewDoc.idAiStatus === 'ai_detected' && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 animate-pulse">
+                        High AI Generation / Deepfake Risk ({previewDoc.idAiScore != null ? Math.round(previewDoc.idAiScore * 100) : 90}%)
+                      </span>
+                    )}
+                    {previewDoc.idAiStatus === 'suspicious' && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                        Suspicious Image Artifacts ({previewDoc.idAiScore != null ? Math.round(previewDoc.idAiScore * 100) : 50}%)
+                      </span>
+                    )}
+                    {previewDoc.idAiStatus === 'blurry' && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        Blurry Image / Low Sharpness
+                      </span>
+                    )}
+                    {previewDoc.idAiStatus === 'expired' && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-900 border border-rose-300">
+                        Expired Document
+                      </span>
+                    )}
+                    {previewDoc.idAiStatus === 'unsupported_id' && (
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-900 border border-orange-300">
+                        Unsupported Non-ID Document
+                      </span>
+                    )}
+                    {(!previewDoc.idAiStatus || previewDoc.idAiStatus === 'not_scanned') && (
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                        Pending Scan
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {previewDoc.idAiSummary || 'Automated ID fraud and AI generation check protects against fraudulent documents.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => previewDoc.type === 'staff' ? handleScanAdminId(previewDoc.id) : handleScanResidentId(previewDoc.id)}
+                disabled={scanningId === previewDoc.id}
+                className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 transition flex items-center gap-1.5 shadow-2xs disabled:opacity-60"
+              >
+                <AdminIcon name={scanningId === previewDoc.id ? 'clock' : 'refresh'} size={13} color="#475569" />
+                <span>{scanningId === previewDoc.id ? 'Scanning…' : 'Re-check AI'}</span>
+              </button>
+            </div>
 
             {/* Modal Body */}
             <div className="my-4 overflow-y-auto flex-1">
@@ -474,7 +742,8 @@ export default function PendingRequests() {
                   <div className="border border-slate-200 rounded-xl p-3 bg-slate-50 flex flex-col">
                     <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-200">
                       <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                        <span>🪪</span> Valid ID Card
+                        <AdminIcon name="id-card" size={14} color="#1d4ed8" />
+                        <span>Valid ID Card</span>
                       </span>
                       <a
                         href={previewDoc.idUrl}
@@ -498,7 +767,8 @@ export default function PendingRequests() {
                   <div className="border border-purple-200 rounded-xl p-3 bg-purple-50/40 flex flex-col">
                     <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-200">
                       <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
-                        <span>🤳</span> Selfie Holding ID
+                        <AdminIcon name="selfie" size={14} color="#6d28d9" />
+                        <span>Selfie Holding ID</span>
                       </span>
                       <a
                         href={previewDoc.selfieUrl}
@@ -528,8 +798,18 @@ export default function PendingRequests() {
                     />
                   </div>
                   <div className="mt-2 text-center">
-                    <span className="text-xs font-semibold text-slate-600">
-                      {previewDoc.tab === 'selfie' ? '🤳 Selfie Holding Valid ID' : '🪪 Valid ID Card'}
+                    <span className="text-xs font-semibold text-slate-600 flex items-center justify-center gap-1.5">
+                      {previewDoc.tab === 'selfie' ? (
+                        <>
+                          <AdminIcon name="selfie" size={14} color="#6d28d9" />
+                          <span>Selfie Holding Valid ID</span>
+                        </>
+                      ) : (
+                        <>
+                          <AdminIcon name="id-card" size={14} color="#1d4ed8" />
+                          <span>Valid ID Card</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>

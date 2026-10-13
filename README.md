@@ -102,8 +102,7 @@ Once migrations (`npm run migrate`) have completed:
 - **Password:** `admin123`
 
 ### Resident Portal (`http://localhost:5500`)
-- **Email:** `elena.santos@example.com`
-- **Password:** `password123`
+- Residents can self-register directly via the **Register** link on the portal login page, or log in with any approved resident credentials.
 
 ---
 

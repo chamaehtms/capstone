@@ -78,8 +78,6 @@ function toComplaint(c) {
     mediationVenue: c.mediation_venue,
     mediator: c.mediator,
     hearingStage: c.hearing_stage,
-    rejectionReason: c.rejection_reason || null,
-    rejectedAt: c.rejected_at || null,
   };
 }
 
@@ -115,7 +113,7 @@ router.get('/', async (req, res) => {
 
     const { rows: statRows } = await pool.query(`
       SELECT
-        COUNT(*) FILTER (WHERE status NOT IN ('Resolved', 'Escalated', 'Closed', 'Rejected'))::int AS active,
+        COUNT(*) FILTER (WHERE status NOT IN ('Resolved', 'Escalated', 'Closed'))::int AS active,
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'Resolved')::int AS resolved
       FROM complaints
@@ -410,16 +408,13 @@ router.put('/:id', async (req, res) => {
     let inProgressAt = existingRaw.in_progress_at;
     let resolvedAt = existingRaw.resolved_at;
     let closedAt = existingRaw.closed_at;
-    let rejectionReason = req.body.rejectionReason !== undefined ? req.body.rejectionReason : existingRaw.rejection_reason;
-    let rejectedAt = existingRaw.rejected_at;
 
     const isTerminalStatus =
       merged.status === 'Resolved/Escalated' ||
       merged.status === 'Resolved / Escalated' ||
       merged.status === 'Resolved' ||
       merged.status === 'Escalated' ||
-      merged.status === 'Closed' ||
-      merged.status === 'Rejected';
+      merged.status === 'Closed';
 
     if ((merged.status === 'Under Review' || merged.status === 'In Progress' || isTerminalStatus) && !underReviewAt) {
       underReviewAt = new Date();
@@ -433,26 +428,19 @@ router.put('/:id', async (req, res) => {
     if (merged.status === 'Escalated') {
       merged.needsEscalation = true;
     }
-    if (merged.status === 'Rejected') {
-      if (!rejectedAt) rejectedAt = new Date();
-      if (!resolvedAt) resolvedAt = new Date();
-      if (req.body.rejectionReason) rejectionReason = req.body.rejectionReason;
-    }
 
     const { rows } = await pool.query(
       `UPDATE complaints SET resident=$1, category=$2, status=$3, filing_date=$4, description=$5, priority=$6,
         needs_escalation=$7, under_review_at=$8, in_progress_at=$9, resolved_at=$10, closed_at=$11,
         assigned_team=COALESCE($12, assigned_team),
-        mediation_date=$13, mediation_time=$14, mediation_venue=$15, mediator=$16, hearing_stage=$17,
-        rejection_reason=$18, rejected_at=$19
-       WHERE id=$20 RETURNING *`,
+        mediation_date=$13, mediation_time=$14, mediation_venue=$15, mediator=$16, hearing_stage=$17
+       WHERE id=$18 RETURNING *`,
       [
         merged.resident, merged.category, merged.status, merged.filingDate, merged.description, merged.priority,
         merged.needsEscalation === true, underReviewAt, inProgressAt, resolvedAt, closedAt,
         merged.assignedTeam || null,
         merged.mediationDate || null, merged.mediationTime || null, merged.mediationVenue || null,
         merged.mediator || null, merged.hearingStage || null,
-        rejectionReason || null, rejectedAt || null,
         req.params.id,
       ]
     );

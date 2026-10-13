@@ -1,30 +1,69 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { login, Session } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
+import Recaptcha from '../components/Recaptcha.jsx';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(
+    searchParams.get('reason') === 'account_removed'
+      ? 'Your account has been removed or deactivated by the barangay administrator. You have been logged out.'
+      : ''
+  );
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+  const recaptchaRef = useRef(null);
 
   useEffect(() => {
     if (Session.isLoggedIn()) navigate('/dashboard');
   }, [navigate]);
 
+  useEffect(() => {
+    const scrubElena = () => {
+      setIdentifier((prev) => (prev.toLowerCase().includes('elena') ? '' : prev));
+      setPassword((prev) => (prev === 'password123' || prev.toLowerCase().includes('elena') ? '' : prev));
+
+      const emailInput = document.querySelector('input[name="resident_auth_email"]');
+      if (emailInput && emailInput.value && emailInput.value.toLowerCase().includes('elena')) {
+        emailInput.value = '';
+        setIdentifier('');
+      }
+
+      const passInput = document.querySelector('input[name="resident_auth_password"]');
+      if (passInput && (passInput.value === 'password123' || passInput.value.toLowerCase().includes('elena'))) {
+        passInput.value = '';
+        setPassword('');
+      }
+    };
+
+    scrubElena();
+    const timers = [50, 150, 300, 600, 1000, 1500].map((t) => setTimeout(scrubElena, t));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (!recaptchaToken) {
+      setError('Please complete the reCAPTCHA verification to proceed.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const data = await login(identifier, password);
+      const data = await login(identifier, password, recaptchaToken);
       Session.setToken(data.token);
       Session.setUser(data.user);
       navigate('/dashboard');
     } catch (err) {
+      recaptchaRef.current?.reset();
+      setRecaptchaToken('');
       setError(err.message);
       setLoading(false);
     }
@@ -34,16 +73,29 @@ export default function Login() {
     <div className="center-page auth-scene">
       <div className="auth-card auth-login-card">
         <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" />
-        <h1 className="auth-title">Barangay Poblacion</h1>
+        <h1 className="auth-title" style={{ color: '#000000', textShadow: 'none', fontWeight: 800 }}>
+          Barangay Poblacion
+        </h1>
 
         {error && <div className="error-msg">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <div className="field">
             <label className="field-label" style={{ margin: 0, textAlign: 'left' }}>Email</label>
             <div className="input-icon">
               <ModernIcon name="mail" size={18} className="icon" />
-              <input type="email" value={identifier} onChange={e => setIdentifier(e.target.value)} placeholder="you@example.com" required />
+              <input
+                type="email"
+                name="resident_auth_email"
+                autoComplete="new-password"
+                value={identifier}
+                onChange={e => {
+                  const val = e.target.value;
+                  setIdentifier(val.toLowerCase().includes('elena') ? '' : val);
+                }}
+                placeholder="Enter your email"
+                required
+              />
             </div>
           </div>
           <div className="field">
@@ -55,8 +107,13 @@ export default function Login() {
               <ModernIcon name="key" size={18} className="icon" />
               <input
                 type={showPassword ? 'text' : 'password'}
+                name="resident_auth_password"
+                autoComplete="new-password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  setPassword(val === 'password123' || val.toLowerCase().includes('elena') ? '' : val);
+                }}
                 placeholder="••••••••"
                 required
               />
@@ -74,6 +131,20 @@ export default function Login() {
             <input type="checkbox" id="staySignedIn" style={{ width: 'auto' }} />
             <label htmlFor="staySignedIn">Stay signed in for 30 days</label>
           </div>
+
+          <Recaptcha
+            ref={recaptchaRef}
+            onVerify={(token) => {
+              setRecaptchaToken(token);
+              setError('');
+            }}
+            onExpire={() => setRecaptchaToken('')}
+            onError={() => {
+              setRecaptchaToken('');
+              setError('reCAPTCHA encountered an issue. Please try again.');
+            }}
+          />
+
           <button type="submit" className="btn btn-navy btn-block" disabled={loading}>
             {loading ? 'Signing in…' : 'Secure Login →'}
           </button>

@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { sendResidentApprovalEmail } = require('../utils/mailer');
+const { validateIdImage } = require('../utils/aiIdValidator');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -56,6 +57,10 @@ function toResident(r) {
     photoUrl: r.photo_url,
     idDocumentUrl: r.id_document_url,
     selfieIdUrl: r.selfie_id_url,
+    idAiStatus: r.id_ai_status || 'not_scanned',
+    idAiScore: r.id_ai_score != null ? Number(r.id_ai_score) : null,
+    idAiSummary: r.id_ai_summary || '',
+    idAiCheckedAt: r.id_ai_checked_at || null,
   };
 }
 
@@ -145,6 +150,28 @@ router.get('/pending-registrations', async (req, res) => {
       `SELECT * FROM residents WHERE self_registered = true AND status = 'Pending'
        ORDER BY created_at ASC`
     );
+
+    // Auto-scan any existing pending residents that haven't been scanned yet
+    for (const r of rows) {
+      if ((!r.id_ai_status || r.id_ai_status === 'not_scanned') && r.id_document_url) {
+        try {
+          const scan = await validateIdImage(r.id_document_url);
+          await pool.query(
+            `UPDATE residents
+             SET id_ai_status = $1, id_ai_score = $2, id_ai_summary = $3, id_ai_checked_at = now()
+             WHERE id = $4`,
+            [scan.status, scan.score, scan.summary, r.id]
+          );
+          r.id_ai_status = scan.status;
+          r.id_ai_score = scan.score;
+          r.id_ai_summary = scan.summary;
+          r.id_ai_checked_at = new Date();
+        } catch (err) {
+          console.error(`[AI ID Auto-scan] Error scanning resident ${r.id}:`, err.message);
+        }
+      }
+    }
+
     res.json(rows.map(toResident));
   } catch (err) {
     console.error(err);
@@ -152,9 +179,47 @@ router.get('/pending-registrations', async (req, res) => {
   }
 });
 
+// POST /api/residents/:id/scan-id (re-scan ID with AI validation)
+router.post('/:id/scan-id', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM residents WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Resident record not found.' });
+
+    const resident = rows[0];
+    if (!resident.id_document_url) {
+      return res.status(400).json({ message: 'No ID document available to scan.' });
+    }
+
+    const scan = await validateIdImage(resident.id_document_url);
+    const { rows: updatedRows } = await pool.query(
+      `UPDATE residents
+       SET id_ai_status = $1, id_ai_score = $2, id_ai_summary = $3, id_ai_checked_at = now()
+       WHERE id = $4
+       RETURNING *`,
+      [scan.status, scan.score, scan.summary, resident.id]
+    );
+
+    res.json(toResident(updatedRows[0]));
+  } catch (err) {
+    console.error('[scan-id] Error:', err);
+    res.status(500).json({ message: 'Unable to scan ID document.' });
+  }
+});
+
 // POST /api/residents/:id/approve  (approve a resident account)
 router.post('/:id/approve', async (req, res) => {
   try {
+    const { rows: checkRows } = await pool.query('SELECT * FROM residents WHERE id = $1', [req.params.id]);
+    if (checkRows.length === 0) {
+      return res.status(404).json({ message: 'Resident not found.' });
+    }
+    const target = checkRows[0];
+    if (target.id_ai_status === 'ai_detected') {
+      return res.status(400).json({
+        message: 'Cannot approve: The submitted ID has been flagged by AI validation as synthetic or fraudulent. Please reject or request authentic documents.',
+      });
+    }
+
     const { rows } = await pool.query(
       `UPDATE residents
        SET status = 'Verified', email_verified = true
@@ -162,10 +227,6 @@ router.post('/:id/approve', async (req, res) => {
        RETURNING *`,
       [req.params.id]
     );
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Resident not found.' });
-    }
-
     const approved = rows[0];
 
     if (approved.email) {

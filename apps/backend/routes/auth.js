@@ -10,6 +10,7 @@ const pool = require('../db/pool');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { JWT_SECRET, requireAuth } = require('../middleware/auth');
 const { isResendConfigured, sendEmail } = require('../utils/mailer');
+const { validateIdImage, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
 
 const router = express.Router();
 
@@ -322,6 +323,18 @@ router.post('/request-access', (req, res) => {
         [normalizedEmail, empId]
       );
 
+      // Verify ID validity and ensure selfie matches
+      const matchVerification = await verifyIdAndSelfieMatch(idPhotoFile, selfiePhotoFile, { applicantName: finalFullName });
+      if (!matchVerification.valid) {
+        cleanupFiles();
+        return res.status(400).json({
+          message: matchVerification.reason || 'Invalid identification document or mismatch with selfie.',
+          rejectedField: matchVerification.rejectedField || null,
+        });
+      }
+
+      const aiIdResult = matchVerification.idScan || { status: 'likely_authentic', score: 0.05, summary: 'Verified ID document.' };
+
       let requestId;
       if (existingRequests.length > 0) {
         const existingReq = existingRequests[0];
@@ -341,8 +354,12 @@ router.post('/request-access', (req, res) => {
                password_hash = $10,
                id_document_url = COALESCE($11, id_document_url),
                selfie_id_url = COALESCE($12, selfie_id_url),
+               id_ai_status = $13,
+               id_ai_score = $14,
+               id_ai_summary = $15,
+               id_ai_checked_at = now(),
                requested_at = now()
-           WHERE id = $13`,
+           WHERE id = $16`,
           [
             fName,
             mName,
@@ -356,6 +373,9 @@ router.post('/request-access', (req, res) => {
             hashPassword(pwd),
             idDocumentUrl,
             selfieIdUrl,
+            aiIdResult.status,
+            aiIdResult.score,
+            aiIdResult.summary,
             requestId,
           ]
         );
@@ -364,8 +384,9 @@ router.post('/request-access', (req, res) => {
         await pool.query(
           `INSERT INTO access_requests
              (id, first_name, middle_name, last_name, full_name, sex, contact_no, email, department,
-              employee_id, password_hash, id_document_url, selfie_id_url, status, email_verified)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',false)`,
+              employee_id, password_hash, id_document_url, selfie_id_url, status, email_verified,
+              id_ai_status, id_ai_score, id_ai_summary, id_ai_checked_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',false,$14,$15,$16,now())`,
           [
             requestId,
             fName,
@@ -380,6 +401,9 @@ router.post('/request-access', (req, res) => {
             hashPassword(pwd),
             idDocumentUrl,
             selfieIdUrl,
+            aiIdResult.status,
+            aiIdResult.score,
+            aiIdResult.summary,
           ]
         );
       }
@@ -755,9 +779,31 @@ router.post('/change-password', requireAuth, async (req, res) => {
 router.get('/access-requests', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      `SELECT id, first_name, middle_name, last_name, full_name, sex, contact_no, email, department, employee_id, id_document_url, selfie_id_url, requested_at
+      `SELECT id, first_name, middle_name, last_name, full_name, sex, contact_no, email, department, employee_id, id_document_url, selfie_id_url, id_ai_status, id_ai_score, id_ai_summary, id_ai_checked_at, requested_at
        FROM access_requests WHERE status = 'pending' AND (email_verified = true OR email_verified IS NULL) ORDER BY requested_at ASC`
     );
+
+    // Auto-scan any un-scanned access requests
+    for (const r of rows) {
+      if ((!r.id_ai_status || r.id_ai_status === 'not_scanned') && r.id_document_url) {
+        try {
+          const scan = await validateIdImage(r.id_document_url);
+          await pool.query(
+            `UPDATE access_requests
+             SET id_ai_status = $1, id_ai_score = $2, id_ai_summary = $3, id_ai_checked_at = now()
+             WHERE id = $4`,
+            [scan.status, scan.score, scan.summary, r.id]
+          );
+          r.id_ai_status = scan.status;
+          r.id_ai_score = scan.score;
+          r.id_ai_summary = scan.summary;
+          r.id_ai_checked_at = new Date();
+        } catch (err) {
+          console.error(`[AI ID Auto-scan] Error scanning access request ${r.id}:`, err.message);
+        }
+      }
+    }
+
     res.json(
       rows.map((r) => ({
         id: r.id,
@@ -772,12 +818,48 @@ router.get('/access-requests', requireAuth, async (req, res) => {
         employeeId: r.employee_id,
         idDocumentUrl: r.id_document_url,
         selfieIdUrl: r.selfie_id_url,
+        idAiStatus: r.id_ai_status || 'not_scanned',
+        idAiScore: r.id_ai_score != null ? Number(r.id_ai_score) : null,
+        idAiSummary: r.id_ai_summary || '',
+        idAiCheckedAt: r.id_ai_checked_at || null,
         requestedAt: r.requested_at,
       }))
     );
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Database error loading requests.' });
+  }
+});
+
+// POST /api/auth/access-requests/:id/scan-id (re-scan ID with AI validation)
+router.post('/access-requests/:id/scan-id', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM access_requests WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Request not found.' });
+
+    const request = rows[0];
+    if (!request.id_document_url) {
+      return res.status(400).json({ message: 'No ID document available to scan.' });
+    }
+
+    const scan = await validateIdImage(request.id_document_url);
+    await pool.query(
+      `UPDATE access_requests
+       SET id_ai_status = $1, id_ai_score = $2, id_ai_summary = $3, id_ai_checked_at = now()
+       WHERE id = $4`,
+      [scan.status, scan.score, scan.summary, request.id]
+    );
+
+    res.json({
+      id: request.id,
+      idAiStatus: scan.status,
+      idAiScore: scan.score,
+      idAiSummary: scan.summary,
+      idAiCheckedAt: new Date(),
+    });
+  } catch (err) {
+    console.error('[scan-id] Error:', err);
+    res.status(500).json({ message: 'Unable to scan ID document.' });
   }
 });
 
@@ -795,6 +877,12 @@ router.post('/access-requests/:id/approve', requireAuth, async (req, res) => {
     if (!request) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Request not found.' });
+    }
+    if (request.id_ai_status === 'ai_detected') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        message: 'Cannot approve: The submitted ID has been flagged by AI validation as synthetic or fraudulent. Please reject or request authentic documents.',
+      });
     }
     if (request.email_verified === false) {
       await client.query('ROLLBACK');

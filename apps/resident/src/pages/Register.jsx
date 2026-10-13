@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { register, Session } from '../api.js';
+import { register, checkEmailAvailability, verifyRegistrationEmail, resendRegistrationCode, Session } from '../api.js';
+import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function Register() {
   const [form, setForm] = useState({
     firstName: '', middleName: '', lastName: '', dateOfBirth: '', sex: '',
     contactNumber: '', purok: '', email: '', password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailStatus, setEmailStatus] = useState({ checking: false, available: null, valid: null, message: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [registrationResult, setRegistrationResult] = useState(null);
@@ -17,6 +20,25 @@ export default function Register() {
   const [selfieFile, setSelfieFile] = useState(null);
   const [selfiePhotoPreview, setSelfiePhotoPreview] = useState('');
   const [selfieFileError, setSelfieFileError] = useState('');
+
+  // 6-digit email verification state
+  const [step, setStep] = useState('form'); // 'form' | 'verify' | 'completed'
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+  const [resending, setResending] = useState(false);
+  const inputRefs = useRef([]);
+
+  useEffect(() => {
+    let timer;
+    if (cooldown > 0) {
+      timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [cooldown]);
 
   function handleIdFile(file) {
     setIdFileError('');
@@ -68,14 +90,130 @@ export default function Register() {
       setForm(f => ({ ...f, [field]: clean }));
       return;
     }
+    if (field === 'email') {
+      const lower = String(value || '').toLowerCase();
+      if (lower.includes('elena') || lower.includes('ytytyt')) {
+        setForm(f => ({ ...f, [field]: '' }));
+        return;
+      }
+    }
     setForm(f => ({ ...f, [field]: value }));
   }
+
+  // Prevent browser autofill from inserting Elena's credentials
+  useEffect(() => {
+    const scrub = () => {
+      setForm((prev) => {
+        const emailLower = (prev.email || '').toLowerCase();
+        const passLower = (prev.password || '').toLowerCase();
+        if (
+          emailLower.includes('elena') ||
+          emailLower.includes('ytytyt') ||
+          passLower.includes('elena') ||
+          passLower === 'password123'
+        ) {
+          return {
+            ...prev,
+            email: emailLower.includes('elena') || emailLower.includes('ytytyt') ? '' : prev.email,
+            password: passLower.includes('elena') || passLower === 'password123' ? '' : prev.password,
+          };
+        }
+        return prev;
+      });
+
+      const emailInput = document.querySelector('input[name="resident_reg_email"]');
+      if (
+        emailInput &&
+        emailInput.value &&
+        (emailInput.value.toLowerCase().includes('elena') || emailInput.value.toLowerCase().includes('ytytyt'))
+      ) {
+        emailInput.value = '';
+      }
+
+      const passInput = document.querySelector('input[name="resident_reg_password"]');
+      if (
+        passInput &&
+        (passInput.value === 'password123' || passInput.value.toLowerCase().includes('elena'))
+      ) {
+        passInput.value = '';
+      }
+    };
+
+    scrub();
+    const timers = [50, 150, 300, 600, 1000, 1500].map((t) => setTimeout(scrub, t));
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  // Real-time email validation and availability verification
+  useEffect(() => {
+    const rawEmail = form.email.trim();
+    if (!rawEmail) {
+      setEmailStatus({ checking: false, available: null, valid: null, message: '' });
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(rawEmail)) {
+      setEmailStatus({
+        checking: false,
+        available: false,
+        valid: false,
+        message: 'Invalid email format (e.g., resident@example.com).',
+      });
+      return;
+    }
+
+    setEmailStatus(prev => ({ ...prev, checking: true }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await checkEmailAvailability(rawEmail);
+        setEmailStatus({
+          checking: false,
+          available: Boolean(res.available),
+          valid: Boolean(res.valid),
+          message: res.message || '',
+        });
+      } catch (err) {
+        setEmailStatus({
+          checking: false,
+          available: false,
+          valid: false,
+          message: err.message || 'Unable to verify email availability.',
+        });
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [form.email]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     if (!form.purok) { setError('Please select your Purok / Zone.'); return; }
-    if (!form.email.trim()) { setError('Email is required — it doubles as your login and login recovery address.'); return; }
+    const emailValue = form.email.trim();
+    if (!emailValue) { setError('Email is required — it doubles as your login and login recovery address.'); return; }
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(emailValue)) {
+      setError('Please enter a valid email address (e.g., resident@example.com).');
+      return;
+    }
+
+    // Do not register if email is invalid or already taken / unavailable
+    try {
+      const check = await checkEmailAvailability(emailValue);
+      if (!check.valid) {
+        setError(check.message || 'The email address is invalid.');
+        return;
+      }
+      if (!check.available) {
+        setError(check.message || 'This email is already in use or unavailable. Please use another email.');
+        return;
+      }
+    } catch (checkErr) {
+      setError(checkErr.message || 'Failed to verify email availability.');
+      return;
+    }
+
     if (!/^\+?\d{10,13}$/.test('+63' + form.contactNumber.trim())) {
       setError('Contact number must start with +63 and contain 10 digits after the country code.');
       return;
@@ -99,16 +237,334 @@ export default function Register() {
         selfieWithId: selfieFile,
       };
       const data = await register(body);
+
+      if (data.requiresVerification) {
+        setVerifyEmail(data.email || form.email.trim().toLowerCase());
+        setOtp(['', '', '', '', '', '']);
+        setCooldown(60);
+        setOtpError('');
+        setOtpMessage(data.message || `A 6-digit verification code was sent to ${form.email.trim()}`);
+        setStep('verify');
+        setTimeout(() => {
+          inputRefs.current[0]?.focus();
+        }, 150);
+      } else {
+        if (data.token && data.user) {
+          Session.setToken(data.token);
+          Session.setUser(data.user);
+        }
+        setRegistrationResult(data);
+        setStep('completed');
+      }
+    } catch (err) {
+      setError(err.message);
+      if (err.rejectedField === 'idDocument') {
+        setIdFile(null);
+        setIdPhotoPreview('');
+        setIdFileError(err.message);
+      } else if (err.rejectedField === 'selfieWithId') {
+        setSelfieFile(null);
+        setSelfiePhotoPreview('');
+        setSelfieFileError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleOtpChange(index, value) {
+    const cleaned = value.replace(/\D/g, '');
+
+    // Pasted full code or multiple digits
+    if (cleaned.length > 1) {
+      const chars = cleaned.slice(0, 6).split('');
+      const newOtp = [...otp];
+      for (let i = 0; i < 6; i++) {
+        newOtp[i] = chars[i] || '';
+      }
+      setOtp(newOtp);
+      const nextIdx = Math.min(chars.length, 5);
+      inputRefs.current[nextIdx]?.focus();
+      return;
+    }
+
+    const newOtp = [...otp];
+    newOtp[index] = cleaned;
+    setOtp(newOtp);
+
+    // Auto advance to next box
+    if (cleaned && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  }
+
+  function handleOtpKeyDown(index, e) {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  }
+
+  function handleOtpPaste(e) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+    const newOtp = [...otp];
+    for (let i = 0; i < 6; i++) {
+      newOtp[i] = pasted[i] || '';
+    }
+    setOtp(newOtp);
+    const nextIdx = Math.min(pasted.length, 5);
+    inputRefs.current[nextIdx]?.focus();
+  }
+
+  async function handleVerifyOtp(e) {
+    if (e) e.preventDefault();
+    setOtpError('');
+    setOtpMessage('');
+
+    const fullCode = otp.join('');
+    if (fullCode.length !== 6) {
+      setOtpError('Please enter all 6 digits of your verification code.');
+      return;
+    }
+
+    setOtpLoading(true);
+    try {
+      const data = await verifyRegistrationEmail(verifyEmail, fullCode);
       if (data.token && data.user) {
         Session.setToken(data.token);
         Session.setUser(data.user);
       }
       setRegistrationResult(data);
+      setStep('completed');
     } catch (err) {
-      setError(err.message);
+      setOtpError(err.message || 'Verification failed. Please check the code.');
     } finally {
-      setLoading(false);
+      setOtpLoading(false);
     }
+  }
+
+  async function handleResendCode() {
+    if (cooldown > 0 || resending) return;
+    setResending(true);
+    setOtpError('');
+    setOtpMessage('');
+    try {
+      const res = await resendRegistrationCode(verifyEmail);
+      setCooldown(60);
+      setOtpMessage(res.message || 'A new verification code has been sent to your email.');
+    } catch (err) {
+      setOtpError(err.message || 'Unable to resend verification code. Please try again later.');
+    } finally {
+      setResending(false);
+    }
+  }
+
+  if (step === 'verify') {
+    return (
+      <div className="auth-scene auth-register-page">
+        <div className="form-wrap">
+          <div className="card auth-register-panel" style={{ padding: 36, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+            <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" style={{ margin: '0 auto 12px' }} />
+
+            <div style={{
+              width: 54,
+              height: 54,
+              background: '#eff6ff',
+              color: '#2563eb',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 14px',
+              boxShadow: '0 2px 8px rgba(37,99,235,0.15)'
+            }}>
+              <ModernIcon name="mail" size={26} color="#2563eb" />
+            </div>
+
+            <div style={{
+              display: 'inline-block',
+              background: '#dbeafe',
+              color: '#1d4ed8',
+              border: '1px solid #93c5fd',
+              padding: '4px 14px',
+              borderRadius: 9999,
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginBottom: 12
+            }}>
+              Step 2: Email Verification
+            </div>
+
+            <h2 style={{ color: 'var(--navy)', margin: '0 0 8px', fontSize: '1.45rem', fontWeight: 800 }}>
+              Verify Your Email Address
+            </h2>
+            <p style={{ color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.55, fontSize: '0.9rem' }}>
+              We've sent a 6-digit confirmation code to{' '}
+              <strong style={{ color: '#0f172a' }}>{verifyEmail}</strong>.
+              Enter it below to complete your registration.
+            </p>
+
+            {otpError && (
+              <div style={{
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#b91c1c',
+                borderRadius: 8,
+                padding: '10px 14px',
+                fontSize: '0.85rem',
+                marginBottom: 16,
+                textAlign: 'left'
+              }}>
+                {otpError}
+              </div>
+            )}
+
+            {otpMessage && (
+              <div style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                color: '#15803d',
+                borderRadius: 8,
+                padding: '10px 14px',
+                fontSize: '0.85rem',
+                marginBottom: 16,
+                textAlign: 'left'
+              }}>
+                {otpMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} style={{ marginBottom: 20 }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#64748b',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: 12
+              }}>
+                6-Digit Verification Code
+              </label>
+
+              <div
+                style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}
+                onPaste={handleOtpPaste}
+              >
+                {otp.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => (inputRefs.current[idx] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    style={{
+                      width: 44,
+                      height: 52,
+                      textAlign: 'center',
+                      fontSize: '1.5rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      border: '2px solid #cbd5e1',
+                      borderRadius: 8,
+                      outline: 'none',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'var(--navy, #1e3a8a)';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(30, 58, 138, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                    required={idx === 0}
+                  />
+                ))}
+              </div>
+
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '0 0 20px' }}>
+                Code expires in 10 minutes. Check your spam/junk folder if needed.
+              </p>
+
+              <button
+                type="submit"
+                disabled={otpLoading || otp.join('').length !== 6}
+                className="btn btn-navy btn-block"
+                style={{
+                  padding: '12px 20px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  opacity: otpLoading || otp.join('').length !== 6 ? 0.6 : 1,
+                  cursor: otpLoading || otp.join('').length !== 6 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {otpLoading ? 'Verifying Code…' : 'Verify Email & Complete Registration →'}
+              </button>
+            </form>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              paddingTop: 16,
+              borderTop: '1px solid #f1f5f9',
+              fontSize: '0.85rem',
+              color: '#64748b'
+            }}>
+              <div>
+                Didn't receive the email?{' '}
+                {cooldown > 0 ? (
+                  <span style={{ color: '#94a3b8', fontWeight: 600 }}>Resend in {cooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={resending}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontWeight: 700,
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    {resending ? 'Sending code…' : 'Resend Code'}
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setStep('form')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '0.82rem'
+                }}
+              >
+                ← Back to registration form
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (registrationResult) {
@@ -123,9 +579,13 @@ export default function Register() {
 
             {isVerified ? (
               <>
-                <div style={{ fontSize: '3rem', marginBottom: 12 }}>✅</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                  <ModernIcon name="check-circle" size={48} color="#16a34a" />
+                </div>
                 <div style={{
-                  display: 'inline-block',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                   background: '#dcfce7',
                   color: '#15803d',
                   border: '1px solid #86efac',
@@ -137,7 +597,7 @@ export default function Register() {
                   textTransform: 'uppercase',
                   marginBottom: 14
                 }}>
-                  ✓ Account Verified &amp; Approved
+                  <ModernIcon name="check" size={14} color="#15803d" /> Account Verified &amp; Approved
                 </div>
                 <h2 style={{ color: 'var(--navy)', margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 800 }}>
                   Account Verified &amp; Approved!
@@ -183,9 +643,13 @@ export default function Register() {
               </>
             ) : (
               <>
-                <div style={{ fontSize: '3rem', marginBottom: 12 }}>⏳</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+                  <ModernIcon name="clock" size={48} color="#d97706" />
+                </div>
                 <div style={{
-                  display: 'inline-block',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
                   background: '#fef3c7',
                   color: '#92400e',
                   border: '1px solid #fcd34d',
@@ -197,7 +661,7 @@ export default function Register() {
                   textTransform: 'uppercase',
                   marginBottom: 14
                 }}>
-                  ⏳ Account Pending Verification
+                  <ModernIcon name="clock" size={14} color="#92400e" /> Account Pending Verification
                 </div>
                 <h2 style={{ color: 'var(--navy)', margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 800 }}>
                   Registration Received
@@ -345,19 +809,96 @@ export default function Register() {
 
             <div className="field">
               <label className="field-label">Email (used to sign in)</label>
-              <input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@example.com" required />
+              <input
+                type="email"
+                name="resident_reg_email"
+                autoComplete="new-password"
+                value={form.email}
+                onChange={e => update('email', e.target.value)}
+                placeholder="you@example.com"
+                required
+                style={{
+                  borderColor:
+                    emailStatus.valid === false || emailStatus.available === false
+                      ? '#ef4444'
+                      : emailStatus.available === true
+                      ? '#10b981'
+                      : undefined,
+                }}
+              />
+              {emailStatus.checking && (
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>
+                  Checking email availability…
+                </div>
+              )}
+              {!emailStatus.checking && emailStatus.message && (
+                <div
+                  style={{
+                    fontSize: '0.78rem',
+                    color: emailStatus.available && emailStatus.valid ? '#10b981' : '#ef4444',
+                    marginTop: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                    {emailStatus.available && emailStatus.valid ? (
+                      <ModernIcon name="check" size={14} color="#15803d" />
+                    ) : (
+                      <ModernIcon name="warning" size={14} color="#b45309" />
+                    )}
+                  </span>
+                  <span>{emailStatus.message}</span>
+                </div>
+              )}
             </div>
             <div className="field">
               <label className="field-label">Password</label>
-              <input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Create a password" required minLength={6} />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="resident_reg_password"
+                  autoComplete="new-password"
+                  value={form.password}
+                  onChange={e => update('password', e.target.value)}
+                  placeholder="Create a password"
+                  required
+                  minLength={6}
+                  style={{ width: '100%', paddingRight: '44px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="show-password-toggle"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    padding: 4,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 6,
+                  }}
+                >
+                  <ModernIcon name={showPassword ? 'eye' : 'eye-off'} size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Field 1: Valid Government ID */}
-            <div style={{ fontWeight: 800, color: 'var(--navy)', margin: '22px 0 4px' }}>
+            <div style={{ fontWeight: 800, color: '#0f172a', margin: '24px 0 6px', fontSize: '1rem' }}>
               1. Valid ID Card or Document <span style={{ color: '#dc2626' }}>*</span>
             </div>
-            <p style={{ margin: '0 0 10px', fontSize: '.82rem', color: 'var(--muted)' }}>
-              Clear photo of your valid Government ID (PhilSys ID, Driver's License, Passport, Voter's ID, etc.)
+            <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
+              Clear front photo of your valid Government ID (PhilSys ID, Driver's License, Passport, Voter's ID, PRC, or Barangay ID).
             </p>
             {idFile ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
@@ -368,8 +909,8 @@ export default function Register() {
                     style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
                   />
                 ) : (
-                  <div style={{ width: 64, height: 64, borderRadius: 8, background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', border: '1px solid #fecaca', flexShrink: 0 }}>
-                    📄
+                  <div style={{ width: 64, height: 64, borderRadius: 8, background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fecaca', flexShrink: 0 }}>
+                    <ModernIcon name="document" size={28} color="#dc2626" />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -401,7 +942,9 @@ export default function Register() {
               </div>
             ) : (
               <label className="upload-box" htmlFor="idDocumentInput" style={{ cursor: 'pointer', display: 'block' }}>
-                <div className="icon">🪪</div>
+                <div className="icon">
+                  <ModernIcon name="id-card" size={24} color="#2563eb" />
+                </div>
                 <strong>Click to upload your valid ID card</strong>
                 <small>JPG, PNG, or PDF up to 5MB (Clear front-facing ID)</small>
                 <input
@@ -413,14 +956,27 @@ export default function Register() {
                 />
               </label>
             )}
-            {idFileError && <p style={{ fontSize: '.8rem', color: '#c0392b', marginTop: 6 }}>{idFileError}</p>}
+            {idFileError && (
+              <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: '.84rem', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ flexShrink: 0, marginTop: 2 }}>
+                  <ModernIcon name="warning" size={18} color="#dc2626" />
+                </span>
+                <div>
+                  <strong style={{ display: 'block', color: '#7f1d1d' }}>Step 1: ID Document Verification Failed</strong>
+                  <span>{idFileError}</span>
+                  <div style={{ marginTop: 4, fontSize: '.78rem', color: '#b91c1c' }}>
+                    Tip: Please choose another clear photo or valid document to re-upload. Your other form entries have been preserved.
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Field 2: Selfie Holding Your ID */}
-            <div style={{ fontWeight: 800, color: 'var(--navy)', margin: '22px 0 4px' }}>
+            <div style={{ fontWeight: 800, color: '#0f172a', margin: '24px 0 6px', fontSize: '1rem' }}>
               2. Selfie Holding Your Valid ID <span style={{ color: '#dc2626' }}>*</span>
             </div>
-            <p style={{ margin: '0 0 10px', fontSize: '.82rem', color: 'var(--muted)' }}>
-              Take a selfie holding your ID next to your face so your face and ID details are both clearly visible.
+            <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
+              Take a selfie holding your approved ID next to your face so your face and ID details are both clearly visible.
             </p>
             {selfieFile ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
@@ -431,8 +987,8 @@ export default function Register() {
                     style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
                   />
                 ) : (
-                  <div style={{ width: 64, height: 64, borderRadius: 8, background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', border: '1px solid #bae6fd', flexShrink: 0 }}>
-                    🤳
+                  <div style={{ width: 64, height: 64, borderRadius: 8, background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bae6fd', flexShrink: 0 }}>
+                    <ModernIcon name="selfie" size={28} color="#0284c7" />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
@@ -464,7 +1020,9 @@ export default function Register() {
               </div>
             ) : (
               <label className="upload-box" htmlFor="selfieWithIdInput" style={{ cursor: 'pointer', display: 'block' }}>
-                <div className="icon">🤳</div>
+                <div className="icon">
+                  <ModernIcon name="selfie" size={24} color="#2563eb" />
+                </div>
                 <strong>Click to upload selfie holding your ID</strong>
                 <small>JPG, PNG, or WebP up to 5MB (Clear selfie holding ID card)</small>
                 <input
@@ -476,10 +1034,26 @@ export default function Register() {
                 />
               </label>
             )}
-            {selfieFileError && <p style={{ fontSize: '.8rem', color: '#c0392b', marginTop: 6 }}>{selfieFileError}</p>}
+            {selfieFileError && (
+              <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: '.84rem', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ flexShrink: 0, marginTop: 2 }}>
+                  <ModernIcon name="warning" size={18} color="#dc2626" />
+                </span>
+                <div>
+                  <strong style={{ display: 'block', color: '#7f1d1d' }}>Step 2: Selfie Holding ID Verification Failed</strong>
+                  <span>{selfieFileError}</span>
+                  <div style={{ marginTop: 4, fontSize: '.78rem', color: '#b91c1c' }}>
+                    Tip: Hold the exact same approved ID card next to your face in a well-lit space and take a steady, clear selfie.
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="card" style={{ background: '#eaf3fd', borderColor: '#cfe4f9', margin: '22px 0 24px' }}>
-              <strong style={{ color: 'var(--navy)' }}>🛡️ Secured Transmission</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--navy)', fontWeight: 700 }}>
+                <ModernIcon name="shield" size={18} color="var(--navy)" />
+                <strong>Secured Transmission</strong>
+              </div>
               <p style={{ margin: '6px 0 0', fontSize: '.85rem', color: 'var(--muted)' }}>
                 Your data is encrypted using AES-256 standards. Only authorized civil personnel can access this information for verification purposes.
               </p>

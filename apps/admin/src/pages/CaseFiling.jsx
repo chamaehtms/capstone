@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 export default function CaseFiling() {
   const navigate = useNavigate();
@@ -180,8 +181,9 @@ export default function CaseFiling() {
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-2">
-          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-            ⚖️ Katarungang Pambarangay
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1.5">
+            <AdminIcon name="scale" size={14} className="text-blue-600" />
+            <span>Katarungang Pambarangay</span>
           </span>
         </div>
       </div>
@@ -189,7 +191,9 @@ export default function CaseFiling() {
       {error && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-semibold flex items-center justify-between">
           <span>{error}</span>
-          <button type="button" onClick={() => setError('')} className="text-red-600 hover:text-red-900">✕</button>
+          <button type="button" onClick={() => setError('')} className="text-red-600 hover:text-red-900 p-1">
+            <AdminIcon name="close" size={14} />
+          </button>
         </div>
       )}
 
@@ -424,8 +428,8 @@ export default function CaseFiling() {
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl p-6 text-center cursor-pointer bg-slate-50/50 hover:bg-blue-50/30 transition"
             >
-              <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-2 text-lg shadow-xs">
-                📷 🎥
+              <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-2 text-slate-500 shadow-xs">
+                <AdminIcon name="camera" size={20} />
               </div>
               <strong className="block text-sm text-slate-800 mb-1">
                 {evidenceFile ? evidenceFile.name : 'Upload documentary evidence, site photo, or video recording'}
@@ -435,16 +439,20 @@ export default function CaseFiling() {
               </p>
               {evidenceFile && (
                 <div className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded">
-                  <span>✓ Selected: {evidenceFile.name} ({(evidenceFile.size / (1024 * 1024) > 1 ? (evidenceFile.size / (1024 * 1024)).toFixed(1) + ' MB' : (evidenceFile.size / 1024).toFixed(1) + ' KB')})</span>
+                  <span className="inline-flex items-center gap-1">
+                    <AdminIcon name="check" size={13} />
+                    <span>Selected: {evidenceFile.name} ({(evidenceFile.size / (1024 * 1024) > 1 ? (evidenceFile.size / (1024 * 1024)).toFixed(1) + ' MB' : (evidenceFile.size / 1024).toFixed(1) + ' KB')})</span>
+                  </span>
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleEvidenceFile(null);
                     }}
-                    className="text-red-500 hover:text-red-700 ml-1"
+                    className="text-red-500 hover:text-red-700 ml-1 inline-flex items-center gap-0.5"
                   >
-                    ✕ Remove
+                    <AdminIcon name="close" size={12} />
+                    <span>Remove</span>
                   </button>
                 </div>
               )}
@@ -462,15 +470,16 @@ export default function CaseFiling() {
               <div className="mt-3 p-3 bg-slate-900 rounded-xl border border-slate-800 shadow-md">
                 <div className="flex items-center justify-between text-xs text-slate-300 mb-2 font-medium">
                   <span className="flex items-center gap-1.5">
-                    <span>🎬</span>
+                    <AdminIcon name="camera" size={13} className="text-purple-400" />
                     <span>Video Evidence Recording Preview</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => handleEvidenceFile(null)}
-                    className="text-red-400 hover:text-red-300 text-xs"
+                    className="inline-flex items-center gap-1 text-red-400 hover:text-red-300 text-xs"
                   >
-                    ✕ Remove
+                    <AdminIcon name="x" size={11} />
+                    <span>Remove</span>
                   </button>
                 </div>
                 <video
@@ -527,7 +536,7 @@ export default function CaseFiling() {
 
           {/* Legal Fine Notice */}
           <p className="text-xs text-slate-500 leading-relaxed flex items-start gap-1.5">
-            <span>⚖️</span>
+            <AdminIcon name="scale" size={14} className="text-slate-400 shrink-0 mt-0.5" />
             <span>
               By filing this case, you certify that the statements herein are true and correct. Filing a false report is
               subject to legal penalties under Article 363 of the Revised Penal Code and Republic Act No. 7160 (Katarungang

@@ -2,16 +2,17 @@ import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../api';
+import AdminIcon from './AdminIcons.jsx';
 
 const links = [
-  { to: '/', label: 'Overview', icon: '▦', end: true },
-  { to: '/residents', label: 'Resident Records', icon: '🧑‍🤝‍🧑', badgeKey: 'residents' },
-  { to: '/complaints', label: 'Complaints Record', icon: '📋', badgeKey: 'complaints' },
-  { to: '/meetings', label: 'Meeting Minutes', icon: '🗓️', badgeKey: 'meetings' },
-  { to: '/escalation', label: 'Escalation', icon: '📈', badgeKey: 'escalations' },
-  { to: '/complaints/new', label: 'Case Filing', icon: '📝', badgeKey: 'caseFiling' },
-  { to: '/pending-requests', label: 'Pending Requests', icon: '🛂', badgeKey: 'pendingRequests' },
-  { to: '/announcements', label: 'Announcements', icon: '📣' },
+  { to: '/', label: 'Overview', icon: 'grid', end: true },
+  { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
+  { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
+  { to: '/meetings', label: 'Meeting Minutes', icon: 'calendar', badgeKey: 'meetings' },
+  { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
+  { to: '/complaints/new', label: 'Case Filing', icon: 'document', badgeKey: 'caseFiling' },
+  { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
+  { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
 ];
 
 export default function Sidebar() {
@@ -139,8 +140,8 @@ export default function Sidebar() {
               }`
             }
           >
-            <span aria-hidden className="text-base leading-none">
-              {link.icon}
+            <span aria-hidden className="shrink-0 flex items-center justify-center">
+              <AdminIcon name={link.icon} size={18} />
             </span>
             <span>{link.label}</span>
             {link.badgeKey && newCounts[link.badgeKey] > 0 && (
@@ -155,9 +156,10 @@ export default function Sidebar() {
       <div className="px-3 pb-3 pt-2 border-t border-white/10 space-y-1">
         <NavLink
           to="/residents/enroll"
-          className="block text-center bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg px-3 py-2.5 transition-colors shadow-sm shadow-blue-900/40"
+          className="flex items-center justify-center gap-2 text-center bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg px-3 py-2.5 transition-colors shadow-sm shadow-blue-900/40"
         >
-          + Enroll Resident
+          <AdminIcon name="plus" size={16} />
+          <span>Enroll Resident</span>
         </NavLink>
         <NavLink
           to="/settings"
@@ -167,14 +169,18 @@ export default function Sidebar() {
             }`
           }
         >
-          <span aria-hidden>⚙️</span>
+          <span aria-hidden className="shrink-0 flex items-center justify-center">
+            <AdminIcon name="settings" size={17} />
+          </span>
           <span>Settings</span>
         </NavLink>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-white/5 hover:text-white"
         >
-          <span aria-hidden>⎋</span>
+          <span aria-hidden className="shrink-0 flex items-center justify-center">
+            <AdminIcon name="logout" size={17} />
+          </span>
           <span>Logout</span>
         </button>
 

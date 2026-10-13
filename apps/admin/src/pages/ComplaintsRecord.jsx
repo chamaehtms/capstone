@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../api';
 import StatCard from '../components/StatCard.jsx';
 import StatusDropdown from '../components/StatusDropdown.jsx';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 const STATUS_OPTIONS = ['Pending', 'Under Review', 'In Progress', 'Mediation', 'Resolved/Escalated'];
 
@@ -16,7 +17,6 @@ const statusStyles = {
   Resolved: 'bg-emerald-100 text-emerald-700',
   Escalated: 'bg-rose-100 text-rose-700',
   Closed: 'bg-emerald-100 text-emerald-700',
-  Rejected: 'bg-rose-100 text-rose-700',
 };
 
 function formatFilingDate(value) {
@@ -50,7 +50,9 @@ export default function ComplaintsRecord() {
   const [stats, setStats] = useState({ active: 0, resolutionRate: 0 });
   const [search, setSearch] = useState('');
   const [filingRecency, setFilingRecency] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('in-progress');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
@@ -72,19 +74,106 @@ export default function ComplaintsRecord() {
     fetchComplaints(search);
   };
 
-  const visibleComplaints = complaints.filter((complaint) => {
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'Rejected' && complaint.status !== 'Rejected') return false;
-      if (statusFilter !== 'Rejected' && complaint.status !== statusFilter) return false;
+  const isTerminalStatus = (c) =>
+    c.needsEscalation === true ||
+    c.status === 'Escalated' ||
+    c.status === 'Resolved' ||
+    c.status === 'Resolved/Escalated' ||
+    c.status === 'Resolved / Escalated' ||
+    c.status === 'Rejected' ||
+    c.status === 'Closed';
+
+  const matchesDateFilter = (complaint) => {
+    if (filingRecency === 'all') return true;
+    if (!complaint.filingDate) return false;
+
+    const dateStr = String(complaint.filingDate).slice(0, 10);
+    const itemDate = new Date(`${dateStr}T00:00:00`);
+    if (Number.isNaN(itemDate.getTime())) return false;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (filingRecency === 'today') {
+      return itemDate.getTime() === today.getTime();
     }
 
-    if (filingRecency === 'all') return true;
+    if (filingRecency === 'yesterday') {
+      const yesterday = new Date(today);
+      yesterday.setDate(today.getDate() - 1);
+      return itemDate.getTime() === yesterday.getTime();
+    }
 
-    const ageDays = getFilingAgeDays(complaint.filingDate);
-    if (ageDays === null || ageDays < 0) return false;
-    if (filingRecency === 'latest') return ageDays <= 7;
-    if (filingRecency === 'days') return ageDays >= 8 && ageDays <= 30;
-    return ageDays >= 31;
+    if (filingRecency === 'this_week') {
+      // Week starting Sunday or Monday - start from Sunday (or Monday) of current week
+      const dayOfWeek = today.getDay(); // 0 is Sunday
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - dayOfWeek);
+      return itemDate >= startOfWeek && itemDate <= today;
+    }
+
+    if (filingRecency === 'this_month') {
+      return itemDate.getFullYear() === today.getFullYear() && itemDate.getMonth() === today.getMonth();
+    }
+
+    if (filingRecency === 'last_30_days') {
+      const past30 = new Date(today);
+      past30.setDate(today.getDate() - 30);
+      return itemDate >= past30 && itemDate <= today;
+    }
+
+    if (filingRecency === 'custom') {
+      if (customStartDate) {
+        const start = new Date(`${customStartDate}T00:00:00`);
+        if (!Number.isNaN(start.getTime()) && itemDate < start) return false;
+      }
+      if (customEndDate) {
+        const end = new Date(`${customEndDate}T23:59:59`);
+        if (!Number.isNaN(end.getTime()) && itemDate > end) return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  const filteredComplaints = complaints.filter((complaint) => {
+    // Status filter
+    if (statusFilter === 'in-progress') {
+      if (complaint.status !== 'In Progress') return false;
+      if (
+        complaint.needsEscalation === true ||
+        complaint.status === 'Escalated' ||
+        complaint.status === 'Resolved' ||
+        complaint.status === 'Resolved/Escalated' ||
+        complaint.status === 'Resolved / Escalated' ||
+        complaint.status === 'Rejected' ||
+        complaint.status === 'Closed'
+      ) return false;
+    } else if (statusFilter === 'pending') {
+      if (complaint.status !== 'Pending') return false;
+    } else if (statusFilter === 'resolved') {
+      const isResolved =
+        complaint.status === 'Resolved' ||
+        complaint.status === 'Resolved/Escalated' ||
+        complaint.status === 'Resolved / Escalated' ||
+        complaint.status === 'Closed';
+      if (!isResolved) return false;
+    } else if (statusFilter === 'rejected') {
+      if (complaint.status !== 'Rejected') return false;
+    }
+    // statusFilter === 'all' — no status filter applied
+
+    return matchesDateFilter(complaint);
+  });
+
+  const visibleComplaints = [...filteredComplaints].sort((a, b) => {
+    const timeA = new Date(a.filingDate || a.submittedAt || 0).getTime();
+    const timeB = new Date(b.filingDate || b.submittedAt || 0).getTime();
+    // In Progress view: oldest first to surface overdue cases
+    if (statusFilter === 'in-progress') return timeA - timeB;
+    // All other views: newest first
+    return timeB - timeA;
   });
 
   const handleStatusUpdate = async (caseId, newStatus, needsEscalation = false) => {
@@ -154,34 +243,55 @@ export default function ComplaintsRecord() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search case ID, resident name, or incident..."
-                className="w-72 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-80 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </form>
-            <select
-              aria-label="Filter cases by status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-40 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Under Review">Under Review</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Mediation">Mediation</option>
-              <option value="Resolved">Resolved</option>
-              <option value="Escalated">Escalated</option>
-              <option value="Rejected">✕ Rejected</option>
-            </select>
             <select
               aria-label="Filter cases by filing date"
               value={filingRecency}
               onChange={(e) => setFilingRecency(e.target.value)}
-              className="w-44 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-48 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">Any filing date</option>
-              <option value="latest">Latest (0-7 days)</option>
-              <option value="days">Days ago (8-30 days)</option>
-              <option value="months">Months ago (31+ days)</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="this_week">This Week</option>
+              <option value="this_month">This Month</option>
+              <option value="last_30_days">Last 30 Days</option>
+              <option value="custom">Custom Date Range</option>
+            </select>
+            {filingRecency === 'custom' && (
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-2 py-1 text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Start"
+                  title="Start Date"
+                />
+                <span className="text-slate-400 font-medium">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="bg-white border border-slate-200 rounded px-2 py-1 text-slate-700 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="End"
+                  title="End Date"
+                />
+              </div>
+            )}
+            <select
+              aria-label="Sort complaints"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-52 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
         </div>
@@ -193,7 +303,7 @@ export default function ComplaintsRecord() {
               <th className="px-5 py-3 font-medium">RESIDENT</th>
               <th className="px-5 py-3 font-medium">CATEGORY</th>
               <th className="px-5 py-3 font-medium">STATUS</th>
-              <th className="px-5 py-3 font-medium">ESCALATION / OUTCOME</th>
+              <th className="px-5 py-3 font-medium">ESCALATION</th>
               <th className="px-5 py-3 font-medium">FILING DATE</th>
               <th className="px-5 py-3 font-medium text-right">ACTION</th>
             </tr>
@@ -201,7 +311,7 @@ export default function ComplaintsRecord() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
                   Loading cases…
                 </td>
               </tr>
@@ -209,105 +319,101 @@ export default function ComplaintsRecord() {
             {!loading && visibleComplaints.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
-                  {complaints.length === 0 ? 'No cases found.' : 'No cases match the selected filters.'}
+                  {complaints.length === 0 ? 'No cases found.' : 'No cases match this filing-date filter.'}
                 </td>
               </tr>
             )}
-            {visibleComplaints.map((c) => {
-              const isRejected = c.status === 'Rejected';
-              return (
-                <tr
-                  key={c.id}
-                  className={`border-b border-slate-50 transition-colors ${
-                    isRejected ? 'bg-rose-50/30 hover:bg-rose-50/50' : 'hover:bg-slate-50'
-                  }`}
-                >
-                  <td className="px-5 py-3">
-                    <div className="flex items-center flex-wrap gap-1.5">
-                      <Link to={`/complaints/${c.id}`} className="font-medium text-blue-600 hover:underline">
-                        {c.id}
-                      </Link>
-                      {c.filedByResidentId && (
-                        <span className="text-[10px] font-medium bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded">
-                          Resident Portal
+            {visibleComplaints.map((c) => (
+              <tr key={c.id} className="border-b border-slate-50 hover:bg-slate-50">
+                <td className="px-5 py-3">
+                  <Link to={`/complaints/${c.id}`} className="font-medium text-blue-600 hover:underline">
+                    {c.id}
+                  </Link>
+                  {c.filedByResidentId && (
+                    <span className="ml-2 text-[10px] font-medium bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded">
+                      Resident Portal
+                    </span>
+                  )}
+                  {(c.aiScanStatus === 'ai_detected' || c.aiScanStatus === 'possibly_ai_generated') && (
+                    <span className="ml-2 text-[10px] font-semibold bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200">
+                      AI Detected
+                    </span>
+                  )}
+                </td>
+                <td className="px-5 py-3 text-slate-700">{c.resident}</td>
+                <td className="px-5 py-3 text-slate-500">{c.category}</td>
+                <td className="px-5 py-3">
+                  <StatusDropdown
+                    status={c.status}
+                    needsEscalation={c.needsEscalation}
+                    disabled={updatingId === c.id}
+                    onChange={(newStatus, needsEsc) => handleStatusUpdate(c.id, newStatus, needsEsc)}
+                  />
+                </td>
+                <td className="px-5 py-3">
+                  {c.needsEscalation ? (
+                    <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                      <span>↗</span> Escalated Case
+                    </span>
+                  ) : (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') ? (
+                    <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1.5">
+                      <AdminIcon name="check" size={13} />
+                      <span>Resolved (Settled)</span>
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-slate-400">Not marked</span>
+                  )}
+                </td>
+                <td className="px-5 py-3 text-slate-500">
+                  <div className="flex flex-col">
+                    <span>{formatFilingDate(c.filingDate)}</span>
+                    {c.status === 'In Progress' && !c.needsEscalation && c.status !== 'Escalated' && c.status !== 'Resolved' && c.status !== 'Rejected' && (() => {
+                      const days = getFilingAgeDays(c.filingDate);
+                      if (days === null) return null;
+                      if (days >= 30) {
+                        return (
+                          <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5 mt-0.5 inline-flex items-center gap-1 w-fit">
+                            <AdminIcon name="warning" size={11} className="text-rose-600" />
+                            <span>{days}d pending</span>
+                          </span>
+                        );
+                      }
+                      if (days >= 7) {
+                        return (
+                          <span className="text-[10px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 mt-0.5 inline-flex items-center gap-1 w-fit">
+                            <AdminIcon name="clock" size={11} className="text-amber-600" />
+                            <span>{days}d in progress</span>
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-[10px] text-slate-400 mt-0.5">
+                          {days === 0 ? 'Today' : `${days}d in progress`}
                         </span>
-                      )}
-                      {isRejected && (
-                        <span
-                          className="text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded inline-flex items-center gap-1 shadow-2xs"
-                          title={c.rejectionReason ? `Reason: ${c.rejectionReason}` : 'Case was rejected'}
-                        >
-                          <span className="text-xs leading-none">✕</span> Rejected
-                        </span>
-                      )}
-                      {(c.aiScanStatus === 'ai_detected' || c.aiScanStatus === 'possibly_ai_generated') && (
-                        <span className="text-[10px] font-semibold bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200">
-                          AI Detected
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-slate-700">
-                    <div className="flex items-center gap-1.5">
-                      <span>{c.resident}</span>
-                      {isRejected && (
-                        <span className="text-[10px] text-rose-500 font-medium">
-                          (Dismissed)
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-slate-500">{c.category}</td>
-                  <td className="px-5 py-3">
-                    <StatusDropdown
-                      status={c.status}
-                      needsEscalation={c.needsEscalation}
+                      );
+                    })()}
+                  </div>
+                </td>
+                <td className="px-5 py-3 text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Link
+                      to={`/complaints/${c.id}`}
+                      className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+                    >
+                      View
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteComplaint(c.id)}
                       disabled={updatingId === c.id}
-                      onChange={(newStatus, needsEsc) => handleStatusUpdate(c.id, newStatus, needsEsc)}
-                    />
-                  </td>
-                  <td className="px-5 py-3">
-                    {isRejected ? (
-                      <span
-                        className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full inline-flex items-center gap-1 border border-rose-200"
-                        title={c.rejectionReason ? `Reason: ${c.rejectionReason}` : 'Case was rejected'}
-                      >
-                        <span>✕</span> Rejected{c.rejectionReason ? `: ${c.rejectionReason}` : ''}
-                      </span>
-                    ) : c.needsEscalation ? (
-                      <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                        <span>↗</span> Escalated Case
-                      </span>
-                    ) : (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') ? (
-                      <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                        <span>✓</span> Resolved (Settled)
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400">Not marked</span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3 text-slate-500">{formatFilingDate(c.filingDate)}</td>
-                  <td className="px-5 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        to={`/complaints/${c.id}`}
-                        className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
-                      >
-                        View
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteComplaint(c.id)}
-                        disabled={updatingId === c.id}
-                        className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 transition-colors disabled:opacity-60"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+                      className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 transition-colors disabled:opacity-60"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

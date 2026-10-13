@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 function formatMeetingDate(dateStr) {
   if (!dateStr) return 'Date not specified';
@@ -619,8 +620,9 @@ export default function MeetingMinutes() {
               </button>
               <div>
                 <h1 className="text-xl font-bold text-slate-900 line-clamp-1">{selected.title}</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {selected.meetingType === 'mediation' ? '⚖️ Mediation Hearing Record' : '🏛️ Council Session Minutes'} · {formatMeetingDate(selected.date)}
+                <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
+                  <AdminIcon name={selected.meetingType === 'mediation' ? 'scale' : 'building'} size={13} className={selected.meetingType === 'mediation' ? 'text-purple-600' : 'text-blue-600'} />
+                  <span>{selected.meetingType === 'mediation' ? 'Mediation Hearing Record' : 'Council Session Minutes'} · {formatMeetingDate(selected.date)}</span>
                 </p>
               </div>
             </div>
@@ -650,7 +652,7 @@ export default function MeetingMinutes() {
             >
               {meetings.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.meetingType === 'mediation' ? '⚖️ ' : '🏛️ '}
+                  {m.meetingType === 'mediation' ? '[Mediation] ' : '[Council] '}
                   {m.title} ({String(m.date).split('T')[0]})
                 </option>
               ))}
@@ -663,7 +665,7 @@ export default function MeetingMinutes() {
               onClick={() => openEditModal(selected)}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-xs"
             >
-              <span>✏️</span>
+              <AdminIcon name="edit" size={14} />
               <span>Edit Record</span>
             </button>
           )}
@@ -674,7 +676,7 @@ export default function MeetingMinutes() {
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-purple-700 hover:bg-purple-800 text-white rounded-lg transition-colors shadow-xs"
             title="Schedule a Katarungang Pambarangay mediation hearing and notify resident via email"
           >
-            <span>⚖️</span>
+            <AdminIcon name="scale" size={14} />
             <span>Schedule Mediation Meeting</span>
           </button>
 
@@ -683,7 +685,7 @@ export default function MeetingMinutes() {
             onClick={openCreateCouncilModal}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-xs"
           >
-            <span>➕</span>
+            <AdminIcon name="plus" size={14} />
             <span>Record Council Session</span>
           </button>
 
@@ -694,7 +696,7 @@ export default function MeetingMinutes() {
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg transition shadow-xs"
               title="Print meeting minutes"
             >
-              <span>🖨️</span>
+              <AdminIcon name="printer" size={14} />
               <span>Print</span>
             </button>
           )}
@@ -704,13 +706,17 @@ export default function MeetingMinutes() {
       {message && (
         <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center justify-between">
           <span>{message}</span>
-          <button type="button" onClick={() => setMessage('')} className="text-emerald-600 hover:text-emerald-900">✕</button>
+          <button type="button" onClick={() => setMessage('')} className="text-emerald-600 hover:text-emerald-900 p-1">
+            <AdminIcon name="close" size={14} />
+          </button>
         </div>
       )}
       {error && (
         <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-semibold flex items-center justify-between">
           <span>{error}</span>
-          <button type="button" onClick={() => setError('')} className="text-red-600 hover:text-red-900">✕</button>
+          <button type="button" onClick={() => setError('')} className="text-red-600 hover:text-red-900 p-1">
+            <AdminIcon name="close" size={14} />
+          </button>
         </div>
       )}
 
@@ -720,8 +726,8 @@ export default function MeetingMinutes() {
           {/* STATS SUMMARY */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center text-xl font-bold border border-blue-100">
-                📋
+              <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold border border-blue-100">
+                <AdminIcon name="clipboard" size={22} />
               </div>
               <div>
                 <div className="text-2xl font-bold text-slate-900">{meetings.length}</div>
@@ -730,8 +736,8 @@ export default function MeetingMinutes() {
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center text-xl font-bold border border-purple-100">
-                ⚖️
+              <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-bold border border-purple-100">
+                <AdminIcon name="scale" size={22} />
               </div>
               <div>
                 <div className="text-2xl font-bold text-slate-900">{mediationCount}</div>
@@ -740,8 +746,8 @@ export default function MeetingMinutes() {
             </div>
 
             <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center text-xl font-bold border border-slate-200">
-                🏛️
+              <div className="w-11 h-11 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center font-bold border border-slate-200">
+                <AdminIcon name="building" size={22} />
               </div>
               <div>
                 <div className="text-2xl font-bold text-slate-900">{councilCount}</div>
@@ -765,20 +771,22 @@ export default function MeetingMinutes() {
               <button
                 type="button"
                 onClick={() => setFilterType('council')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                   filterType === 'council' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                🏛️ Council Sessions ({councilCount})
+                <AdminIcon name="building" size={13} />
+                <span>Council Sessions ({councilCount})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setFilterType('mediation')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                   filterType === 'mediation' ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
-                ⚖️ Mediation Hearings ({mediationCount})
+                <AdminIcon name="scale" size={13} />
+                <span>Mediation Hearings ({mediationCount})</span>
               </button>
             </div>
 
@@ -790,14 +798,16 @@ export default function MeetingMinutes() {
                 placeholder="Search meeting, case #, resident..."
                 className="w-full sm:w-72 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg pl-8 pr-7 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 transition shadow-2xs"
               />
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">🔍</span>
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                <AdminIcon name="search" size={13} />
+              </span>
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
                 >
-                  ✕
+                  <AdminIcon name="close" size={12} />
                 </button>
               )}
             </div>
@@ -806,7 +816,9 @@ export default function MeetingMinutes() {
           {/* SESSIONS & HEARINGS DIRECTORY TABLE */}
           {filteredMeetings.length === 0 ? (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-              <span className="text-4xl mb-3 block">📋</span>
+              <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                <AdminIcon name="clipboard" size={26} />
+              </div>
               <h2 className="text-lg font-bold text-slate-800">
                 {meetings.length === 0 ? 'No meeting records found' : 'No records match your filter / search'}
               </h2>
@@ -821,9 +833,10 @@ export default function MeetingMinutes() {
                     <button
                       type="button"
                       onClick={openScheduleMediationModal}
-                      className="px-4 py-2 text-xs font-semibold bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition shadow-xs"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition shadow-xs"
                     >
-                      ⚖️ Schedule Mediation Meeting
+                      <AdminIcon name="scale" size={14} />
+                      <span>Schedule Mediation Meeting</span>
                     </button>
                     <button
                       type="button"
@@ -848,7 +861,7 @@ export default function MeetingMinutes() {
             <div className="bg-white rounded-xl shadow-sm border border-slate-400 overflow-hidden">
               <div className="px-5 py-4 border-b border-slate-300 flex items-center justify-between bg-slate-50/70">
                 <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                  <span>📂</span>
+                  <AdminIcon name="folder" size={16} className="text-blue-600" />
                   <span>Session & Hearing Directory ({filteredMeetings.length})</span>
                 </h3>
                 <span className="text-xs text-slate-600 hidden sm:inline">
@@ -881,8 +894,9 @@ export default function MeetingMinutes() {
                         >
                           <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
                             <div className="font-bold text-sm text-slate-900">{formatMeetingDate(m.date)}</div>
-                            <div className="text-xs text-slate-600 mt-1 flex items-center gap-1 font-medium">
-                              <span>⏰</span> {m.time || '10:00 AM'}
+                            <div className="text-xs text-slate-600 mt-1 flex items-center gap-1.5 font-medium">
+                              <AdminIcon name="clock" size={13} className="text-slate-500" />
+                              <span>{m.time || '10:00 AM'}</span>
                             </div>
                           </td>
                           <td className="py-4 px-4 border-r border-slate-300">
@@ -890,7 +904,10 @@ export default function MeetingMinutes() {
                               {m.title}
                             </div>
                             <div className="text-xs text-slate-600 mt-1 flex flex-wrap items-center gap-2">
-                              <span>📍 {m.location || 'Barangay Session Hall'}</span>
+                              <span className="inline-flex items-center gap-1">
+                                <AdminIcon name="pin" size={12} className="text-slate-500" />
+                                <span>{m.location || 'Barangay Session Hall'}</span>
+                              </span>
                               {m.caseId && (
                                 <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-300">
                                   Case #{m.caseId}
@@ -899,12 +916,12 @@ export default function MeetingMinutes() {
                             </div>
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full font-semibold text-xs border ${
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-semibold text-xs border ${
                               isMed
                                 ? 'bg-purple-50 text-purple-700 border-purple-200'
                                 : 'bg-blue-50 text-blue-700 border-blue-200'
                             }`}>
-                              <span>{isMed ? '⚖️' : '🏛️'}</span>
+                              <AdminIcon name={isMed ? 'scale' : 'building'} size={13} />
                               <span>{isMed ? (m.hearingStage || 'Mediation Hearing') : 'Council Session'}</span>
                             </span>
                           </td>
@@ -927,11 +944,13 @@ export default function MeetingMinutes() {
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
                             <div className="flex flex-col gap-1.5 text-xs">
-                              <span className={`font-semibold ${agreementCount > 0 ? 'text-purple-700' : 'text-slate-400'}`}>
-                                ⚖️ {agreementCount} {isMed ? 'Agreements (KP-16)' : 'Resolutions'}
+                              <span className={`inline-flex items-center gap-1.5 font-semibold ${agreementCount > 0 ? 'text-purple-700' : 'text-slate-400'}`}>
+                                <AdminIcon name="scale" size={13} />
+                                <span>{agreementCount} {isMed ? 'Agreements (KP-16)' : 'Resolutions'}</span>
                               </span>
-                              <span className={`font-semibold ${actionCount > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
-                                ✅ {actionCount} {isMed ? 'Undertakings' : 'Action Items'}
+                              <span className={`inline-flex items-center gap-1.5 font-semibold ${actionCount > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                                <AdminIcon name="check-circle" size={13} />
+                                <span>{actionCount} {isMed ? 'Undertakings' : 'Action Items'}</span>
                               </span>
                             </div>
                           </td>
@@ -944,7 +963,7 @@ export default function MeetingMinutes() {
                               }}
                               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-200 transition shadow-2xs"
                             >
-                              <span>👁️</span>
+                              <AdminIcon name="eye" size={14} />
                               <span>View (1–6)</span>
                             </button>
                           </td>
@@ -983,7 +1002,7 @@ export default function MeetingMinutes() {
                 onClick={() => openEditModal(selected)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-2xs"
               >
-                <span>✏️</span>
+                <AdminIcon name="edit" size={14} />
                 <span>Edit Record</span>
               </button>
               <button
@@ -991,7 +1010,7 @@ export default function MeetingMinutes() {
                 onClick={() => window.print()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg transition shadow-2xs"
               >
-                <span>🖨️</span>
+                <AdminIcon name="printer" size={14} />
                 <span>Print</span>
               </button>
             </div>
@@ -1005,7 +1024,9 @@ export default function MeetingMinutes() {
                 : 'bg-amber-50 border-amber-200 text-amber-900'
             }`}>
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{selected.notificationSent ? '✉️' : '⚠️'}</span>
+                <span className="p-2 rounded-lg bg-white/60 shrink-0">
+                  <AdminIcon name={selected.notificationSent ? 'mail' : 'warning'} size={24} className={selected.notificationSent ? 'text-purple-700' : 'text-amber-600'} />
+                </span>
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider">
                     {selected.notificationSent ? 'Official Hearing Notice Dispatched' : 'Hearing Notice Pending'}
@@ -1037,10 +1058,11 @@ export default function MeetingMinutes() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-xl font-bold text-slate-900">{selected.title}</h2>
-                  <span className={`text-[11px] font-semibold uppercase px-2.5 py-0.5 rounded ${
+                  <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase px-2.5 py-0.5 rounded ${
                     isSelectedMediation ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
                   }`}>
-                    {isSelectedMediation ? `⚖️ ${selected.hearingStage || 'Mediation Hearing'}` : 'Official Council Session'}
+                    <AdminIcon name={isSelectedMediation ? 'scale' : 'building'} size={13} />
+                    <span>{isSelectedMediation ? (selected.hearingStage || 'Mediation Hearing') : 'Official Council Session'}</span>
                   </span>
                   {selected.caseId && (
                     <Link
@@ -1054,24 +1076,24 @@ export default function MeetingMinutes() {
 
                 {/* 1. Date, Time and Venue */}
                 <div className="flex flex-wrap items-center gap-y-2 gap-x-6 mt-3 text-sm text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base text-blue-600">📅</span>
+                  <div className="flex items-center gap-1.5">
+                    <AdminIcon name="calendar" size={16} className="text-blue-600" />
                     <span className="font-semibold text-slate-800">Date:</span>
                     <span>{formatMeetingDate(selected.date)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base text-blue-600">⏰</span>
+                  <div className="flex items-center gap-1.5">
+                    <AdminIcon name="clock" size={16} className="text-blue-600" />
                     <span className="font-semibold text-slate-800">Time:</span>
                     <span>{selected.time || 'Not specified'}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base text-blue-600">📍</span>
+                  <div className="flex items-center gap-1.5">
+                    <AdminIcon name="pin" size={16} className="text-blue-600" />
                     <span className="font-semibold text-slate-800">Venue:</span>
                     <span className="font-medium text-slate-900">{selected.location || 'Barangay Session Hall'}</span>
                   </div>
                   {isSelectedMediation && selected.mediator && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-base text-purple-600">👤</span>
+                    <div className="flex items-center gap-1.5">
+                      <AdminIcon name="user" size={16} className="text-purple-600" />
                       <span className="font-semibold text-slate-800">Mediator:</span>
                       <span className="font-medium text-slate-900">{selected.mediator}</span>
                     </div>
@@ -1094,7 +1116,7 @@ export default function MeetingMinutes() {
           {/* SECTION 2: Attendees & Parties Involved */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-              <span>👥</span>
+              <AdminIcon name="users" size={16} className="text-blue-600" />
               <span>2. {isSelectedMediation ? 'Parties to the Dispute & Lupon Attendance' : 'Council Attendance'}</span>
             </h3>
 
@@ -1115,7 +1137,7 @@ export default function MeetingMinutes() {
                     <p className="font-bold text-slate-900 text-sm">{selected.residentName || 'Complainant'}</p>
                     {selected.residentEmail && (
                       <p className="text-slate-600 flex items-center gap-1.5">
-                        <span>✉️</span>
+                        <AdminIcon name="mail" size={13} className="text-slate-500" />
                         <span>{selected.residentEmail}</span>
                       </p>
                     )}
@@ -1166,7 +1188,7 @@ export default function MeetingMinutes() {
                           key={idx}
                           className="inline-flex items-center gap-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs"
                         >
-                          <span className="text-slate-400">👤</span>
+                          <AdminIcon name="user" size={13} className="text-slate-400" />
                           <span>{name}</span>
                         </span>
                       ))}
@@ -1196,7 +1218,7 @@ export default function MeetingMinutes() {
                           key={idx}
                           className="inline-flex items-center gap-1.5 text-xs font-medium bg-white text-amber-900 border border-amber-200 px-3 py-1.5 rounded-lg shadow-2xs"
                         >
-                          <span className="text-amber-500">⚠️</span>
+                          <AdminIcon name="warning" size={13} className="text-amber-500" />
                           <span>{name}</span>
                         </span>
                       ))}
@@ -1217,15 +1239,16 @@ export default function MeetingMinutes() {
             <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>📌</span>
+                  <AdminIcon name="pin" size={15} className="text-blue-600" />
                   <span>3. {isSelectedMediation ? 'Dispute Topics & Matter for Conciliation' : 'Main Topics Discussed'}</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => openEditModal(selected)}
-                  className="text-xs font-semibold text-blue-600 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
                 >
-                  ✏️ Edit
+                  <AdminIcon name="edit" size={12} />
+                  <span>Edit</span>
                 </button>
               </div>
               <div className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-4">
@@ -1270,15 +1293,16 @@ export default function MeetingMinutes() {
             <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>💬</span>
+                  <AdminIcon name="chat" size={15} className="text-amber-600" />
                   <span>4. {isSelectedMediation ? 'Salient Points & Parties Statements' : 'Important Points & Concerns Raised'}</span>
                 </h3>
                 <button
                   type="button"
                   onClick={() => openEditModal(selected)}
-                  className="text-xs font-semibold text-amber-700 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:underline"
                 >
-                  ✏️ Edit
+                  <AdminIcon name="edit" size={12} />
+                  <span>Edit</span>
                 </button>
               </div>
               <div className="flex-1 bg-amber-50/50 border border-amber-200/80 rounded-xl p-4 flex flex-col">
@@ -1288,7 +1312,9 @@ export default function MeetingMinutes() {
                   </p>
                 ) : (
                   <div className="text-center my-auto py-6">
-                    <span className="text-2xl text-amber-400 block mb-1">💡</span>
+                    <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-2">
+                      <AdminIcon name="lightbulb" size={20} />
+                    </div>
                     <p className="text-xs text-slate-500">
                       {isSelectedMediation ? 'No special statements or concerns recorded yet.' : 'No citizen petitions or critical concerns were raised during this session.'}
                     </p>
@@ -1310,7 +1336,7 @@ export default function MeetingMinutes() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>⚖️</span>
+                  <AdminIcon name="scale" size={16} className="text-purple-600" />
                   <span>5. {isSelectedMediation ? 'Amicable Settlement Terms & Formal Agreements (KP Form 16)' : 'Decisions & Resolutions Made'}</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1324,7 +1350,7 @@ export default function MeetingMinutes() {
                 onClick={() => openEditModal(selected)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 transition"
               >
-                <span>✏️</span>
+                <AdminIcon name="edit" size={13} />
                 <span>{isSelectedMediation ? 'Edit / Add Agreements' : 'Edit Resolutions'}</span>
               </button>
             </div>
@@ -1388,7 +1414,7 @@ export default function MeetingMinutes() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <span>✅</span>
+                  <AdminIcon name="check-circle" size={16} className="text-emerald-600" />
                   <span>6. {isSelectedMediation ? 'Party Undertakings & Compliance Deadlines' : 'Action Items & Follow-ups'}</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1402,7 +1428,7 @@ export default function MeetingMinutes() {
                 onClick={() => openEditModal(selected)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition"
               >
-                <span>✏️</span>
+                <AdminIcon name="edit" size={13} />
                 <span>{isSelectedMediation ? 'Edit / Add Commitments' : 'Edit Action Items'}</span>
               </button>
             </div>
@@ -1428,14 +1454,14 @@ export default function MeetingMinutes() {
                         <td className="py-3 px-3 text-slate-800 font-medium">{item.task}</td>
                         <td className="py-3 px-3">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-100">
-                            <span>👤</span>
+                            <AdminIcon name="user" size={13} className="text-blue-600" />
                             <span>{item.responsible || 'Unassigned'}</span>
                           </span>
                         </td>
                         <td className="py-3 px-3 text-xs font-medium text-slate-600">
                           {item.deadline ? (
                             <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
-                              <span>📅</span>
+                              <AdminIcon name="calendar" size={13} className="text-slate-500" />
                               <span>{formatMeetingDate(item.deadline)}</span>
                             </span>
                           ) : (
@@ -1486,7 +1512,7 @@ export default function MeetingMinutes() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <span className="text-xs font-bold text-purple-300 uppercase tracking-wider flex items-center gap-2">
-                  <span>🗓️</span>
+                  <AdminIcon name="calendar" size={15} className="text-purple-300" />
                   <span>7. {isSelectedMediation ? 'Next Mediation / Conciliation Session' : 'Next Council Meeting Schedule'}</span>
                 </span>
 
@@ -1497,19 +1523,36 @@ export default function MeetingMinutes() {
                         Next Session: {formatMeetingDate(selected.nextMeetingDate)}
                       </h4>
                       {selected.nextNotificationSent ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
-                          ✓ Notice Sent to Gmail & User Account
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
+                          <AdminIcon name="check" size={12} />
+                          <span>Notice Sent to Gmail & User Account</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/25 text-purple-200 border border-purple-400/30">
-                          ✉️ Alerts Enabled
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/25 text-purple-200 border border-purple-400/30">
+                          <AdminIcon name="mail" size={12} />
+                          <span>Alerts Enabled</span>
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-blue-200 flex flex-wrap items-center gap-x-4">
-                      {selected.nextMeetingTime && <span>⏰ {selected.nextMeetingTime}</span>}
-                      {selected.nextMeetingVenue && <span>📍 {selected.nextMeetingVenue}</span>}
-                      {selected.residentEmail && <span>✉️ {selected.residentEmail}</span>}
+                    <p className="text-xs text-blue-200 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      {selected.nextMeetingTime && (
+                        <span className="inline-flex items-center gap-1">
+                          <AdminIcon name="clock" size={12} className="text-blue-300" />
+                          <span>{selected.nextMeetingTime}</span>
+                        </span>
+                      )}
+                      {selected.nextMeetingVenue && (
+                        <span className="inline-flex items-center gap-1">
+                          <AdminIcon name="pin" size={12} className="text-blue-300" />
+                          <span>{selected.nextMeetingVenue}</span>
+                        </span>
+                      )}
+                      {selected.residentEmail && (
+                        <span className="inline-flex items-center gap-1">
+                          <AdminIcon name="mail" size={12} className="text-blue-300" />
+                          <span>{selected.residentEmail}</span>
+                        </span>
+                      )}
                     </p>
                   </div>
                 ) : (
@@ -1530,7 +1573,7 @@ export default function MeetingMinutes() {
                     className="px-3.5 py-2 text-xs font-semibold bg-purple-600/40 hover:bg-purple-600/60 text-white border border-purple-400/50 rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
                     title="Resend Next Hearing Notice to Resident's Gmail"
                   >
-                    <span>✉️</span>
+                    <AdminIcon name="mail" size={13} />
                     <span>{resendingNotice ? 'Dispatching…' : 'Resend Next Notice'}</span>
                   </button>
                 )}
@@ -1579,7 +1622,7 @@ export default function MeetingMinutes() {
             <div className="px-6 py-4 bg-purple-900 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-base flex items-center gap-2">
-                  <span>⚖️</span>
+                  <AdminIcon name="scale" size={18} />
                   <span>{mediationModalMode === 'edit' ? 'Edit Mediation Hearing & Settlement Terms' : 'Schedule Katarungang Pambarangay Mediation Meeting'}</span>
                 </h3>
                 <p className="text-xs text-purple-200 mt-0.5">
@@ -1591,9 +1634,9 @@ export default function MeetingMinutes() {
               <button
                 type="button"
                 onClick={() => setIsMediationModalOpen(false)}
-                className="text-purple-300 hover:text-white text-xl leading-none"
+                className="text-purple-300 hover:text-white p-1 rounded-md transition"
               >
-                ✕
+                <AdminIcon name="close" size={18} />
               </button>
             </div>
 
@@ -1617,7 +1660,7 @@ export default function MeetingMinutes() {
                     const email = c.residentEmail || matchedResident?.email || '';
                     return (
                       <option key={c.id} value={c.id}>
-                        {c.id} · {c.resident} vs {c.respondent || 'Respondent'} ({c.category}){email ? ` — ✉️ ${email}` : ''}
+                        {c.id} · {c.resident} vs {c.respondent || 'Respondent'} ({c.category}){email ? ` — [${email}]` : ''}
                       </option>
                     );
                   })}
@@ -1725,8 +1768,9 @@ export default function MeetingMinutes() {
                     <label className="font-semibold text-slate-700 block">
                       Complainant Name
                     </label>
-                    <span className="text-[10px] text-purple-700 font-medium hidden sm:inline">
-                      💡 Select or type registered resident (auto-fills email)
+                    <span className="text-[10px] text-purple-700 font-medium hidden sm:inline-flex items-center gap-1">
+                      <AdminIcon name="lightbulb" size={11} />
+                      <span>Select or type registered resident (auto-fills email)</span>
                     </span>
                   </div>
                   <input
@@ -1768,8 +1812,9 @@ export default function MeetingMinutes() {
                       Complainant Email (Recipient of Official Notice)
                     </label>
                     {mediationForm.residentEmail && (
-                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded border border-emerald-300">
-                        ✓ Registered Email Auto-Populated
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded border border-emerald-300">
+                        <AdminIcon name="check" size={11} />
+                        <span>Registered Email Auto-Populated</span>
                       </span>
                     )}
                   </div>
@@ -1795,8 +1840,9 @@ export default function MeetingMinutes() {
                     className="mt-0.5 rounded text-purple-600 focus:ring-purple-500"
                   />
                   <div>
-                    <span className="font-bold text-purple-900 block">
-                      ✉️ Send Official Hearing Notification Email to Resident upon Saving
+                    <span className="font-bold text-purple-900 flex items-center gap-1.5">
+                      <AdminIcon name="mail" size={14} className="text-purple-700" />
+                      <span>Send Official Hearing Notification Email to Resident upon Saving</span>
                     </span>
                     <span className="text-[11px] text-purple-700 block mt-0.5 leading-relaxed">
                       Sends an official Notice of Mediation Hearing directly to the resident's email inbox with the scheduled date, time, venue, and instructions.
@@ -1809,7 +1855,8 @@ export default function MeetingMinutes() {
               <div className="bg-purple-50/50 border border-purple-200/80 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-purple-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📌</span> 3. Main Topics & Disputed Points Discussed ({mediationForm.mainTopics.length})
+                    <AdminIcon name="pin" size={14} className="text-purple-700" />
+                    <span>3. Main Topics & Disputed Points Discussed ({mediationForm.mainTopics.length})</span>
                   </h4>
                   <button
                     type="button"
@@ -1836,7 +1883,7 @@ export default function MeetingMinutes() {
                         className="text-red-500 hover:text-red-700 px-2"
                         title="Remove topic"
                       >
-                        ✕
+                        <AdminIcon name="x" size={12} />
                       </button>
                     </div>
                   ))}
@@ -1846,7 +1893,7 @@ export default function MeetingMinutes() {
               {/* SECTION 4: Important Points, Statements & Dispute Summary */}
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">
-                  💬 4. Important Points, Parties' Statements & Summary
+                  <AdminIcon name="chat" size={13} className="text-purple-600" /><span>4. Important Points, Parties' Statements & Summary</span>
                 </label>
                 <textarea
                   rows={3}
@@ -1862,7 +1909,7 @@ export default function MeetingMinutes() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-purple-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                      <span>⚖️</span> 5. Amicable Settlement Terms & Formal Agreements (KP Form 16) ({mediationForm.resolutions.length})
+                      <AdminIcon name="scale" size={14} className="text-purple-700" /> 5. Amicable Settlement Terms & Formal Agreements (KP Form 16) ({mediationForm.resolutions.length})
                     </h4>
                     <p className="text-[11px] text-purple-700 mt-0.5">
                       Agreed terms signed by complainant and respondent under the auspices of the Lupong Tagapamayapa.
@@ -1926,7 +1973,7 @@ export default function MeetingMinutes() {
                             className="text-red-500 hover:text-red-700 text-sm"
                             title="Remove clause"
                           >
-                            ✕
+                            <AdminIcon name="x" size={12} />
                           </button>
                         </div>
                       </div>
@@ -1940,7 +1987,7 @@ export default function MeetingMinutes() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-bold text-purple-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                      <span>✅</span> 6. Party Undertakings & Compliance Deadlines ({mediationForm.actionItems.length})
+                      <AdminIcon name="check-circle" size={14} className="text-purple-700" /> 6. Party Undertakings & Compliance Deadlines ({mediationForm.actionItems.length})
                     </h4>
                     <p className="text-[11px] text-purple-700 mt-0.5">
                       Assigned commitments, designated responsible persons, deadlines, and tracking status.
@@ -2022,7 +2069,7 @@ export default function MeetingMinutes() {
                             className="text-red-500 hover:text-red-700 text-sm"
                             title="Remove commitment"
                           >
-                            ✕
+                            <AdminIcon name="x" size={12} />
                           </button>
                         </div>
                       </div>
@@ -2035,11 +2082,11 @@ export default function MeetingMinutes() {
               <div className="bg-purple-50/50 border border-purple-200/80 rounded-xl p-4 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <h4 className="font-bold text-purple-950 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>🗓️</span> 7. Next Hearing / Follow-up Session (Optional)
+                    <AdminIcon name="calendar" size={14} className="text-purple-700" /> 7. Next Hearing / Follow-up Session (Optional)
                   </h4>
                   {mediationForm.nextMeetingDate && (
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-purple-200/70 text-purple-900 self-start sm:self-auto">
-                      ✉️ Gmail + Portal Alerts Active
+                      <AdminIcon name="mail" size={12} className="text-purple-800" /><span>Gmail + Portal Alerts Active</span>
                     </span>
                   )}
                 </div>
@@ -2077,7 +2124,7 @@ export default function MeetingMinutes() {
                 </div>
 
                 <div className="flex items-center gap-2 p-2.5 rounded-lg bg-purple-100/70 border border-purple-200/80 text-purple-950 text-xs">
-                  <span className="text-sm">✉️</span>
+                  <AdminIcon name="mail" size={15} className="text-purple-700 shrink-0" />
                   <span>
                     <strong>Automated Resident Notification:</strong> Specifying a Next Session schedule will automatically notify the resident's user account in-app and dispatch an official <strong>Notice of Next Mediation Session</strong> to their registered Gmail ({mediationForm.residentEmail || 'complainant'}).
                   </span>
@@ -2118,7 +2165,7 @@ export default function MeetingMinutes() {
             <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-base flex items-center gap-2">
-                  <span>🏛️</span>
+                  <AdminIcon name="building" size={16} className="text-blue-400" />
                   <span>{modalMode === 'edit' ? 'Edit Council Meeting Minutes' : 'Record New Council Session'}</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">Barangay Poblacion Municipal System</p>
@@ -2128,7 +2175,7 @@ export default function MeetingMinutes() {
                 onClick={() => setIsCouncilModalOpen(false)}
                 className="text-slate-400 hover:text-white text-xl leading-none"
               >
-                ✕
+                <AdminIcon name="x" size={12} />
               </button>
             </div>
 
@@ -2136,7 +2183,7 @@ export default function MeetingMinutes() {
               {/* SECTION 1 Form */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <span>📅</span> 1. Session Information
+                  <AdminIcon name="calendar" size={13} className="text-blue-600" /> 1. Session Information
                 </h4>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div className="sm:col-span-2">
@@ -2190,7 +2237,7 @@ export default function MeetingMinutes() {
               {/* SECTION 2 Form: Attendance */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
                 <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <span>👥</span> 2. Attendance (Quorum & Absentees)
+                  <AdminIcon name="users" size={14} className="text-blue-600" /> 2. Attendance (Quorum & Absentees)
                 </h4>
                 <div className="grid sm:grid-cols-2 gap-4">
                   {/* Attendees */}
@@ -2220,7 +2267,7 @@ export default function MeetingMinutes() {
                             onClick={() => removeAttendee(i)}
                             className="text-red-500 hover:text-red-700 px-2"
                           >
-                            ✕
+                            <AdminIcon name="x" size={12} />
                           </button>
                         </div>
                       ))}
@@ -2254,7 +2301,7 @@ export default function MeetingMinutes() {
                             onClick={() => removeAbsentee(i)}
                             className="text-red-500 hover:text-red-700 px-2"
                           >
-                            ✕
+                            <AdminIcon name="x" size={12} />
                           </button>
                         </div>
                       ))}
@@ -2267,7 +2314,7 @@ export default function MeetingMinutes() {
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>📌</span> 3. Main Topics Discussed ({form.mainTopics.length})
+                    <AdminIcon name="pin" size={13} className="text-blue-600" /> 3. Main Topics Discussed ({form.mainTopics.length})
                   </h4>
                   <button
                     type="button"
@@ -2293,7 +2340,7 @@ export default function MeetingMinutes() {
                         onClick={() => removeTopic(i)}
                         className="text-red-500 hover:text-red-700 px-2"
                       >
-                        ✕
+                        <AdminIcon name="x" size={12} />
                       </button>
                     </div>
                   ))}
@@ -2313,7 +2360,7 @@ export default function MeetingMinutes() {
               {/* SECTION 4 Form: Concerns Raised */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
                 <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <span>💬</span> 4. Important Points & Concerns Raised
+                  <AdminIcon name="chat" size={13} className="text-blue-600" /> 4. Important Points & Concerns Raised
                 </h4>
                 <textarea
                   rows={3}
@@ -2328,7 +2375,7 @@ export default function MeetingMinutes() {
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>⚖️</span> 5. Decisions & Resolutions Made ({form.resolutions.length})
+                    <AdminIcon name="scale" size={14} className="text-blue-600" /> 5. Decisions & Resolutions Made ({form.resolutions.length})
                   </h4>
                   <button
                     type="button"
@@ -2377,7 +2424,7 @@ export default function MeetingMinutes() {
                           onClick={() => removeResolution(i)}
                           className="text-red-500 hover:text-red-700"
                         >
-                          ✕
+                          <AdminIcon name="x" size={12} />
                         </button>
                       </div>
                     </div>
@@ -2389,7 +2436,7 @@ export default function MeetingMinutes() {
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                    <span>✅</span> 6. Action Items & Follow-ups ({form.actionItems.length})
+                    <AdminIcon name="check-circle" size={14} className="text-blue-600" /> 6. Action Items & Follow-ups ({form.actionItems.length})
                   </h4>
                   <button
                     type="button"
@@ -2454,7 +2501,7 @@ export default function MeetingMinutes() {
                           onClick={() => removeActionItem(i)}
                           className="text-red-500 hover:text-red-700"
                         >
-                          ✕
+                          <AdminIcon name="x" size={12} />
                         </button>
                       </div>
                     </div>
@@ -2465,7 +2512,7 @@ export default function MeetingMinutes() {
               {/* SECTION 7 Form: Next Meeting Schedule */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <span>🗓️</span> 7. Next Meeting Schedule (If Already Scheduled)
+                  <AdminIcon name="calendar" size={14} className="text-blue-600" /> 7. Next Meeting Schedule (If Already Scheduled)
                 </h4>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div>

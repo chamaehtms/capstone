@@ -93,6 +93,21 @@ async function run() {
     WHERE password_hash IS NOT NULL AND self_registered = false
   `);
 
+  console.log('Ensuring AI ID validation columns exist on residents and access_requests...');
+  await pool.query(`
+    ALTER TABLE residents
+      ADD COLUMN IF NOT EXISTS id_ai_status TEXT DEFAULT 'not_scanned',
+      ADD COLUMN IF NOT EXISTS id_ai_score NUMERIC,
+      ADD COLUMN IF NOT EXISTS id_ai_summary TEXT,
+      ADD COLUMN IF NOT EXISTS id_ai_checked_at TIMESTAMPTZ;
+
+    ALTER TABLE access_requests
+      ADD COLUMN IF NOT EXISTS id_ai_status TEXT DEFAULT 'not_scanned',
+      ADD COLUMN IF NOT EXISTS id_ai_score NUMERIC,
+      ADD COLUMN IF NOT EXISTS id_ai_summary TEXT,
+      ADD COLUMN IF NOT EXISTS id_ai_checked_at TIMESTAMPTZ;
+  `);
+
   // Formal-blotter / resident-portal fields on complaints
   console.log('Ensuring resident-portal columns exist on complaints...');
   await pool.query(`
@@ -209,12 +224,6 @@ async function run() {
     console.log('Seeding sample residents...');
     const residents = [
       {
-        id: 'res-001', fullName: 'Elena B. Santos', birthDate: '1992-03-12', age: 34, gender: 'Female',
-        occupation: 'Teacher', address: 'Jubasan', zone: 'Zone 2 - Bravo', residencyYears: 12,
-        contact: '+63 917 555 0001', email: 'elena.santos@example.com', status: 'Verified',
-        category: ['Voter'], education: null, bloodType: 'O+', placeOfBirth: 'Cebu', spouse: null, household: [],
-      },
-      {
         id: 'res-002', fullName: 'Ricardo M. Delgado', birthDate: '1959-07-01', age: 67, gender: 'Male',
         occupation: 'Retired', address: 'Unit 4, Block 3', zone: 'Zone 1 - Alpha', residencyYears: 30,
         contact: '', email: '', status: 'Pending',
@@ -250,32 +259,13 @@ async function run() {
     }
   }
 
-  // Give the first seeded resident (Elena Santos) a resident-portal
-  // password so the Residents (citizen-facing) app has a working demo
-  // login out of the box — same account, viewable/editable from the admin
-  // Resident Records screen too, since both apps share this row.
-  //
-  // This runs on every migrate call (not just when residents were freshly
-  // seeded above), so it also repairs a database whose residents were
-  // seeded by an older version of this script that didn't set a password.
-  const { rows: elenaRows } = await pool.query(
-    "SELECT id FROM residents WHERE id = 'res-001' AND password_hash IS NULL"
-  );
-  if (elenaRows.length > 0) {
-    console.log('Seeding demo resident-portal login (elena.santos@example.com / password123)...');
-    await pool.query('UPDATE residents SET password_hash = $1 WHERE id = $2', [
-      hashPassword('password123'),
-      'res-001',
-    ]);
-  }
-
   const { rows: complaintCountRows } = await pool.query('SELECT COUNT(*) FROM complaints');
   if (Number(complaintCountRows[0].count) === 0) {
     console.log('Seeding sample complaints...');
     const complaints = [
       { id: 'CASE-2024-089', resident: 'Maria Santos', category: 'Sanitation', status: 'Pending', filingDate: '2024-10-24', description: 'Registered a noise complaint for Jurisdiction Sector 4.', priority: 'Normal' },
       { id: 'CASE-2024-072', resident: 'Juan Dela Cruz', category: 'Noise Nuisance', status: 'In Progress', filingDate: '2024-10-20', description: 'Noise nuisance complaint under review.', priority: 'Normal' },
-      { id: 'CASE-2024-055', resident: 'Elena Rodriguez', category: 'Boundary Dispute', status: 'Mediation', filingDate: '2024-10-15', description: 'Boundary dispute referred to mediation.', priority: 'Normal' },
+      { id: 'CASE-2024-055', resident: 'Eduardo Rodriguez', category: 'Boundary Dispute', status: 'Mediation', filingDate: '2024-10-15', description: 'Boundary dispute referred to mediation.', priority: 'Normal' },
     ];
     for (const c of complaints) {
       await pool.query(
@@ -332,7 +322,7 @@ async function run() {
     WHERE id = 'mtg-001'
   `, [
     JSON.stringify(['Hon. Roberto Cruz (Barangay Captain)', 'Kgd. Liza Lopez (Admin & Finance)', 'Kgd. Carmelita Tan (Health & Sanitation)', 'Sec. Juan Santos (Peace & Order)', 'Kgd. Ricardo Delgado (Infrastructure)']),
-    JSON.stringify(['Kgd. Elena Santos (Excused - Medical Leave)', 'SK Chairman Mark Rivera (Excused - Academic Commitment)']),
+    JSON.stringify(['SK Chairman Mark Rivera (Excused - Academic Commitment)']),
     JSON.stringify([
       'Allocation and procurement for additional street lighting on Purok 5 corridor',
       'Mandatory curfew reinforcement for minors and night tanod patrol logistics',

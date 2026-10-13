@@ -5,8 +5,23 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [admin, setAdmin] = useState(() => {
-    const stored = localStorage.getItem('admin');
-    return stored ? JSON.parse(stored) : null;
+    try {
+      const stored = localStorage.getItem('admin');
+      const parsed = stored ? JSON.parse(stored) : null;
+      if (
+        parsed &&
+        (parsed.email?.toLowerCase().includes('elena') ||
+          parsed.fullName?.toLowerCase().includes('elena') ||
+          parsed.full_name?.toLowerCase().includes('elena'))
+      ) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('admin');
+        return null;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
   });
 
   const login = async (email, password) => {

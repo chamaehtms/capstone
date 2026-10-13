@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import AdminIcon from './AdminIcons.jsx';
 
 export default function ProfileMenu() {
   const [open, setOpen] = useState(false);
@@ -67,15 +68,17 @@ export default function ProfileMenu() {
 
           <button
             onClick={goToSettings}
-            className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+            className="w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
           >
-            ⚙️ Settings
+            <AdminIcon name="settings" size={16} className="text-slate-500" />
+            <span>Settings</span>
           </button>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+            className="w-full flex items-center gap-2.5 text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
-            ⎋ Logout
+            <AdminIcon name="logout" size={16} className="text-red-500" />
+            <span>Logout</span>
           </button>
         </div>
       )}

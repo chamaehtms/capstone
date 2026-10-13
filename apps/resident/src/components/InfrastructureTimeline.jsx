@@ -36,61 +36,6 @@ export default function InfrastructureTimeline({ c }) {
   const status = String(c.status || '').trim();
   const normStatus = status.toLowerCase();
 
-  if (normStatus === 'rejected') {
-    const submittedDateStr = formatTimelineDate(c.submittedAt || c.filingDate || c.createdAt, '10:24 AM') || 'Submitted';
-    const rejectedDateStr = formatTimelineDate(c.rejectedAt || c.resolvedAt || c.updatedAt, '11:00 AM') || 'Case Closed';
-
-    return (
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #fecdd3',
-          borderRadius: 12,
-          padding: '22px 24px',
-          marginTop: 20,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-          <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#9f1239', letterSpacing: '-0.01em' }}>
-            ✕ Progress Timeline — Case Rejected
-          </h3>
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 12, background: '#fee2e2', color: '#b91c1c' }}>
-            DISMISSED
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', position: 'relative' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1, fontWeight: 700, fontSize: 13 }}>
-                ✓
-              </div>
-              <div style={{ flex: 1, height: 2, background: '#fca5a5' }} />
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>Submitted</strong>
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{submittedDateStr}</span>
-            </div>
-          </div>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#e11d48', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', zIndex: 1, fontWeight: 700, fontSize: 13 }}>
-                ✕
-              </div>
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <strong style={{ fontSize: '0.85rem', color: '#e11d48', display: 'block' }}>Case Rejected / Dismissed</strong>
-              <span style={{ fontSize: '0.75rem', color: '#be123c' }}>
-                {rejectedDateStr}
-                {c.rejectionReason ? ` · Reason: ${c.rejectionReason}` : ''}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Determine numerical stage (1 to 4)
   let currentStage = 1;
   if (normStatus === 'resolved' || normStatus === 'escalated' || normStatus === 'closed') {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import api from '../api';
+import AdminIcon from './AdminIcons';
 
 export default function NotificationsMenu() {
   const [open, setOpen] = useState(false);
@@ -130,7 +131,9 @@ export default function NotificationsMenu() {
               <p className="text-sm mt-1">{newComplaint.title}</p>
               <p className="text-xs text-slate-300 mt-1">{newComplaint.detail}</p>
             </div>
-            <button onClick={() => setNewComplaint(null)} className="text-slate-300 hover:text-white" aria-label="Dismiss notification">✕</button>
+            <button onClick={() => setNewComplaint(null)} className="text-slate-300 hover:text-white p-1" aria-label="Dismiss notification">
+              <AdminIcon name="x" size={14} />
+            </button>
           </div>
         </div>
       )}

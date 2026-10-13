@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AdminIcon from './AdminIcons.jsx';
 
 const statusPillStyles = {
   Pending: 'bg-amber-100 text-amber-700 hover:bg-amber-200',
@@ -8,7 +9,6 @@ const statusPillStyles = {
   Resolved: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
   Escalated: 'bg-rose-100 text-rose-700 hover:bg-rose-200',
   'Resolved/Escalated': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
-  Rejected: 'bg-rose-100 text-rose-700 hover:bg-rose-200 border border-rose-200',
 };
 
 export default function StatusDropdown({
@@ -96,7 +96,7 @@ export default function StatusDropdown({
                     }`}
                   >
                     <span>{opt}</span>
-                    {isSelected && <span className="text-blue-600 font-bold">✓</span>}
+                    {isSelected && <AdminIcon name="check" size={14} className="text-blue-600" />}
                   </button>
                 );
               })}
@@ -114,13 +114,13 @@ export default function StatusDropdown({
                   type="button"
                   onClick={() => handleSelectOutcome('Resolved')}
                   title="Mark as Amicably Resolved"
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                     displayLabel === 'Resolved'
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'
                   }`}
                 >
-                  <span>✓</span>
+                  <AdminIcon name="check" size={13} />
                   <span>Resolved</span>
                 </button>
 
@@ -138,25 +138,6 @@ export default function StatusDropdown({
                   <span>Escalated</span>
                 </button>
               </div>
-            </div>
-
-            {/* Divider & REJECTED Section */}
-            <div className="my-2 border-t border-slate-100" />
-
-            <div className="px-1 pt-0.5 pb-1">
-              <button
-                type="button"
-                onClick={() => handleSelectStatus('Rejected')}
-                title="Mark case as Rejected"
-                className={`w-full py-2 px-2.5 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                  displayLabel === 'Rejected'
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
-                }`}
-              >
-                <span>✕</span>
-                <span>{displayLabel === 'Rejected' ? 'Case Rejected' : 'Mark as Rejected'}</span>
-              </button>
             </div>
           </div>
         </>

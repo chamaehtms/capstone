@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import StatCard from '../components/StatCard.jsx';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 export default function Overview() {
   const [data, setData] = useState(null);
@@ -111,17 +112,17 @@ export default function Overview() {
         <div className="bg-white rounded-xl shadow-sm p-5">
           <h2 className="font-semibold text-slate-800 mb-4">Administrative Actions</h2>
           <div className="grid grid-cols-3 gap-3 text-center">
-            <Link to="/residents/enroll" className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100">
-              <p className="text-xl">👤➕</p>
-              <p className="text-[11px] mt-1 text-slate-600">Add Resident</p>
+            <Link to="/residents/enroll" className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center transition-colors">
+              <AdminIcon name="user-plus" size={22} className="text-blue-600 mb-1" />
+              <p className="text-[11px] font-medium text-slate-700">Add Resident</p>
             </Link>
-            <Link to="/complaints" className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100">
-              <p className="text-xl">📄</p>
-              <p className="text-[11px] mt-1 text-slate-600">Reports</p>
+            <Link to="/complaints" className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center transition-colors">
+              <AdminIcon name="document" size={22} className="text-amber-600 mb-1" />
+              <p className="text-[11px] font-medium text-slate-700">Reports</p>
             </Link>
-            <Link to="/announcements" className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100">
-              <p className="text-xl">📢</p>
-              <p className="text-[11px] mt-1 text-slate-600">Announce</p>
+            <Link to="/announcements" className="p-3 rounded-lg bg-slate-50 hover:bg-slate-100 flex flex-col items-center justify-center transition-colors">
+              <AdminIcon name="megaphone" size={22} className="text-emerald-600 mb-1" />
+              <p className="text-[11px] font-medium text-slate-700">Announce</p>
             </Link>
           </div>
         </div>

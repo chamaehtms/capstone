@@ -1,15 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
-import { getAnnouncements, getMyComplaints, getMyMediations, Session, statusBadgeClass, toAssetUrl } from '../api.js';
+import { getAnnouncements, getMyComplaints, getMyMediations, getProfile, Session, statusBadgeClass, toAssetUrl } from '../api.js';
 
 export default function Dashboard() {
-  const user = Session.getUser();
+  const [user, setUser] = useState(() => Session.getUser());
   const isVerified = user?.status === 'Verified';
   const [announcements, setAnnouncements] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [mediations, setMediations] = useState([]);
   const [lightboxAnnouncement, setLightboxAnnouncement] = useState(null);
+
+  useEffect(() => {
+    // Validate live account status with backend; kicks user to login if removed
+    getProfile()
+      .then((data) => {
+        if (data?.user) {
+          Session.setUser(data.user);
+          setUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isVerified) {

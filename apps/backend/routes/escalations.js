@@ -29,7 +29,7 @@ router.get('/', async (req, res) => {
     const { rows: candidateRows } = await pool.query(
       `SELECT id, resident, category, status, priority, filing_date, created_at, filed_by_resident_id
        FROM complaints
-       WHERE (needs_escalation = true OR status = 'Escalated') AND status != 'Rejected'
+       WHERE needs_escalation = true OR status = 'Escalated'
        ORDER BY created_at DESC`
     );
 

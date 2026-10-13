@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api, { toAssetUrl } from '../api';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 function formatDate(value) {
   if (!value) return null;
@@ -86,9 +87,16 @@ export default function ResidentProfile() {
           <button
             onClick={approve}
             disabled={approving}
-            className="bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap"
           >
-            {approving ? 'Approving…' : '✓ Approve Account'}
+            {approving ? (
+              'Approving…'
+            ) : (
+              <>
+                <AdminIcon name="check" size={15} />
+                <span>Approve Account</span>
+              </>
+            )}
           </button>
         </div>
       )}
@@ -112,7 +120,14 @@ export default function ResidentProfile() {
               className="absolute inset-0 rounded-full bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-semibold"
               title="Click to change photo"
             >
-              <span>{uploadingPhoto ? '…' : '📷 Change'}</span>
+              {uploadingPhoto ? (
+                <span>…</span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <AdminIcon name="camera" size={13} />
+                  <span>Change</span>
+                </span>
+              )}
               <input
                 type="file"
                 accept="image/*"
@@ -186,7 +201,10 @@ export default function ResidentProfile() {
                 {resident.idDocumentUrl && (
                   <div className="border border-slate-200 rounded-xl p-3 bg-slate-50">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-slate-700">🪪 Valid ID Document</span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                        <AdminIcon name="id-card" size={15} className="text-blue-600" />
+                        <span>Valid ID Document</span>
+                      </span>
                       <a
                         href={toAssetUrl(resident.idDocumentUrl)}
                         target="_blank"
@@ -208,7 +226,10 @@ export default function ResidentProfile() {
                 {resident.selfieIdUrl && (
                   <div className="border border-slate-200 rounded-xl p-3 bg-slate-50">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-slate-700">🤳 Selfie Holding Valid ID</span>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+                        <AdminIcon name="selfie" size={15} className="text-purple-600" />
+                        <span>Selfie Holding Valid ID</span>
+                      </span>
                       <a
                         href={toAssetUrl(resident.selfieIdUrl)}
                         target="_blank"

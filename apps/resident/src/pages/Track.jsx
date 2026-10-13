@@ -5,7 +5,6 @@ import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
 import { trackComplaint, getMyComplaints, getMyMediations, statusBadgeClass, toAssetUrl } from '../api.js';
 
 function Timeline({ c }) {
-  const isRejected = c.status === 'Rejected';
   const isMediation = c.status === 'Mediation' || !!c.mediationDate;
   const isResolved =
     c.status === 'Resolved/Escalated' ||
@@ -13,30 +12,6 @@ function Timeline({ c }) {
     c.status === 'Resolved' ||
     c.status === 'Escalated' ||
     c.status === 'Closed';
-
-  if (isRejected) {
-    return (
-      <div className="timeline" style={{ marginTop: 20 }}>
-        <div className="t-item">
-          <div className="t-line" style={{ background: '#fecdd3' }} />
-          <div className="t-dot" style={{ background: '#22c55e', color: '#fff' }}>✓</div>
-          <div className="t-content">
-            <strong>Submitted</strong>
-            <span>Request successfully logged by system.</span>
-          </div>
-        </div>
-        <div className="t-item">
-          <div className="t-dot" style={{ background: '#e11d48', color: '#fff' }}>✕</div>
-          <div className="t-content">
-            <strong style={{ color: '#e11d48' }}>Case Rejected / Dismissed</strong>
-            <span style={{ color: '#be123c' }}>
-              {c.rejectionReason ? `Reason: ${c.rejectionReason}` : 'Reviewed and dismissed by Lupon Tagapamayapa / Barangay Administration.'}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const stages = [
     { label: 'Submitted', desc: 'Request successfully logged by system.', done: true },
@@ -144,36 +119,6 @@ export default function Track() {
 
         {result && (
           <>
-            {result.status === 'Rejected' && (
-              <div
-                style={{
-                  marginTop: 20,
-                  background: '#fff1f2',
-                  border: '1px solid #fecdd3',
-                  borderLeft: '4px solid #e11d48',
-                  borderRadius: 12,
-                  padding: '16px 20px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: '1.4rem', lineHeight: 1 }}>⚠️</span>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#9f1239' }}>
-                      Notice: This Case Was Officially Rejected / Dismissed
-                    </h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.88rem', color: '#881337', lineHeight: 1.5 }}>
-                      This complaint has been reviewed and closed without further hearings or proceedings.
-                      {result.rejectionReason && (
-                        <span style={{ display: 'block', marginTop: 4, fontWeight: 700 }}>
-                          Stated Grounds / Reason: {result.rejectionReason}
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
             {(() => {
               const isInfrastructure =
                 result.category === 'Infrastructure' ||

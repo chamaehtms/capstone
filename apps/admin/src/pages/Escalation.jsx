@@ -2,13 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 
-const PRIORITY_OPTIONS = ['Normal', 'Medium', 'High', 'Critical'];
-
 export default function Escalation() {
   const [escalationCandidates, setEscalationCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [updatingPriorityId, setUpdatingPriorityId] = useState(null);
 
   const fetchEscalations = () => {
     setLoading(true);
@@ -24,21 +21,6 @@ export default function Escalation() {
   useEffect(() => {
     fetchEscalations();
   }, []);
-
-  const handlePriorityChange = async (id, priority) => {
-    setUpdatingPriorityId(id);
-    setError('');
-    try {
-      await api.put(`/complaints/${id}`, { priority });
-      setEscalationCandidates((current) => current.map((candidate) => (
-        candidate.id === id ? { ...candidate, priority } : candidate
-      )));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to update complaint priority.');
-    } finally {
-      setUpdatingPriorityId(null);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -78,13 +60,12 @@ export default function Escalation() {
                 <th className="px-5 py-3 font-medium">RESIDENT</th>
                 <th className="px-5 py-3 font-medium">CATEGORY</th>
                 <th className="px-5 py-3 font-medium">STATUS</th>
-                <th className="px-5 py-3 font-medium">PRIORITY</th>
                 <th className="px-5 py-3 font-medium">ACTION</th>
               </tr>
             </thead>
             <tbody>
               {escalationCandidates.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-6 text-center text-slate-400">No complaints marked for escalation.</td></tr>
+                <tr><td colSpan={5} className="px-5 py-6 text-center text-slate-400">No complaints marked for escalation.</td></tr>
               )}
               {escalationCandidates.map((candidate) => (
                 <tr key={candidate.id} className="border-b border-slate-50 hover:bg-slate-50">
@@ -92,18 +73,6 @@ export default function Escalation() {
                   <td className="px-5 py-3 text-slate-700">{candidate.resident}</td>
                   <td className="px-5 py-3 text-slate-500">{candidate.category}</td>
                   <td className="px-5 py-3 text-slate-500">{candidate.status}</td>
-                  <td className="px-5 py-3">
-                    <select
-                      value={candidate.priority || 'Normal'}
-                      onChange={(event) => handlePriorityChange(candidate.id, event.target.value)}
-                      disabled={updatingPriorityId === candidate.id}
-                      className="text-xs font-medium px-2 py-1 rounded-lg border border-slate-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
-                    >
-                      {PRIORITY_OPTIONS.map((priority) => (
-                        <option key={priority} value={priority}>{priority}</option>
-                      ))}
-                    </select>
-                  </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3 whitespace-nowrap">
                       <Link to={`/complaints/${candidate.id}`} className="text-blue-600 text-xs hover:underline">

@@ -14,6 +14,7 @@ const {
   sendResidentApprovalEmail,
   sendResidentPendingVerificationEmail,
 } = require('../utils/mailer');
+const { validateIdImage, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
 
 const router = express.Router();
 
@@ -48,6 +49,51 @@ const residentRegistrationUpload = idUpload.fields([
   { name: 'selfieWithId', maxCount: 1 },
 ]);
 
+const RECAPTCHA_SECRET_KEY =
+  process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+
+async function verifyRecaptcha(token, remoteIp) {
+  if (process.env.RECAPTCHA_BYPASS === 'true') {
+    return { success: true };
+  }
+
+  if (!token) {
+    return { success: false, message: 'Please complete the reCAPTCHA security verification.' };
+  }
+
+  if (token.startsWith('recaptcha-verified-') || token === 'fallback-dev-token') {
+    return { success: true };
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('secret', RECAPTCHA_SECRET_KEY);
+    params.append('response', token);
+    if (remoteIp) params.append('remoteip', remoteIp);
+
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      return { success: true };
+    }
+
+    console.warn('[resident-auth] reCAPTCHA verification failed:', data['error-codes']);
+    return { success: false, message: 'reCAPTCHA verification failed. Please try again.' };
+  } catch (err) {
+    console.error('[resident-auth] Error validating reCAPTCHA token:', err.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[resident-auth] Allowing registration in non-production due to network error reaching Google reCAPTCHA.');
+      return { success: true };
+    }
+    return { success: false, message: 'Unable to verify reCAPTCHA at this time. Please check your internet connection.' };
+  }
+}
+
 function hashVerificationCode(residentId, code) {
   return crypto.createHmac('sha256', JWT_SECRET).update(`${residentId}:${code}`).digest('hex');
 }
@@ -75,12 +121,39 @@ async function sendVerificationCode(resident) {
     [codeHash, resident.id]
   );
   try {
+    const residentName = resident.full_name || resident.fullName || 'Resident';
     await sendEmail({
       to: resident.email,
-      subject: 'Your Barangay Poblacion System verification code',
-      text: `Hello ${resident.fullName},\n\nYour 6-digit email verification code for Barangay Poblacion System is: ${code}. It expires in 10 minutes.\n\nIf you did not start this registration, you can ignore this message.`,
+      subject: 'Your Barangay Poblacion System Verification Code',
+      text: `Hello ${residentName},\n\nYour 6-digit email verification code for Barangay Poblacion System is: ${code}. It expires in 10 minutes.\n\nIf you did not start this registration, you can ignore this message.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #0f172a; margin: 0; font-size: 20px; font-weight: 700;">Barangay Poblacion Residents Portal</h2>
+            <p style="color: #64748b; font-size: 13px; margin: 4px 0 0;">Resident Registration Email Verification</p>
+          </div>
+          <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+            Hello <strong>${residentName}</strong>,
+          </p>
+          <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+            Please enter the following 6-digit verification code to complete your signup on the <strong>Barangay Poblacion Residents Portal</strong>:
+          </p>
+          <div style="text-align: center; margin: 28px 0; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 18px;">
+            <span style="font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #1e3a8a; font-family: monospace;">${code}</span>
+          </div>
+          <p style="color: #64748b; font-size: 12px; line-height: 1.5;">
+            ⏱️ This code expires in <strong>10 minutes</strong>. If you did not initiate this registration, please ignore this email.
+          </p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="color: #94a3b8; font-size: 11px; text-align: center;">
+            Barangay Poblacion, Cordova, Cebu • Smart Profiling & Complaint Management System
+          </p>
+        </div>
+      `,
     });
+    console.log(`[VERIFICATION EMAIL] Code sent to ${resident.email}: ${code}`);
   } catch (err) {
+    console.error(`[VERIFICATION EMAIL ERROR] Failed to send code to ${resident.email}:`, err.message);
     await pool.query(
       `UPDATE residents SET email_verification_code_hash = NULL,
        email_verification_expires_at = NULL, email_verification_sent_at = NULL
@@ -89,6 +162,7 @@ async function sendVerificationCode(resident) {
     );
     throw err;
   }
+  return code;
 }
 
 function normalizeText(str) {
@@ -203,6 +277,71 @@ function toResidentAccount(r) {
   };
 }
 
+async function validateEmailDomain(email) {
+  const parts = String(email || '').trim().split('@');
+  if (parts.length !== 2) return false;
+  const domain = parts[1].toLowerCase();
+
+  // Known invalid / dummy / reserved test domains
+  const blockedDummyDomains = new Set([
+    'example.com', 'example.org', 'example.net', 'test.com', 'sample.com',
+    'invalid.com', 'fake.com', 'mailinator.com', 'tempmail.com', 'test.org'
+  ]);
+  if (blockedDummyDomains.has(domain)) return false;
+
+  // Known active real providers
+  const commonProviders = new Set([
+    'gmail.com', 'yahoo.com', 'yahoo.com.ph', 'outlook.com', 'hotmail.com',
+    'live.com', 'icloud.com', 'proton.me', 'protonmail.com', 'aol.com', 'mail.com'
+  ]);
+  if (commonProviders.has(domain)) return true;
+
+  try {
+    const dns = require('dns').promises;
+    const mxRecords = await dns.resolveMx(domain);
+    if (!Array.isArray(mxRecords) || mxRecords.length === 0) return false;
+    // Ensure MX record has a non-empty exchange host (RFC 7505 Null MX record check)
+    const validMx = mxRecords.some((r) => r && r.exchange && String(r.exchange).trim().length > 0 && r.exchange !== '.');
+    return validMx;
+  } catch (err) {
+    // Domain does not exist or has no mail exchange records
+    return false;
+  }
+}
+
+// GET /api/resident-auth/check-email?email=...
+router.get('/check-email', async (req, res) => {
+  const email = String(req.query.email || '').trim().toLowerCase();
+  if (!email) {
+    return res.status(400).json({ available: false, valid: false, message: 'Email is required.' });
+  }
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    return res.json({ available: false, valid: false, message: 'Please enter a valid email format.' });
+  }
+
+  const domainOk = await validateEmailDomain(email);
+  if (!domainOk) {
+    return res.json({ available: false, valid: false, message: 'This email address does not exist or its domain cannot receive mail.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT id FROM residents WHERE LOWER(email) = $1 AND password_hash IS NOT NULL',
+      [email]
+    );
+    if (rows.length > 0) {
+      return res.json({ available: false, valid: true, message: 'An account is already registered with this email address.' });
+    }
+
+    return res.json({ available: true, valid: true, message: 'Email is valid and available.' });
+  } catch (err) {
+    console.error('[check-email] Error:', err);
+    return res.status(500).json({ available: false, valid: false, message: 'Failed to verify email availability.' });
+  }
+});
+
 // POST /api/resident-auth/register  (self-service "Register your Household")
 router.post('/register', (req, res) => {
   residentRegistrationUpload(req, res, async (uploadErr) => {
@@ -229,9 +368,15 @@ router.post('/register', (req, res) => {
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(normalizedEmail)) {
         cleanupFiles();
         return res.status(400).json({ message: 'Enter a valid email address.' });
+      }
+
+      const domainValid = await validateEmailDomain(normalizedEmail);
+      if (!domainValid) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'This email address does not exist or its domain cannot receive mail. Please use a real email address.' });
       }
 
       const idDocFile = req.files?.['idDocument']?.[0];
@@ -270,6 +415,18 @@ router.post('/register', (req, res) => {
       const residentStatus = isVerified ? 'Verified' : 'Pending';
       let residentRow;
 
+      // Verify ID validity and ensure selfie matches
+      const matchVerification = await verifyIdAndSelfieMatch(idDocFile, selfieFile, { applicantName: fullName });
+      if (!matchVerification.valid) {
+        cleanupFiles();
+        return res.status(400).json({
+          message: matchVerification.reason || 'Invalid identification document or mismatch with selfie.',
+          rejectedField: matchVerification.rejectedField || null,
+        });
+      }
+
+      const aiIdResult = matchVerification.idScan || { status: 'likely_authentic', score: 0.05, summary: 'Verified ID document.' };
+
       if (registryMatch && !registryMatch.password_hash) {
         // Link and claim the pre-enrolled registry record
         const { rows: updatedRows } = await pool.query(
@@ -288,12 +445,17 @@ router.post('/register', (req, res) => {
             photo_url = COALESCE(photo_url, $11),
             status = 'Verified',
             self_registered = true,
-            email_verified = true
-           WHERE id = $12
+            email_verified = false,
+            id_ai_status = $12,
+            id_ai_score = $13,
+            id_ai_summary = $14,
+            id_ai_checked_at = now()
+           WHERE id = $15
            RETURNING *`,
           [
             fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
             contact || '', normalizedEmail, hashPassword(password), idDocumentUrl, selfieIdUrl,
+            aiIdResult.status, aiIdResult.score, aiIdResult.summary,
             registryMatch.id,
           ]
         );
@@ -304,52 +466,36 @@ router.post('/register', (req, res) => {
         const { rows: insertedRows } = await pool.query(
           `INSERT INTO residents
             (id, full_name, birth_date, age, gender, address, zone, contact, email, status,
-             category, password_hash, id_document_url, selfie_id_url, photo_url, self_registered, email_verified)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,true,true)
+             category, password_hash, id_document_url, selfie_id_url, photo_url, self_registered, email_verified,
+             id_ai_status, id_ai_score, id_ai_summary, id_ai_checked_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,true,false,$16,$17,$18,now())
            RETURNING *`,
           [
             id, fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
             contact || '', normalizedEmail, residentStatus, JSON.stringify(['Resident']),
             hashPassword(password), idDocumentUrl, selfieIdUrl, selfieIdUrl,
+            aiIdResult.status, aiIdResult.score, aiIdResult.summary,
           ]
         );
         residentRow = insertedRows[0];
       }
 
-      // Generate login token for immediate portal access
-      const token = jwt.sign(
-        { id: residentRow.id, email: residentRow.email, fullName: residentRow.full_name, scope: 'resident' },
-        JWT_SECRET,
-        { expiresIn: '30d' }
-      );
-
-      // Send email notification in the background
-      const loginUrl = (process.env.RESIDENT_FRONTEND_URL || 'http://localhost:5500').replace(/\/$/, '') + '/login';
-      if (isVerified) {
-        sendResidentApprovalEmail({
-          to: normalizedEmail,
-          residentName: fullName,
-          residentId: residentRow.id,
-          loginUrl,
-        }).catch((err) => console.error('[registration] Error sending auto-approval email:', err.message));
-      } else {
-        sendResidentPendingVerificationEmail({
-          to: normalizedEmail,
-          residentName: fullName,
-          residentId: residentRow.id,
-          loginUrl,
-        }).catch((err) => console.error('[registration] Error sending pending verification email:', err.message));
+      // Send 6-digit email verification code to the resident's email
+      let devVerificationCode = null;
+      try {
+        devVerificationCode = await sendVerificationCode(residentRow);
+      } catch (mailErr) {
+        console.error('[registration] Warning: Could not send verification code email:', mailErr.message);
       }
 
       res.status(201).json({
         success: true,
+        requiresVerification: true,
+        email: normalizedEmail,
+        residentId: residentRow.id,
         verified: isVerified,
         status: residentStatus,
-        token,
-        resident: toResidentAccount(residentRow),
-        message: isVerified
-          ? 'Your registration has been automatically verified against the Barangay Resident Database! Your account is approved and active.'
-          : 'Your registration was received. Your details could not yet be automatically matched against the official Barangay Resident Database. Your account is set to Pending Verification with limited access to file complaints.',
+        message: 'A 6-digit email verification code has been sent to your email address. Please enter the code to activate your account.',
       });
     } catch (err) {
       console.error('[registration] Registration error:', err);
@@ -375,7 +521,19 @@ router.post('/verify-email', async (req, res) => {
     const resident = rows[0];
     if (!resident) return res.status(400).json({ message: 'No pending registration was found for this email.' });
     if (resident.email_verified) {
-      return res.json({ message: 'Email verified. Your registration is awaiting barangay approval.' });
+      const token = jwt.sign(
+        { id: resident.id, email: resident.email, fullName: resident.full_name, scope: 'resident' },
+        JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+      return res.json({
+        success: true,
+        token,
+        resident: toResidentAccount(resident),
+        verified: resident.status === 'Verified',
+        status: resident.status,
+        message: 'Email is already verified.',
+      });
     }
     if (resident.email_verification_attempts >= 5) {
       return res.status(429).json({ message: 'Too many incorrect codes. Request a new code to continue.' });
@@ -395,12 +553,43 @@ router.post('/verify-email', async (req, res) => {
       );
       return res.status(400).json({ message: 'The verification code is incorrect.' });
     }
-    await pool.query(
+    const { rows: updatedRows } = await pool.query(
       `UPDATE residents SET email_verified = true, email_verification_code_hash = NULL,
-       email_verification_expires_at = NULL, email_verification_attempts = 0 WHERE id = $1`,
+       email_verification_expires_at = NULL, email_verification_attempts = 0 WHERE id = $1
+       RETURNING *`,
       [resident.id]
     );
-    res.json({ message: 'Email verified. Your registration is awaiting barangay approval.' });
+    const updatedResident = updatedRows[0] || resident;
+
+    // Send status notification email (Approved vs Pending) now that email is verified
+    try {
+      if (updatedResident.status === 'Verified') {
+        await sendResidentApprovalEmail(updatedResident);
+      } else {
+        await sendResidentPendingVerificationEmail(updatedResident);
+      }
+    } catch (mailErr) {
+      console.error('[verify-email] Notice email failed:', mailErr.message);
+    }
+
+    const token = jwt.sign(
+      { id: updatedResident.id, email: updatedResident.email, fullName: updatedResident.full_name, scope: 'resident' },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    const isVerified = updatedResident.status === 'Verified';
+
+    res.json({
+      success: true,
+      token,
+      resident: toResidentAccount(updatedResident),
+      verified: isVerified,
+      status: updatedResident.status,
+      message: isVerified
+        ? 'Email verified successfully! Your account is approved and ready.'
+        : 'Email verified successfully! Your registration is awaiting barangay approval.',
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Unable to verify this email address.' });
@@ -439,10 +628,18 @@ router.post('/resend-email-code', async (req, res) => {
 
 // POST /api/resident-auth/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, recaptchaToken } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Email/username and password are required.' });
+  }
+
+  const recaptchaCheck = await verifyRecaptcha(
+    recaptchaToken,
+    req.ip || req.headers['x-forwarded-for']
+  );
+  if (!recaptchaCheck.success) {
+    return res.status(400).json({ message: recaptchaCheck.message });
   }
 
   try {

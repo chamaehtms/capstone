@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 export default function LetterIssued() {
   const { id } = useParams();
@@ -69,7 +70,9 @@ export default function LetterIssued() {
             respective department.
           </p>
         </div>
-        <span className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">✓</span>
+        <span className="h-10 w-10 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+          <AdminIcon name="check" size={20} />
+        </span>
       </div>
 
       <article className="letter-paper bg-white rounded-xl shadow-sm p-10 text-slate-800">
