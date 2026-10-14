@@ -182,6 +182,31 @@ async function run() {
       ADD COLUMN IF NOT EXISTS next_mediation_venue TEXT DEFAULT ''
   `);
 
+  console.log('Ensuring households table exists...');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS households (
+      id                    TEXT PRIMARY KEY,
+      household_no          TEXT UNIQUE NOT NULL,
+      head_resident_id      TEXT REFERENCES residents(id) ON DELETE SET NULL,
+      head_name             TEXT NOT NULL,
+      purok_zone            TEXT NOT NULL,
+      address               TEXT NOT NULL,
+      income_class          TEXT DEFAULT 'Low Income',
+      housing_type          TEXT DEFAULT 'Concrete / Permanent',
+      toilet_facility       TEXT DEFAULT 'Water-sealed / Flush',
+      water_source          TEXT DEFAULT 'Piped Water Connection',
+      waste_management      TEXT DEFAULT 'Barangay Collection',
+      is_4ps_beneficiary    BOOLEAN NOT NULL DEFAULT false,
+      is_indigent           BOOLEAN NOT NULL DEFAULT false,
+      members               JSONB NOT NULL DEFAULT '[]',
+      remarks               TEXT DEFAULT '',
+      created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_households_zone ON households(purok_zone);
+    CREATE INDEX IF NOT EXISTS idx_households_head ON households(head_resident_id);
+  `);
+
   console.log('Ensuring resident notifications table exists...');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notifications (

@@ -44,6 +44,7 @@ const dashboardRoutes = safeRoute('./routes/dashboard', 'dashboard');
 const residentAuthRoutes = safeRoute('./routes/residentAuth', 'residentAuth');
 const residentComplaintsRoutes = safeRoute('./routes/residentComplaints', 'residentComplaints');
 const announcementsRoutes = safeRoute('./routes/announcements', 'announcements');
+const householdsRoutes = safeRoute('./routes/households', 'households');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -130,6 +131,7 @@ app.get('/api/health', async (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/residents', residentsRoutes);
+app.use('/api/households', householdsRoutes);
 app.use('/api/complaints', complaintsRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use('/api/escalations', escalationsRoutes);

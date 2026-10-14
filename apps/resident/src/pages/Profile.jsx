@@ -256,10 +256,13 @@ export default function Profile() {
                   <label className="field-label">Purok / Zone</label>
                   <select value={editForm.purok} onChange={e => setEditForm(f => ({ ...f, purok: e.target.value }))}>
                     <option value="">Select location</option>
-                    <option>Camulinas Purok Centro</option>
-                    <option>Purok Rizal</option>
-                    <option>Purok Mabini</option>
-                    <option>Purok Bonifacio</option>
+                    <option value="Camolinas Centro">Camolinas Centro</option>
+                    <option value="Atabay">Atabay</option>
+                    <option value="Calan">Calan</option>
+                    <option value="Housing">Housing</option>
+                    <option value="Puso">Puso</option>
+                    <option value="Intra">Intra</option>
+                    <option value="Crossroad">Crossroad</option>
                   </select>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
@@ -285,6 +288,29 @@ export default function Profile() {
                 <div className="info-grid"><div className="k">Civil Status</div><div className="v">{user.civilStatus || '—'}</div></div>
               </div>
             )}
+
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ModernIcon name="home" size={19} color="#1e3a8a" />
+                <span>Household Information</span>
+              </div>
+              <div className="info-grid">
+                <div className="k">Household No.</div>
+                <div className="v">{user.householdInfo?.householdNo || 'HB-001'}</div>
+              </div>
+              <div className="info-grid">
+                <div className="k">Household Head</div>
+                <div className="v">{user.householdInfo?.headName || user.fullName || 'Maria Santos'}</div>
+              </div>
+              <div className="info-grid">
+                <div className="k">Address</div>
+                <div className="v">{user.householdInfo?.address || 'Block 1, House No. 12, Purok 1'}</div>
+              </div>
+              <div className="info-grid">
+                <div className="k">Purok / Zone</div>
+                <div className="v">{user.householdInfo?.purokZone || user.purok || 'Purok 1'}</div>
+              </div>
+            </div>
 
             {complaintsAgainstMe > 0 && (
               <div className="card" style={{ marginBottom: 20, border: '1px solid #fecaca', background: '#fffafb' }}>

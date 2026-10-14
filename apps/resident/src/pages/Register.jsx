@@ -822,14 +822,13 @@ export default function Register() {
               <label className="field-label">Purok / Zone</label>
               <select value={form.purok} onChange={e => update('purok', e.target.value)} required>
                 <option value="">Select location</option>
-                <option>Camulinas Centro</option>
-                <option>Atabay</option>
-                <option>Calan</option>
-                <option>Housing</option>
-                <option>Puso</option>
-                <option> Intra </option>
-                <option>Crossroad </option>
-
+                <option value="Camolinas Centro">Camolinas Centro</option>
+                <option value="Atabay">Atabay</option>
+                <option value="Calan">Calan</option>
+                <option value="Housing">Housing</option>
+                <option value="Puso">Puso</option>
+                <option value="Intra">Intra</option>
+                <option value="Crossroad">Crossroad</option>
               </select>
             </div>
 

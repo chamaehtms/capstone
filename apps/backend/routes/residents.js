@@ -300,7 +300,30 @@ router.get('/:id', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM residents WHERE id = $1', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ message: 'Resident not found.' });
-    res.json(toResident(rows[0]));
+    const resident = toResident(rows[0]);
+
+    // Attach household information if available (as head or member)
+    const { rows: hhRows } = await pool.query(
+      `SELECT household_no, head_name, address, purok_zone, income_class, housing_type
+       FROM households
+       WHERE head_resident_id = $1 OR head_name ILIKE $2 OR members::text ILIKE $3
+       LIMIT 1`,
+      [resident.id, resident.fullName, `%${resident.fullName}%`]
+    );
+    if (hhRows.length > 0) {
+      resident.householdInfo = {
+        householdNo: hhRows[0].household_no,
+        headName: hhRows[0].head_name,
+        address: hhRows[0].address,
+        purokZone: hhRows[0].purok_zone,
+        incomeClass: hhRows[0].income_class,
+        housingType: hhRows[0].housing_type,
+      };
+    } else {
+      resident.householdInfo = null;
+    }
+
+    res.json(resident);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Database error loading resident.' });

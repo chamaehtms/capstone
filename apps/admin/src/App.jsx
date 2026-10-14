@@ -9,6 +9,7 @@ import ForgotPassword from './pages/ForgotPassword.jsx';
 import Layout from './components/Layout.jsx';
 import Overview from './pages/Overview.jsx';
 import ResidentRecords from './pages/ResidentRecords.jsx';
+import Households from './pages/Households.jsx';
 import EnrollResident from './pages/EnrollResident.jsx';
 import ResidentProfile from './pages/ResidentProfile.jsx';
 import EditResident from './pages/EditResident.jsx';
@@ -48,6 +49,7 @@ export default function App() {
       >
         <Route index element={<Overview />} />
         <Route path="residents" element={<ResidentRecords />} />
+        <Route path="households" element={<Households />} />
         <Route path="residents/enroll" element={<EnrollResident />} />
         <Route path="residents/:id" element={<ResidentProfile />} />
         <Route path="residents/:id/edit" element={<EditResident />} />

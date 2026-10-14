@@ -520,13 +520,21 @@ export default function EnrollResident() {
               <label className="text-xs font-semibold text-slate-600">
                 ZONE / PUROK <span className="text-red-500">*</span>
               </label>
-              <input
+              <select
                 value={form.zone}
                 onChange={update('zone')}
-                placeholder="e.g. Zone 2 - Bravo"
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 required
-              />
+              >
+                <option value="">Select Zone / Purok</option>
+                <option value="Camolinas Centro">Camolinas Centro</option>
+                <option value="Atabay">Atabay</option>
+                <option value="Calan">Calan</option>
+                <option value="Housing">Housing</option>
+                <option value="Puso">Puso</option>
+                <option value="Intra">Intra</option>
+                <option value="Crossroad">Crossroad</option>
+              </select>
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-600">

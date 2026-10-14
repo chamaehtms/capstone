@@ -172,6 +172,7 @@ function toLegacyUser(r) {
     verificationDetails: r.verificationDetails,
     idAiStatus: r.idAiStatus,
     idAiScore: r.idAiScore,
+    householdInfo: r.householdInfo || null,
     role: 'resident',
   };
 }

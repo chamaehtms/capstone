@@ -7,6 +7,7 @@ import AdminIcon from './AdminIcons.jsx';
 const links = [
   { to: '/', label: 'Overview', icon: 'grid', end: true },
   { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
+  { to: '/households', label: 'Household Records', icon: 'home' },
   { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
   { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
   { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
