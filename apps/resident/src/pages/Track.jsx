@@ -287,13 +287,36 @@ export default function Track() {
                       <div className="card-title">⚖️ Mediation Schedule</div>
                       {result.mediationDate || caseMediation ? (
                         <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #4f46e5', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                             <strong style={{ color: '#1e293b', fontSize: '0.92rem' }}>
                               {result.hearingStage || caseMediation?.hearingStage || '1st Mediation Hearing'}
                             </strong>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
-                              CONFIRMED SESSION
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              {(result.mediationStatus || caseMediation?.mediationStatus) && (
+                                <span style={{
+                                  fontSize: '0.72rem',
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: 12,
+                                  background: (result.mediationStatus || caseMediation?.mediationStatus) === 'Settled' ? '#dcfce7' :
+                                              (result.mediationStatus || caseMediation?.mediationStatus) === 'Cancelled' ? '#fee2e2' :
+                                              (result.mediationStatus || caseMediation?.mediationStatus) === 'Ongoing' ? '#fef3c7' :
+                                              (result.mediationStatus || caseMediation?.mediationStatus) === 'Rescheduled' ? '#ffedd5' :
+                                              (result.mediationStatus || caseMediation?.mediationStatus) === 'Unsettled' ? '#f1f5f9' : '#e0e7ff',
+                                  color: (result.mediationStatus || caseMediation?.mediationStatus) === 'Settled' ? '#15803d' :
+                                         (result.mediationStatus || caseMediation?.mediationStatus) === 'Cancelled' ? '#b91c1c' :
+                                         (result.mediationStatus || caseMediation?.mediationStatus) === 'Ongoing' ? '#b45309' :
+                                         (result.mediationStatus || caseMediation?.mediationStatus) === 'Rescheduled' ? '#c2410c' :
+                                         (result.mediationStatus || caseMediation?.mediationStatus) === 'Unsettled' ? '#475569' : '#4338ca',
+                                  textTransform: 'uppercase',
+                                }}>
+                                  {result.mediationStatus || caseMediation?.mediationStatus}
+                                </span>
+                              )}
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
+                                CONFIRMED SESSION
+                              </span>
+                            </div>
                           </div>
                           <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
                             <div>📅 <strong>Date:</strong> {result.mediationDate || caseMediation?.date}</div>

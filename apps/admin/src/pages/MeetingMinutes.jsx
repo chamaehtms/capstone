@@ -86,6 +86,7 @@ export default function MeetingMinutes() {
     nextMeetingDate: '',
     nextMeetingTime: '10:00 AM',
     nextMeetingVenue: 'Barangay Poblacion Mediation Hall',
+    mediationStatus: 'Scheduled',
     sendNotification: true,
   });
 
@@ -176,6 +177,7 @@ export default function MeetingMinutes() {
         nextMeetingDate: meeting.nextMeetingDate ? String(meeting.nextMeetingDate).split('T')[0] : '',
         nextMeetingTime: meeting.nextMeetingTime || '',
         nextMeetingVenue: meeting.nextMeetingVenue || '',
+        mediationStatus: meeting.mediationStatus || 'Scheduled',
         sendNotification: false,
       });
       setIsMediationModalOpen(true);
@@ -256,6 +258,7 @@ export default function MeetingMinutes() {
       nextMeetingDate: '',
       nextMeetingTime: '10:00 AM',
       nextMeetingVenue: 'Barangay Poblacion Mediation Hall',
+      mediationStatus: 'Scheduled',
       sendNotification: true,
     });
     setIsMediationModalOpen(true);
@@ -455,6 +458,7 @@ export default function MeetingMinutes() {
       respondentName: mediationForm.respondentName || '',
       mediator: mediationForm.mediator || '',
       hearingStage: mediationForm.hearingStage || '1st Mediation Hearing',
+      mediationStatus: mediationForm.mediationStatus || 'Scheduled',
       sendNotification: mediationForm.sendNotification,
     };
 
@@ -521,6 +525,19 @@ export default function MeetingMinutes() {
       setError(err.response?.data?.message || 'Failed to dispatch next session notice email.');
     } finally {
       setResendingNotice(false);
+    }
+  };
+
+  // Quick update for mediation status directly from Section 1 or dropdown
+  const handleQuickMediationStatusChange = async (meetingId, newStatus) => {
+    if (!meetingId || !newStatus) return;
+    try {
+      const { data } = await api.put(`/meetings/${meetingId}`, { mediationStatus: newStatus });
+      setMessage(`Mediation status updated to "${newStatus}".`);
+      await loadMeetings(meetingId);
+    } catch (err) {
+      console.error('Failed to update mediation status:', err);
+      setError(err.response?.data?.message || 'Failed to update mediation status.');
     }
   };
 
@@ -1139,7 +1156,25 @@ export default function MeetingMinutes() {
                 </div>
               </div>
 
-              <div className="shrink-0 flex items-center gap-2">
+              <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
+                {isSelectedMediation && (
+                  <div className="inline-flex items-center gap-1.5 bg-purple-50 border border-purple-200 rounded-lg px-2.5 py-1 text-xs">
+                    <span className="text-[11px] text-purple-700 font-semibold">Status:</span>
+                    <select
+                      value={selected.mediationStatus || 'Scheduled'}
+                      onChange={(e) => handleQuickMediationStatusChange(selected.id, e.target.value)}
+                      className="bg-transparent text-purple-900 font-bold text-xs border-0 outline-none cursor-pointer focus:ring-1 focus:ring-purple-400 rounded"
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Rescheduled">Rescheduled</option>
+                      <option value="Settled">Settled</option>
+                      <option value="Unsettled">Unsettled</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => openEditModal(selected)}
@@ -1708,9 +1743,9 @@ export default function MeetingMinutes() {
                 </p>
               </div>
 
-              {/* Title & Stage */}
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
+              {/* Title, Stage & Status */}
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-1">
                   <label className="font-semibold text-slate-700 block mb-1">
                     Meeting Title <span className="text-red-500">*</span>
                   </label>
@@ -1719,7 +1754,7 @@ export default function MeetingMinutes() {
                     required
                     value={mediationForm.title}
                     onChange={(e) => setMediationForm({ ...mediationForm, title: e.target.value })}
-                    placeholder="e.g. Mediation Hearing: Boundary Dispute (BC-2024-001)"
+                    placeholder="e.g. Mediation Hearing: Boundary Dispute"
                     className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-purple-500 font-medium"
                   />
                 </div>
@@ -1738,6 +1773,25 @@ export default function MeetingMinutes() {
                     <option value="3rd Mediation Hearing">3rd Mediation Hearing</option>
                     <option value="Conciliation Proceedings">Conciliation Proceedings (Pangkat Tagapagkasundo)</option>
                     <option value="Arbitration Session">Arbitration Session</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">
+                    Mediation Status <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={mediationForm.mediationStatus || 'Scheduled'}
+                    onChange={(e) => setMediationForm({ ...mediationForm, mediationStatus: e.target.value })}
+                    className="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-medium focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Ongoing">Ongoing</option>
+                    <option value="Rescheduled">Rescheduled</option>
+                    <option value="Settled">Settled</option>
+                    <option value="Unsettled">Unsettled</option>
+                    <option value="Cancelled">Cancelled</option>
                   </select>
                 </div>
               </div>

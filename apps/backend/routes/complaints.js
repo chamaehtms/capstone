@@ -78,6 +78,7 @@ function toComplaint(c) {
     mediationVenue: c.mediation_venue,
     mediator: c.mediator,
     hearingStage: c.hearing_stage,
+    mediationStatus: c.mediation_status || (c.mediation_date ? 'Scheduled' : 'Pending'),
   };
 }
 
@@ -138,7 +139,8 @@ router.get('/:id', async (req, res) => {
       `SELECT c.*, r.email AS resident_account_email, r.contact AS resident_account_contact,
               m.id AS meeting_id, m.date AS meeting_date, m.time AS meeting_time,
               m.location AS meeting_venue, m.mediator AS meeting_mediator,
-              m.hearing_stage AS meeting_stage, m.notification_sent, m.notification_sent_at
+              m.hearing_stage AS meeting_stage, m.mediation_status AS meeting_mediation_status,
+              m.notification_sent, m.notification_sent_at
        FROM complaints c
        LEFT JOIN residents r ON r.id = c.filed_by_resident_id
        LEFT JOIN LATERAL (
@@ -166,6 +168,7 @@ router.get('/:id', async (req, res) => {
         venue: row.meeting_venue,
         mediator: row.meeting_mediator,
         hearingStage: row.meeting_stage,
+        mediationStatus: row.meeting_mediation_status || complaint.mediationStatus || 'Scheduled',
         notificationSent: !!row.notification_sent,
         notificationSentAt: row.notification_sent_at,
       };
@@ -342,7 +345,8 @@ router.post('/:id/schedule-mediation', async (req, res) => {
            mediation_time = $2,
            mediation_venue = $3,
            mediator = $4,
-           hearing_stage = $5
+           hearing_stage = $5,
+           mediation_status = 'Scheduled'
        WHERE id = $6
        RETURNING *`,
       [date, time || '10:00 AM', venue, mediator, hearingStage, req.params.id]
@@ -381,6 +385,7 @@ router.post('/:id/schedule-mediation', async (req, res) => {
       venue,
       mediator,
       hearingStage,
+      mediationStatus: 'Scheduled',
       notificationSent: mailResult.success,
       notificationSentAt: mailResult.success ? new Date() : null,
     };
@@ -439,17 +444,29 @@ router.put('/:id', async (req, res) => {
       `UPDATE complaints SET resident=$1, category=$2, status=$3, filing_date=$4, description=$5, priority=$6,
         needs_escalation=$7, under_review_at=$8, in_progress_at=$9, resolved_at=$10, closed_at=$11,
         assigned_team=COALESCE($12, assigned_team),
-        mediation_date=$13, mediation_time=$14, mediation_venue=$15, mediator=$16, hearing_stage=$17
-       WHERE id=$18 RETURNING *`,
+        mediation_date=$13, mediation_time=$14, mediation_venue=$15, mediator=$16, hearing_stage=$17,
+        mediation_status=COALESCE($18, mediation_status)
+       WHERE id=$19 RETURNING *`,
       [
         merged.resident, merged.category, merged.status, merged.filingDate, merged.description, merged.priority,
         merged.needsEscalation === true, underReviewAt, inProgressAt, resolvedAt, closedAt,
         merged.assignedTeam || null,
         merged.mediationDate || null, merged.mediationTime || null, merged.mediationVenue || null,
         merged.mediator || null, merged.hearingStage || null,
+        merged.mediationStatus || null,
         req.params.id,
       ]
     );
+
+    // Sync mediation_status to corresponding mediation meeting if present
+    if (merged.mediationStatus) {
+      await pool.query(
+        `UPDATE meetings
+         SET mediation_status = $1
+         WHERE case_id = $2 AND meeting_type = 'mediation'`,
+        [merged.mediationStatus, req.params.id]
+      );
+    }
 
     res.json(toComplaint(rows[0]));
   } catch (err) {

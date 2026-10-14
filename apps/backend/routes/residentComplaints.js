@@ -159,6 +159,7 @@ function toComplaint(c, currentResidentId) {
     nextMediationDate: c.next_mediation_date || '',
     nextMediationTime: c.next_mediation_time || '',
     nextMediationVenue: c.next_mediation_venue || '',
+    mediationStatus: c.mediation_status || (c.mediation_date ? 'Scheduled' : 'Pending'),
     isFiledByMe,
     isAgainstMe,
     role: isAgainstMe ? 'respondent' : 'complainant',
@@ -299,6 +300,7 @@ router.get('/mediations', async (req, res) => {
               m.mediator, m.hearing_stage, m.concerns_raised, m.created_at,
               m.next_meeting_date, m.next_meeting_time, m.next_meeting_venue,
               c.category, c.filed_by_resident_id,
+              COALESCE(m.mediation_status, c.mediation_status, 'Scheduled') AS mediation_status,
               COALESCE(c.resident, m.resident_name) AS complainant_name,
               COALESCE(c.respondent, m.respondent_name) AS respondent,
               COALESCE(c.status, 'Mediation') AS case_status
@@ -342,6 +344,7 @@ router.get('/mediations', async (req, res) => {
         caseId: m.case_id,
         mediator: m.mediator,
         hearingStage: m.hearing_stage,
+        mediationStatus: m.mediation_status || 'Scheduled',
         notes: m.concerns_raised,
         category: m.category,
         complainantName: isAgainstMe ? 'Confidential Complainant' : m.complainant_name,

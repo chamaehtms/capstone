@@ -33,6 +33,7 @@ function toMeeting(m) {
     respondentName: m.respondent_name || '',
     mediator: m.mediator || '',
     hearingStage: m.hearing_stage || '1st Mediation Hearing',
+    mediationStatus: m.mediation_status || (m.meeting_type === 'mediation' ? 'Scheduled' : 'Pending'),
     notificationSent: !!m.notification_sent,
     notificationSentAt: m.notification_sent_at || null,
     nextNotificationSent: !!m.next_notification_sent,
@@ -192,8 +193,8 @@ router.post('/', async (req, res) => {
         (id, title, date, time, location, attendees, absentees, agenda, main_topics, concerns_raised,
          minutes, resolutions, action_items, next_meeting_date, next_meeting_time, next_meeting_venue,
          meeting_type, case_id, resident_id, resident_name, resident_email, respondent_name, mediator,
-         hearing_stage, notification_sent, notification_sent_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,false,null)
+         hearing_stage, mediation_status, notification_sent, notification_sent_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,false,null)
        RETURNING *`,
       [
         id,
@@ -220,6 +221,7 @@ router.post('/', async (req, res) => {
         respondentName || '',
         mediator || '',
         hearingStage,
+        meetingType === 'mediation' ? (req.body.mediationStatus || 'Scheduled') : 'Pending',
       ]
     );
 
@@ -238,8 +240,9 @@ router.post('/', async (req, res) => {
              hearing_stage = $5,
              next_mediation_date = $6,
              next_mediation_time = $7,
-             next_mediation_venue = $8
-         WHERE id = $9`,
+             next_mediation_venue = $8,
+             mediation_status = $9
+         WHERE id = $10`,
         [
           date,
           time || '',
@@ -249,6 +252,7 @@ router.post('/', async (req, res) => {
           nextMeetingDate || '',
           nextMeetingTime || '',
           nextMeetingVenue || '',
+          req.body.mediationStatus || 'Scheduled',
           caseId,
         ]
       );
@@ -430,8 +434,9 @@ router.put('/:id', async (req, res) => {
            agenda=$7, main_topics=$8, concerns_raised=$9, minutes=$10, resolutions=$11,
            action_items=$12, next_meeting_date=$13, next_meeting_time=$14, next_meeting_venue=$15,
            meeting_type=$16, case_id=$17, resident_id=$18, resident_name=$19,
-           resident_email=$20, respondent_name=$21, mediator=$22, hearing_stage=$23
-       WHERE id=$24 RETURNING *`,
+           resident_email=$20, respondent_name=$21, mediator=$22, hearing_stage=$23,
+           mediation_status=COALESCE($24, mediation_status)
+       WHERE id=$25 RETURNING *`,
       [
         merged.title,
         merged.date,
@@ -456,6 +461,7 @@ router.put('/:id', async (req, res) => {
         merged.respondentName || '',
         merged.mediator || '',
         merged.hearingStage || '1st Mediation Hearing',
+        merged.mediationStatus || null,
         req.params.id,
       ]
     );
@@ -473,8 +479,9 @@ router.put('/:id', async (req, res) => {
              hearing_stage = $5,
              next_mediation_date = $6,
              next_mediation_time = $7,
-             next_mediation_venue = $8
-         WHERE id = $9`,
+             next_mediation_venue = $8,
+             mediation_status = COALESCE($9, mediation_status)
+         WHERE id = $10`,
         [
           merged.date,
           merged.time || '',
@@ -484,6 +491,7 @@ router.put('/:id', async (req, res) => {
           merged.nextMeetingDate || '',
           merged.nextMeetingTime || '',
           merged.nextMeetingVenue || '',
+          merged.mediationStatus || null,
           merged.caseId,
         ]
       );

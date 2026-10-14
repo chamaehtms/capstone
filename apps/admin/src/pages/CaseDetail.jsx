@@ -114,6 +114,23 @@ export default function CaseDetail() {
     }
   };
 
+  const handleMediationStatusChange = async (newMediationStatus) => {
+    setUpdating(true);
+    setError('');
+    setMessage('');
+    try {
+      const { data } = await api.put(`/complaints/${id}`, {
+        mediationStatus: newMediationStatus,
+      });
+      setComplaint(data);
+      setMessage(`Mediation status updated to "${newMediationStatus}".`);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Unable to update mediation status.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleEscalationChange = async () => {
     setUpdating(true);
     setError('');
@@ -371,7 +388,7 @@ export default function CaseDetail() {
         <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-slate-900 text-white rounded-xl shadow-md p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-bold uppercase tracking-wider text-purple-300 inline-flex items-center gap-1.5">
                   <AdminIcon name="scale" size={13} />
                   <span>{complaint.scheduledMeeting.hearingStage || 'Official Mediation Hearing'}</span>
@@ -379,6 +396,26 @@ export default function CaseDetail() {
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-purple-500/30 text-purple-200 border border-purple-400/40">
                   Katarungang Pambarangay
                 </span>
+
+                {/* Mediation Status Dropdown */}
+                <div className="inline-flex items-center gap-1.5 bg-purple-950/60 border border-purple-400/40 rounded-lg px-2.5 py-1 text-xs">
+                  <span className="text-[11px] text-purple-300 font-medium">Status:</span>
+                  <select
+                    value={complaint.mediationStatus || complaint.scheduledMeeting.mediationStatus || 'Scheduled'}
+                    onChange={(e) => handleMediationStatusChange(e.target.value)}
+                    disabled={updating}
+                    className="bg-transparent text-white font-bold text-xs border-0 outline-none cursor-pointer focus:ring-1 focus:ring-purple-400 rounded"
+                    style={{ WebkitAppearance: 'menulist' }}
+                  >
+                    <option value="Pending" className="bg-slate-900 text-white">Pending</option>
+                    <option value="Scheduled" className="bg-slate-900 text-white">Scheduled</option>
+                    <option value="Ongoing" className="bg-slate-900 text-white">Ongoing</option>
+                    <option value="Rescheduled" className="bg-slate-900 text-white">Rescheduled</option>
+                    <option value="Settled" className="bg-slate-900 text-white">Settled</option>
+                    <option value="Unsettled" className="bg-slate-900 text-white">Unsettled</option>
+                    <option value="Cancelled" className="bg-slate-900 text-white">Cancelled</option>
+                  </select>
+                </div>
               </div>
 
               <div className="mt-2 space-y-1">

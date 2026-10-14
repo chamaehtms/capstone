@@ -89,11 +89,35 @@ export default function Dashboard() {
 
         {mediations.length > 0 && (
           <div className="card" style={{ borderLeft: '4px solid #6366f1', background: '#f5f3ff', marginBottom: 24, padding: '16px 20px', borderRadius: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
               <strong style={{ color: '#4338ca', fontSize: '0.95rem' }}>⚖️ Official Mediation Hearing Scheduled</strong>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
-                ACTION REQUIRED
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {mediations[0].mediationStatus && (
+                  <span style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '3px 9px',
+                    borderRadius: 12,
+                    background: mediations[0].mediationStatus === 'Settled' ? '#dcfce7' :
+                                mediations[0].mediationStatus === 'Cancelled' ? '#fee2e2' :
+                                mediations[0].mediationStatus === 'Ongoing' ? '#fef3c7' :
+                                mediations[0].mediationStatus === 'Rescheduled' ? '#ffedd5' :
+                                mediations[0].mediationStatus === 'Unsettled' ? '#f1f5f9' : '#e0e7ff',
+                    color: mediations[0].mediationStatus === 'Settled' ? '#15803d' :
+                           mediations[0].mediationStatus === 'Cancelled' ? '#b91c1c' :
+                           mediations[0].mediationStatus === 'Ongoing' ? '#b45309' :
+                           mediations[0].mediationStatus === 'Rescheduled' ? '#c2410c' :
+                           mediations[0].mediationStatus === 'Unsettled' ? '#475569' : '#4338ca',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.02em',
+                  }}>
+                    {mediations[0].mediationStatus}
+                  </span>
+                )}
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
+                  ACTION REQUIRED
+                </span>
+              </div>
             </div>
             <p style={{ margin: '0 0 10px', fontSize: '0.88rem', color: '#334155', lineHeight: 1.5 }}>
               You have a scheduled {mediations[0].hearingStage || 'mediation session'} for <strong>Case #{mediations[0].caseId}</strong> on <strong>{mediations[0].date} {mediations[0].time ? `at ${mediations[0].time}` : ''}</strong> at {mediations[0].location || 'Barangay Hall'}. An official notice was also sent to your email.
