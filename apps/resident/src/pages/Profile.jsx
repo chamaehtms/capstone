@@ -72,6 +72,14 @@ export default function Profile() {
 
     const fullContact = `+63${localDigits}`;
 
+    if (editForm.dateOfBirth) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (editForm.dateOfBirth > todayStr) {
+        setFormError('Birthdate cannot be in the future. Please select a valid birthdate.');
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const { user } = await updateProfile({ ...editForm, contactNumber: fullContact });

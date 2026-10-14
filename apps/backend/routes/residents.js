@@ -356,6 +356,14 @@ router.post('/', async (req, res) => {
       }
     }
 
+    if (birthDate) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const cleanBirth = String(birthDate).trim().slice(0, 10);
+      if (cleanBirth > todayStr) {
+        return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid birthdate.' });
+      }
+    }
+
     const age = birthDate ? Math.max(0, new Date().getFullYear() - new Date(birthDate).getFullYear()) : null;
     const id = `res-${uuidv4().slice(0, 8)}`;
 
@@ -529,6 +537,10 @@ router.put('/:id', async (req, res) => {
     const birthDateStr = merged.birthDate && String(merged.birthDate).trim() ? String(merged.birthDate).slice(0, 10) : null;
     let age = null;
     if (birthDateStr) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (birthDateStr > todayStr) {
+        return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid birthdate.' });
+      }
       const birth = new Date(birthDateStr);
       if (!Number.isNaN(birth.getTime())) {
         age = Math.max(0, new Date().getFullYear() - birth.getFullYear());

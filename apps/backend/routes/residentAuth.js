@@ -378,6 +378,15 @@ router.post('/register', (req, res) => {
         return res.status(400).json({ message: 'Enter a valid email address.' });
       }
 
+      if (birthDate) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const cleanBirth = String(birthDate).trim().slice(0, 10);
+        if (cleanBirth > todayStr) {
+          cleanupFiles();
+          return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid date of birth.' });
+        }
+      }
+
       const domainValid = await validateEmailDomain(normalizedEmail);
       if (!domainValid) {
         cleanupFiles();
@@ -750,11 +759,27 @@ router.put('/me', requireResidentAuth, async (req, res) => {
       merged.contact = cleanContact;
     }
 
+    if (merged.birthDate) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const cleanBirth = String(merged.birthDate).trim().slice(0, 10);
+      if (cleanBirth > todayStr) {
+        return res.status(400).json({
+          message: 'Birthdate cannot be in the future. Please provide a valid birthdate.',
+        });
+      }
+      merged.birthDate = cleanBirth;
+    }
+
+    const calculatedAge = merged.birthDate
+      ? Math.max(0, new Date().getFullYear() - new Date(merged.birthDate).getFullYear())
+      : null;
+
     const { rows } = await pool.query(
       `UPDATE residents SET
-        full_name=$1, birth_date=$2, gender=$3, civil_status=$4, contact=$5, zone=$6
-       WHERE id=$7 RETURNING *`,
-      [merged.fullName, merged.birthDate, merged.gender, merged.civilStatus, merged.contact, merged.zone, req.resident.id]
+        full_name=$1, birth_date=$2, gender=$3, civil_status=$4, contact=$5, zone=$6,
+        age=COALESCE($7, age)
+       WHERE id=$8 RETURNING *`,
+      [merged.fullName, merged.birthDate, merged.gender, merged.civilStatus, merged.contact, merged.zone, calculatedAge, req.resident.id]
     );
 
     res.json(toResidentAccount(rows[0]));

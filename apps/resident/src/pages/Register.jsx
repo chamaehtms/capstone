@@ -237,6 +237,15 @@ export default function Register() {
       setError('Contact number must start with +63 and contain 10 digits after the country code.');
       return;
     }
+
+    if (form.dateOfBirth) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (form.dateOfBirth > todayStr) {
+        setError('Date of birth cannot be in the future. Please select a valid date of birth.');
+        return;
+      }
+    }
+
     if (!idFile) { setError('Please upload your valid ID card or document.'); return; }
     if (!selfieFile) { setError('Please upload a selfie holding your ID to confirm your identity.'); return; }
 
@@ -790,7 +799,13 @@ export default function Register() {
               </div>
               <div className="field">
                 <label className="field-label">Date of Birth</label>
-                <input type="date" value={form.dateOfBirth} onChange={e => update('dateOfBirth', e.target.value)} />
+                <input
+                  type="date"
+                  min="1900-01-01"
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={form.dateOfBirth}
+                  onChange={e => update('dateOfBirth', e.target.value)}
+                />
               </div>
             </div>
             <div className="field-row">
