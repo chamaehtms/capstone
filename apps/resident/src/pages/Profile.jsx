@@ -39,12 +39,24 @@ export default function Profile() {
     setMode('edit');
   }
 
+  function handleContactChange(e) {
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
+    setEditForm(f => ({ ...f, contactNumber: digitsOnly }));
+  }
+
   async function saveEdit(e) {
     e.preventDefault();
     setFormError('');
+
+    const cleanContact = (editForm.contactNumber || '').replace(/\D/g, '');
+    if (cleanContact.length !== 12) {
+      setFormError(`Contact number must be exactly 12 digits (currently ${cleanContact.length} digit${cleanContact.length === 1 ? '' : 's'}).`);
+      return;
+    }
+
     setSaving(true);
     try {
-      const { user } = await updateProfile(editForm);
+      const { user } = await updateProfile({ ...editForm, contactNumber: cleanContact });
       Session.setUser(user);
       setData(d => ({ ...d, user }));
       setMode('view');
@@ -254,8 +266,20 @@ export default function Profile() {
                     </select>
                   </div>
                   <div className="field">
-                    <label className="field-label">Contact Number</label>
-                    <input value={editForm.contactNumber} onChange={e => setEditForm(f => ({ ...f, contactNumber: e.target.value }))} />
+                    <label className="field-label">Contact Number (12 digits)</label>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={12}
+                      pattern="[0-9]{12}"
+                      placeholder="e.g. 639171234567"
+                      value={editForm.contactNumber}
+                      onChange={handleContactChange}
+                      required
+                    />
+                    <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
+                      Must be exactly 12 numeric digits (e.g., 639XXXXXXXXX or 09XXXXXXXXXX)
+                    </small>
                   </div>
                 </div>
                 <div className="field">

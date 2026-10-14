@@ -740,6 +740,14 @@ router.put('/me', requireResidentAuth, async (req, res) => {
     const existing = toResidentAccount(existingRows[0]);
     const merged = { ...existing, ...req.body };
 
+    if (merged.contact) {
+      const cleanContact = String(merged.contact).replace(/\D/g, '');
+      if (cleanContact.length !== 12) {
+        return res.status(400).json({ message: `Contact number must be exactly 12 digits (currently ${cleanContact.length}).` });
+      }
+      merged.contact = cleanContact;
+    }
+
     const { rows } = await pool.query(
       `UPDATE residents SET
         full_name=$1, birth_date=$2, gender=$3, civil_status=$4, contact=$5, zone=$6
