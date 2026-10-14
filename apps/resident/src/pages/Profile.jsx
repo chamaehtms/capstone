@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
 import {
-  getProfile, updateSecurity, updatePreferences, updateProfile, changePassword,
+  getProfile, updatePreferences, updateProfile, changePassword,
   uploadProfilePhoto, Session, initials, toAssetUrl, statusBadgeClass
 } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
@@ -125,11 +125,6 @@ export default function Profile() {
     }
   }
 
-  async function toggleTfa() {
-    const newVal = !data.user.twoFactorEnabled;
-    setData(d => ({ ...d, user: { ...d.user, twoFactorEnabled: newVal } }));
-    try { await updateSecurity({ twoFactorEnabled: newVal }); } catch (e) {}
-  }
   async function togglePush() {
     const newVal = !data.user.pushNotifications;
     setData(d => ({ ...d, user: { ...d.user, pushNotifications: newVal } }));
@@ -566,10 +561,6 @@ export default function Profile() {
                 <div className="list-row" style={{ cursor: 'pointer' }} onClick={() => { setFormError(''); setMode('password'); }}>
                   <div className="left"><div className="ic">🔑</div><div><div className="title">Change Password</div><div className="sub">Tap to update your password</div></div></div>
                   <span className="chev">›</span>
-                </div>
-                <div className="list-row">
-                  <div className="left"><div className="ic">🖐️</div><div><div className="title">Two-Factor Auth</div><div className="sub">{user.twoFactorEnabled ? 'Enabled' : 'Disabled'}</div></div></div>
-                  <button className={`toggle ${user.twoFactorEnabled ? 'on' : ''}`} onClick={toggleTfa}><div className="knob" /></button>
                 </div>
               </div>
             )}
