@@ -28,47 +28,53 @@ export default function Profile() {
 
   function startEdit() {
     setFormError('');
+    // Extract local digits without +63 or leading 0
+    let existingContact = (data.user.contactNumber || '').trim();
+    if (existingContact.startsWith('+63')) {
+      existingContact = existingContact.slice(3).trim();
+    } else if (existingContact.startsWith('63')) {
+      existingContact = existingContact.slice(2).trim();
+    } else if (existingContact.startsWith('09')) {
+      existingContact = existingContact.slice(1).trim();
+    }
+    const cleanDigits = existingContact.replace(/\D/g, '').slice(0, 10);
+
     setEditForm({
       fullName: data.user.fullName || '',
       dateOfBirth: data.user.dateOfBirth ? data.user.dateOfBirth.slice(0, 10) : '',
       sex: data.user.sex || '',
       civilStatus: data.user.civilStatus || '',
-      contactNumber: data.user.contactNumber || '',
+      contactNumber: cleanDigits,
       purok: data.user.purok || ''
     });
     setMode('edit');
   }
 
   function handleContactChange(e) {
-    let raw = e.target.value.trim();
-    // Auto-prefix +63 if user starts typing 9 or 09
-    if (/^09\d*$/.test(raw)) {
-      raw = '+63' + raw.slice(1);
-    } else if (/^9\d*$/.test(raw)) {
-      raw = '+63' + raw;
-    } else if (!raw.startsWith('+')) {
-      raw = '+' + raw.replace(/\D/g, '');
-    } else {
-      raw = '+' + raw.slice(1).replace(/\D/g, '');
+    let digits = e.target.value.replace(/\D/g, '');
+    if (digits.startsWith('09')) {
+      digits = digits.slice(1);
+    } else if (digits.startsWith('639')) {
+      digits = digits.slice(2);
     }
-    // Limit to max 13 characters (+639XXXXXXXXX)
-    const val = raw.slice(0, 13);
-    setEditForm(f => ({ ...f, contactNumber: val }));
+    setEditForm(f => ({ ...f, contactNumber: digits.slice(0, 10) }));
   }
 
   async function saveEdit(e) {
     e.preventDefault();
     setFormError('');
 
-    const rawContact = (editForm.contactNumber || '').trim();
-    if (!/^\+639\d{9}$/.test(rawContact)) {
-      setFormError('Contact number must follow the format +639XXXXXXXXX (13 characters, e.g. +639171234567).');
+    const localDigits = (editForm.contactNumber || '').trim().replace(/\D/g, '');
+    if (!/^9\d{9}$/.test(localDigits)) {
+      setFormError('Please enter a valid 10-digit mobile number starting with 9 (e.g. 9500897878).');
       return;
     }
 
+    const fullContact = `+63${localDigits}`;
+
     setSaving(true);
     try {
-      const { user } = await updateProfile({ ...editForm, contactNumber: rawContact });
+      const { user } = await updateProfile({ ...editForm, contactNumber: fullContact });
       Session.setUser(user);
       setData(d => ({ ...d, user }));
       setMode('view');
@@ -278,19 +284,30 @@ export default function Profile() {
                     </select>
                   </div>
                   <div className="field">
-                    <label className="field-label">Contact Number (+639XXXXXXXXX)</label>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      maxLength={13}
-                      placeholder="+639XXXXXXXXX"
-                      value={editForm.contactNumber}
-                      onChange={handleContactChange}
-                      required
-                    />
-                    <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
-                      Must follow <strong>+639XXXXXXXXX</strong> (13 characters, e.g. +639171234567)
-                    </small>
+                    <label className="field-label">Contact Number</label>
+                    <div className="phone-row">
+                      <input
+                        value="+63"
+                        disabled
+                        aria-label="Country Code"
+                        style={{
+                          textAlign: 'center',
+                          fontWeight: 600,
+                          cursor: 'not-allowed',
+                          userSelect: 'none',
+                        }}
+                      />
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="9500897878"
+                        value={editForm.contactNumber}
+                        onChange={handleContactChange}
+                        required
+                        aria-label="10-digit mobile number"
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="field">
