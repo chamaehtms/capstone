@@ -399,7 +399,19 @@ export default function MeetingMinutes() {
     }
 
     const selectedDate = String(mediationForm.date).trim().slice(0, 10);
+    const todayStr = new Date().toISOString().slice(0, 10);
     const isExistingMediation = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
+
+    if (!isExistingMediation && selectedDate < todayStr) {
+      alert('Invalid hearing date: Mediation hearings cannot be scheduled on past dates. Please choose today or a future date.');
+      return;
+    }
+
+    if (mediationForm.nextMeetingDate && String(mediationForm.nextMeetingDate).trim().slice(0, 10) < todayStr) {
+      alert('Invalid next hearing date: Next follow-up session cannot be scheduled on past dates. Please choose today or a future date.');
+      return;
+    }
+
     const conflictMeeting = meetings.find((m) => {
       const mDate = String(m.date || '').trim().slice(0, 10);
       if (isExistingMediation && m.id === selected?.id) return false;
@@ -1752,6 +1764,7 @@ export default function MeetingMinutes() {
                   <input
                     type="date"
                     required
+                    min={mediationModalMode === 'edit' ? undefined : new Date().toISOString().slice(0, 10)}
                     value={mediationForm.date}
                     onChange={(e) => setMediationForm({ ...mediationForm, date: e.target.value })}
                     className={`w-full border rounded-lg p-2.5 text-xs focus:ring-2 ${
@@ -2153,6 +2166,7 @@ export default function MeetingMinutes() {
                     <label className="font-semibold text-slate-700 block mb-1">Next Session Date</label>
                     <input
                       type="date"
+                      min={new Date().toISOString().slice(0, 10)}
                       value={mediationForm.nextMeetingDate}
                       onChange={(e) => setMediationForm({ ...mediationForm, nextMeetingDate: e.target.value })}
                       className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-purple-500"
@@ -2576,6 +2590,7 @@ export default function MeetingMinutes() {
                     <label className="font-semibold text-slate-700 block mb-1">Next Meeting Date</label>
                     <input
                       type="date"
+                      min={new Date().toISOString().slice(0, 10)}
                       value={form.nextMeetingDate}
                       onChange={(e) => setForm({ ...form, nextMeetingDate: e.target.value })}
                       className="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"

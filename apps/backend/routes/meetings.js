@@ -116,8 +116,23 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Title and date are required.' });
     }
 
-    // Check if the selected date already has a scheduled session / meeting
+    const todayStr = new Date().toISOString().slice(0, 10);
     const cleanDate = String(date).trim().slice(0, 10);
+
+    // If creating a mediation hearing, date must be today or future
+    if (meetingType === 'mediation' && cleanDate < todayStr) {
+      return res.status(400).json({
+        message: 'Mediation hearings cannot be scheduled on past dates. Please select today or a future date.',
+      });
+    }
+
+    if (nextMeetingDate && String(nextMeetingDate).trim().slice(0, 10) < todayStr) {
+      return res.status(400).json({
+        message: 'Next follow-up hearing cannot be scheduled on past dates. Please select today or a future date.',
+      });
+    }
+
+    // Check if the selected date already has a scheduled session / meeting
     const { rows: conflictRows } = await pool.query(
       `SELECT id, title, time, meeting_type FROM meetings
        WHERE date = $1 OR date LIKE $2

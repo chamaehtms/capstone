@@ -289,6 +289,12 @@ router.post('/:id/schedule-mediation', async (req, res) => {
       return res.status(400).json({ message: 'Mediation date is required.' });
     }
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const cleanDate = String(date).trim().slice(0, 10);
+    if (cleanDate < todayStr) {
+      return res.status(400).json({ message: 'Mediation hearings cannot be scheduled on past dates. Please select today or a future date.' });
+    }
+
     const meetingTitle = `Mediation Session: ${complaint.category || 'Dispute'} (${complaint.id})`;
     const meetingId = `mtg-${uuidv4().slice(0, 8)}`;
 

@@ -177,6 +177,12 @@ export default function CaseDetail() {
       return;
     }
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (mediationForm.date < todayStr) {
+      alert('Invalid hearing date: Mediation hearings cannot be scheduled on past dates. Please select today or a future date.');
+      return;
+    }
+
     setSchedulingMediation(true);
     setError('');
     setMessage('');
@@ -768,6 +774,7 @@ export default function CaseDetail() {
                   <input
                     type="date"
                     required
+                    min={new Date().toISOString().slice(0, 10)}
                     value={mediationForm.date}
                     onChange={(e) => setMediationForm({ ...mediationForm, date: e.target.value })}
                     className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-purple-500"
