@@ -314,8 +314,9 @@ export default function PendingRequests() {
             </p>
           </div>
         </div>
-        <table className="w-full text-sm">
-          <thead>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[850px]">
+            <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
               <th className="px-5 py-3 font-medium">FULL NAME</th>
               <th className="px-5 py-3 font-medium">EMAIL</th>
@@ -445,6 +446,7 @@ export default function PendingRequests() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm">
@@ -452,8 +454,9 @@ export default function PendingRequests() {
           <h2 className="font-semibold text-slate-800">Staff Access Requests</h2>
           <p className="text-xs text-slate-500 mt-0.5">Requests for administrative access to the Civic Ledger portal.</p>
         </div>
-        <table className="w-full text-sm">
-          <thead>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[950px]">
+            <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
               <th className="px-5 py-3 font-medium">FULL NAME</th>
               <th className="px-5 py-3 font-medium">SEX</th>
@@ -596,6 +599,7 @@ export default function PendingRequests() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {previewDoc && (

@@ -302,8 +302,9 @@ export default function ComplaintsRecord() {
           </div>
         </div>
 
-        <table className="w-full text-sm">
-          <thead>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
               <th className="px-5 py-3 font-medium">CASE ID</th>
               <th className="px-5 py-3 font-medium">RESIDENT</th>
@@ -422,6 +423,7 @@ export default function ComplaintsRecord() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

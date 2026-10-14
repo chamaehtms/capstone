@@ -53,7 +53,7 @@ export default function Escalation() {
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
                 <th className="px-5 py-3 font-medium">CASE ID</th>

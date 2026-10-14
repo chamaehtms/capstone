@@ -82,27 +82,28 @@ export default function ResidentRecords() {
       )}
 
       <div className="bg-white rounded-xl shadow-sm">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 border-b border-slate-100">
           <h2 className="font-semibold text-slate-800">Resident Registry</h2>
-          <div className="flex items-center gap-2">
-            <form onSubmit={handleSearch}>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <form onSubmit={handleSearch} className="flex-1 sm:flex-initial">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search name..."
-                className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-64 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </form>
             <Link
               to="/residents/enroll"
-              className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-medium rounded-lg px-4 py-2 whitespace-nowrap"
+              className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-medium rounded-lg px-3 sm:px-4 py-2 whitespace-nowrap"
             >
               + Add Record
             </Link>
           </div>
         </div>
 
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
               <th className="px-5 py-3 font-medium">FULL NAME</th>
@@ -180,6 +181,7 @@ export default function ResidentRecords() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

@@ -438,12 +438,12 @@ export default function EnrollResident() {
           </div>
         </section>
 
-        <section className="bg-white rounded-xl shadow-sm p-6">
+        <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <AdminIcon name="user" size={18} className="text-blue-600" />
             <h2 className="font-semibold text-slate-800">Personal Information</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-slate-600">
                 FULL NAME <span className="text-red-500">*</span>
@@ -498,13 +498,13 @@ export default function EnrollResident() {
           </div>
         </section>
 
-        <section className="bg-white rounded-xl shadow-sm p-6">
+        <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <AdminIcon name="pin" size={18} className="text-blue-600" />
             <h2 className="font-semibold text-slate-800">Residential Details</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="col-span-1 sm:col-span-2">
               <label className="text-xs font-semibold text-slate-600">
                 PERMANENT ADDRESS <span className="text-red-500">*</span>
               </label>
@@ -552,12 +552,12 @@ export default function EnrollResident() {
           </div>
         </section>
 
-        <section className="bg-white rounded-xl shadow-sm p-6">
+        <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <AdminIcon name="phone" size={18} className="text-blue-600" />
             <h2 className="font-semibold text-slate-800">Contact Details</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-slate-600">
                 MOBILE NUMBER <span className="text-red-500">*</span>

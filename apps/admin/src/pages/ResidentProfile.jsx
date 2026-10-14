@@ -101,18 +101,18 @@ export default function ResidentProfile() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm p-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative group">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
+          <div className="relative group shrink-0">
             {resident.photoUrl && !imgError ? (
               <img
                 src={toAssetUrl(resident.photoUrl)}
                 alt={resident.fullName}
                 onError={() => setImgError(true)}
-                className="h-16 w-16 rounded-full object-cover border border-slate-200"
+                className="h-14 w-14 sm:h-16 sm:w-16 rounded-full object-cover border border-slate-200"
               />
             ) : (
-              <div className="h-16 w-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-xl font-semibold">
+              <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg sm:text-xl font-semibold">
                 {resident.fullName ? resident.fullName.slice(0, 2).toUpperCase() : '?'}
               </div>
             )}
@@ -137,25 +137,25 @@ export default function ResidentProfile() {
               />
             </label>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{resident.fullName}</h1>
-            <p className="text-sm text-slate-500">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{resident.fullName}</h1>
+            <p className="text-xs sm:text-sm text-slate-500 truncate">
               Registry ID: {resident.id} · {resident.address}
             </p>
           </div>
         </div>
         <Link
           to={`/residents/${resident.id}/edit`}
-          className="bg-navy-900 hover:bg-navy-800 text-white text-sm font-medium rounded-lg px-4 py-2"
+          className="bg-navy-900 hover:bg-navy-800 text-white text-xs sm:text-sm font-medium rounded-lg px-4 py-2 self-start sm:self-auto text-center"
         >
           Edit Profile
         </Link>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-4 sm:p-6">
           <h2 className="font-semibold text-slate-800 mb-4">Constituent Records</h2>
-          <div className="grid grid-cols-2 gap-y-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-6 text-sm">
             <div>
               <p className="text-xs text-slate-400">FULL LEGAL NAME</p>
               <p className="font-medium text-slate-800">{resident.fullName}</p>

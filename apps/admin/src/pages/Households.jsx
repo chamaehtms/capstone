@@ -314,8 +314,9 @@ export default function Households() {
 
       {/* Households Table */}
       <div className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
-        <table className="w-full text-left text-xs text-slate-600">
-          <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider text-[11px] font-semibold">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-600 min-w-[700px]">
+            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider text-[11px] font-semibold">
             <tr>
               <th className="px-5 py-3">Household No.</th>
               <th className="px-5 py-3">Head of Household</th>
@@ -413,8 +414,9 @@ export default function Households() {
                 </tr>
               );
             })}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Household Enrollment / Edit Modal */}

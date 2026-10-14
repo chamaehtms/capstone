@@ -309,6 +309,14 @@ export default function AdminIcon({ name, size = 16, color = 'currentColor', cla
           <rect x="3" y="14" width="7" height="7" />
         </svg>
       );
+    case 'menu':
+      return (
+        <svg {...props}>
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      );
     default:
       return null;
   }

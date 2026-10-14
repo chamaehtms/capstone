@@ -15,7 +15,7 @@ const links = [
   { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose = () => {} }) {
   const { admin, logout } = useAuth();
   const navigate = useNavigate();
   const [newCounts, setNewCounts] = useState({});
@@ -108,29 +108,56 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="admin-sidebar w-64 shrink-0 bg-navy-950 text-slate-200 min-h-screen flex flex-col">
-      <div className="px-5 py-6 flex items-center gap-3 border-b border-white/10">
-        <img
-          src="/barangay-seal.png"
-          alt="Barangay Poblacion seal"
-          className="h-10 w-10 rounded-full object-contain shrink-0 drop-shadow-sm"
+    <>
+      {/* Mobile backdrop overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
         />
-        <div className="min-w-0">
-          <p className="font-semibold text-white leading-tight truncate">Barangay Poblacion</p>
-          <p className="text-[11px] text-slate-400 tracking-wide">LOCAL GOVERNMENT UNIT</p>
-        </div>
-      </div>
+      )}
 
-      <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
-        <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
-          Menu
-        </p>
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.end}
-            onClick={() => link.badgeKey && markSectionRead(link.badgeKey)}
+      <aside
+        className={`admin-sidebar fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-navy-950 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+        }`}
+      >
+        <div className="px-5 py-5 flex items-center justify-between border-b border-white/10">
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src="/barangay-seal.png"
+              alt="Barangay Poblacion seal"
+              className="h-9 w-9 rounded-full object-contain shrink-0 drop-shadow-sm"
+            />
+            <div className="min-w-0">
+              <p className="font-semibold text-white leading-tight truncate text-sm">Barangay Poblacion</p>
+              <p className="text-[10px] text-slate-400 tracking-wider">LOCAL GOVERNMENT UNIT</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+            aria-label="Close sidebar"
+          >
+            <AdminIcon name="x" size={18} />
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
+            Menu
+          </p>
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              onClick={() => {
+                if (link.badgeKey) markSectionRead(link.badgeKey);
+                onClose();
+              }}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 isActive
@@ -155,6 +182,7 @@ export default function Sidebar() {
       <div className="px-3 pb-3 pt-2 border-t border-white/10 space-y-1">
         <NavLink
           to="/residents/enroll"
+          onClick={onClose}
           className="flex items-center justify-center gap-2 text-center bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg px-3 py-2.5 transition-colors shadow-sm shadow-blue-900/40"
         >
           <AdminIcon name="plus" size={16} />
@@ -162,6 +190,7 @@ export default function Sidebar() {
         </NavLink>
         <NavLink
           to="/settings"
+          onClick={onClose}
           className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${
               isActive ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
@@ -201,5 +230,6 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
+    </>
   );
 }

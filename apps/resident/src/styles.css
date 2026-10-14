@@ -407,8 +407,34 @@ hr.dash{border:none;border-top:1px dashed var(--border);margin:20px 0}
   .emergency-list{padding:8px}
   .emergency-row{grid-template-columns:minmax(0,1fr) minmax(0,.9fr)}
   .emergency-label{font-size:.92rem;padding:9px}
-  .emergency-value{font-size:1.15rem;padding:8px 5px}
   .lightbox-overlay{padding:14px}
   .lightbox-info{padding:16px}
   .lightbox-close{top:10px;right:10px}
 }
+
+/* Global Mobile Responsiveness Enhancements */
+@media (max-width: 640px) {
+  .page table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .profile-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .info-grid {
+    padding: 10px 0;
+  }
+  .btn {
+    padding: 11px 18px;
+    font-size: 0.88rem;
+  }
+}
+
