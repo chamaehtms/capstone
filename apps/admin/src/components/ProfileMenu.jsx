@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { toAssetUrl } from '../api.js';
 import AdminIcon from './AdminIcons.jsx';
 
 export default function ProfileMenu() {
@@ -30,6 +31,7 @@ export default function ProfileMenu() {
   };
 
   const initials = admin?.fullName ? admin.fullName.slice(0, 2).toUpperCase() : 'AD';
+  const photoUrl = toAssetUrl(admin?.photoUrl);
 
   return (
     <div className="relative" ref={ref}>
@@ -38,8 +40,8 @@ export default function ProfileMenu() {
         className="h-9 w-9 rounded-full overflow-hidden bg-blue-600 text-white flex items-center justify-center text-sm font-semibold shrink-0"
         aria-label="Account menu"
       >
-        {admin?.photoUrl ? (
-          <img src={admin.photoUrl} alt={admin.fullName} className="h-full w-full object-cover" />
+        {photoUrl ? (
+          <img src={photoUrl} alt={admin?.fullName || 'Profile'} className="h-full w-full object-cover" />
         ) : (
           initials
         )}
@@ -48,10 +50,10 @@ export default function ProfileMenu() {
       {open && (
         <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-lg border border-slate-100 z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100 flex items-center gap-3">
-            {admin?.photoUrl ? (
+            {photoUrl ? (
               <img
-                src={admin.photoUrl}
-                alt={admin.fullName}
+                src={photoUrl}
+                alt={admin?.fullName || 'Profile'}
                 className="h-10 w-10 rounded-full object-cover shrink-0"
               />
             ) : (

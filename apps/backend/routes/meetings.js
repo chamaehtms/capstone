@@ -116,6 +116,25 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Title and date are required.' });
     }
 
+    // Check if the selected date already has a scheduled session / meeting
+    const cleanDate = String(date).trim().slice(0, 10);
+    const { rows: conflictRows } = await pool.query(
+      `SELECT id, title, time, meeting_type FROM meetings
+       WHERE date = $1 OR date LIKE $2
+       LIMIT 1`,
+      [cleanDate, `${cleanDate}%`]
+    );
+
+    if (conflictRows.length > 0) {
+      const conflict = conflictRows[0];
+      const conflictType = conflict.meeting_type === 'mediation' ? 'Mediation Session' : 'Meeting';
+      const timeInfo = conflict.time ? ` at ${conflict.time}` : '';
+      return res.status(409).json({
+        message: `Conflict detected: A ${conflictType} ("${conflict.title}"${timeInfo}) is already scheduled on ${cleanDate}. Please select another date.`,
+        conflictDate: cleanDate,
+      });
+    }
+
     // If linked to a case, auto-populate any missing complainant/respondent info
     if (caseId) {
       const { rows: compRows } = await pool.query(
@@ -335,6 +354,27 @@ router.put('/:id', async (req, res) => {
 
     const existing = toMeeting(existingRows[0]);
     const merged = { ...existing, ...req.body };
+
+    // If date changed, check for scheduling conflicts on the target day
+    const cleanDate = String(merged.date || '').trim().slice(0, 10);
+    const existingCleanDate = String(existing.date || '').trim().slice(0, 10);
+    if (cleanDate && cleanDate !== existingCleanDate) {
+      const { rows: conflictRows } = await pool.query(
+        `SELECT id, title, time, meeting_type FROM meetings
+         WHERE (date = $1 OR date LIKE $2) AND id <> $3
+         LIMIT 1`,
+        [cleanDate, `${cleanDate}%`, req.params.id]
+      );
+      if (conflictRows.length > 0) {
+        const conflict = conflictRows[0];
+        const conflictType = conflict.meeting_type === 'mediation' ? 'Mediation Session' : 'Meeting';
+        const timeInfo = conflict.time ? ` at ${conflict.time}` : '';
+        return res.status(409).json({
+          message: `Conflict detected: A ${conflictType} ("${conflict.title}"${timeInfo}) is already scheduled on ${cleanDate}. Please select another date.`,
+          conflictDate: cleanDate,
+        });
+      }
+    }
 
     // Auto-resolve resident details if missing
     if ((!merged.residentEmail || !merged.residentId) && merged.caseId) {

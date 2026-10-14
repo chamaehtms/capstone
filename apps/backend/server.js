@@ -69,6 +69,13 @@ const allowedOrigins = new Set([
   ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : []),
 ].map(normalizeOrigin).filter(Boolean));
 
+const {
+  securityHeaders,
+  generalRateLimiter,
+  authRateLimiter,
+  sanitizeInput,
+} = require('./middleware/security');
+
 app.use(
   cors({
     origin: (origin, callback) => {
@@ -84,7 +91,23 @@ app.use(
   })
 );
 
-app.use(express.json());
+// Apply defensive HTTP security headers (nosniff, anti-clickjacking, strict referrer)
+app.use(securityHeaders);
+
+// Limit JSON request body size to prevent memory exhaustion / payload flooding
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Deep inspection to intercept SQL Injection, XSS, and Path Traversal attacks
+app.use(sanitizeInput);
+
+// Protect sensitive login endpoints against brute-force & credential stuffing
+app.use('/api/auth/login', authRateLimiter);
+app.use('/api/resident-auth/login', authRateLimiter);
+
+// General rate limiting to protect the backend from volumetric DDoS
+app.use('/api', generalRateLimiter);
+
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Serves uploaded resident photos, e.g. GET /uploads/residents/res-abc123.jpg

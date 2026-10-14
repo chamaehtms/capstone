@@ -20,6 +20,7 @@ export default function Register() {
   const [selfieFile, setSelfieFile] = useState(null);
   const [selfiePhotoPreview, setSelfiePhotoPreview] = useState('');
   const [selfieFileError, setSelfieFileError] = useState('');
+  const [aiValidatingStep, setAiValidatingStep] = useState('');
 
   // 6-digit email verification state
   const [step, setStep] = useState('form'); // 'form' | 'verify' | 'completed'
@@ -50,6 +51,15 @@ export default function Register() {
     const okType = file.type.startsWith('image/') || file.type === 'application/pdf';
     if (!okType) { setIdFileError('Only image or PDF files are allowed.'); return; }
     if (file.size > 5 * 1024 * 1024) { setIdFileError('File is too large — max size is 5MB.'); return; }
+
+    const screenshotPatterns = [/screenshot/i, /screen_shot/i, /screen-shot/i, /screen_capture/i, /screencap/i, /capture_\d+/i, /snip(?:ping)?/i, /prntscr/i, /printscreen/i];
+    if (screenshotPatterns.some(p => p.test(file.name || ''))) {
+      setIdFile(null);
+      setIdPhotoPreview('');
+      setIdFileError('Screenshots are not accepted. Please upload an original, clear photograph of your physical government-issued valid ID card (e.g. PhilSys, Driver\'s License, Passport, UMID, Voter\'s ID, or Barangay ID).');
+      return;
+    }
+
     setIdFile(file);
     if (file.type.startsWith('image/')) {
       setIdPhotoPreview(URL.createObjectURL(file));
@@ -74,6 +84,15 @@ export default function Register() {
     const okType = file.type.startsWith('image/');
     if (!okType) { setSelfieFileError('Please select a valid image file (JPG, PNG, or WebP).'); return; }
     if (file.size > 5 * 1024 * 1024) { setSelfieFileError('Image file size must be less than 5MB.'); return; }
+
+    const screenshotPatterns = [/screenshot/i, /screen_shot/i, /screen-shot/i, /screen_capture/i, /screencap/i, /capture_\d+/i, /snip(?:ping)?/i, /prntscr/i, /printscreen/i];
+    if (screenshotPatterns.some(p => p.test(file.name || ''))) {
+      setSelfieFile(null);
+      setSelfiePhotoPreview('');
+      setSelfieFileError('Screenshots are not accepted. Please take and upload an original live photo or camera selfie of yourself holding your physical ID card to verify your identity.');
+      return;
+    }
+
     setSelfieFile(file);
     setSelfiePhotoPreview(URL.createObjectURL(file));
   }
@@ -222,6 +241,7 @@ export default function Register() {
     if (!selfieFile) { setError('Please upload a selfie holding your ID to confirm your identity.'); return; }
 
     setLoading(true);
+    setAiValidatingStep('Step 1 of 2: AI Document Authenticity & Readability Scan…');
     try {
       const body = {
         firstName: form.firstName.trim(),
@@ -236,7 +256,13 @@ export default function Register() {
         idDocument: idFile,
         selfieWithId: selfieFile,
       };
+
+      const stepTimer = setTimeout(() => {
+        setAiValidatingStep('Step 2 of 2: AI Facial Biometrics & Cross-Verification…');
+      }, 1500);
+
       const data = await register(body);
+      clearTimeout(stepTimer);
 
       if (data.requiresVerification) {
         setVerifyEmail(data.email || form.email.trim().toLowerCase());
@@ -894,8 +920,13 @@ export default function Register() {
             </div>
 
             {/* Field 1: Valid Government ID */}
-            <div style={{ fontWeight: 800, color: '#0f172a', margin: '24px 0 6px', fontSize: '1rem' }}>
-              1. Valid ID Card or Document <span style={{ color: '#dc2626' }}>*</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 6px' }}>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>
+                1. Valid ID Card or Document <span style={{ color: '#dc2626' }}>*</span>
+              </div>
+              <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ModernIcon name="sparkles" size={14} color="#2563eb" /> AI Verified
+              </span>
             </div>
             <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
               Clear front photo of your valid Government ID (PhilSys ID, Driver's License, Passport, Voter's ID, PRC, or Barangay ID).
@@ -946,11 +977,11 @@ export default function Register() {
                   <ModernIcon name="id-card" size={24} color="#2563eb" />
                 </div>
                 <strong>Click to upload your valid ID card</strong>
-                <small>JPG, PNG, or PDF up to 5MB (Clear front-facing ID)</small>
+                <small>JPG or PNG up to 5MB • Must be a clear photo of an authentic physical government ID (Screenshots & non-ID pictures are rejected)</small>
                 <input
                   id="idDocumentInput"
                   type="file"
-                  accept="image/*,application/pdf"
+                  accept="image/*"
                   style={{ display: 'none' }}
                   onChange={e => handleIdFile(e.target.files?.[0] || null)}
                 />
@@ -972,11 +1003,16 @@ export default function Register() {
             )}
 
             {/* Field 2: Selfie Holding Your ID */}
-            <div style={{ fontWeight: 800, color: '#0f172a', margin: '24px 0 6px', fontSize: '1rem' }}>
-              2. Selfie Holding Your Valid ID <span style={{ color: '#dc2626' }}>*</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 6px' }}>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>
+                2. Live Photo Holding Your Valid ID <span style={{ color: '#dc2626' }}>*</span>
+              </div>
+              <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ModernIcon name="sparkles" size={14} color="#7c3aed" /> AI Biometrics
+              </span>
             </div>
             <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
-              Take a selfie holding your approved ID next to your face so your face and ID details are both clearly visible.
+              Take an original photo of yourself holding your physical ID next to your face. Your face must match the portrait on your valid ID. <strong>Screenshots are strictly prohibited.</strong>
             </p>
             {selfieFile ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
@@ -1023,8 +1059,8 @@ export default function Register() {
                 <div className="icon">
                   <ModernIcon name="selfie" size={24} color="#2563eb" />
                 </div>
-                <strong>Click to upload selfie holding your ID</strong>
-                <small>JPG, PNG, or WebP up to 5MB (Clear selfie holding ID card)</small>
+                <strong>Click to upload photo holding your ID</strong>
+                <small>JPG, PNG, or WebP up to 5MB • Direct camera selfie (Screenshots rejected • Face must match ID)</small>
                 <input
                   id="selfieWithIdInput"
                   type="file"
@@ -1059,8 +1095,20 @@ export default function Register() {
               </p>
             </div>
 
+            {loading && (
+              <div style={{ marginBottom: 14, padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10, color: '#1e40af', fontSize: '.88rem' }}>
+                <span className="spinner-border spinner-border-sm" style={{ width: 18, height: 18, borderWidth: 2, display: 'inline-block', border: '2px solid #3b82f6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <div>
+                  <strong>AI Identity Verification in Progress:</strong>
+                  <div style={{ fontSize: '.8rem', color: '#1d4ed8', marginTop: 2 }}>
+                    {aiValidatingStep || 'Verifying ID document authenticity, readability, and facial biometrics…'}
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button type="submit" className="btn btn-navy btn-block" disabled={loading}>
-              {loading ? 'Submitting…' : 'SUBMIT →'}
+              {loading ? (aiValidatingStep ? 'AI Validating Documents…' : 'Submitting…') : 'SUBMIT & VERIFY WITH AI →'}
             </button>
             <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--muted)', fontSize: '.9rem' }}>
               Already registered? <Link to="/" className="link-blue">Sign In</Link>

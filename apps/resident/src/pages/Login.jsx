@@ -49,18 +49,37 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-
-    if (!recaptchaToken) {
-      setError('Please complete the reCAPTCHA verification to proceed.');
-      return;
-    }
-
     setLoading(true);
+
     try {
-      const data = await login(identifier, password, recaptchaToken);
+      const data = await login(identifier, password, recaptchaToken || undefined);
+      if (data?.requiresCaptcha) {
+        setLoading(false);
+        recaptchaRef.current?.openChallenge();
+        return;
+      }
       Session.setToken(data.token);
       Session.setUser(data.user);
       navigate('/dashboard');
+    } catch (err) {
+      recaptchaRef.current?.reset();
+      setRecaptchaToken('');
+      setError(err.message);
+      setLoading(false);
+    }
+  }
+
+  async function handleRecaptchaVerify(token) {
+    setRecaptchaToken(token);
+    setError('');
+    setLoading(true);
+    try {
+      const data = await login(identifier, password, token);
+      if (!data?.requiresCaptcha) {
+        Session.setToken(data.token);
+        Session.setUser(data.user);
+        navigate('/dashboard');
+      }
     } catch (err) {
       recaptchaRef.current?.reset();
       setRecaptchaToken('');
@@ -134,10 +153,8 @@ export default function Login() {
 
           <Recaptcha
             ref={recaptchaRef}
-            onVerify={(token) => {
-              setRecaptchaToken(token);
-              setError('');
-            }}
+            hideTriggerBox={true}
+            onVerify={handleRecaptchaVerify}
             onExpire={() => setRecaptchaToken('')}
             onError={() => {
               setRecaptchaToken('');

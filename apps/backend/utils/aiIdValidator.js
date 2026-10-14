@@ -29,9 +29,9 @@ function extractSightengineScore(payload) {
 const SUPPORTED_ID_KEYWORDS = [
   'PHILIPPINES', 'PILIPINAS', 'REPUBLIC', 'REPUBLIKA',
   'NATIONAL ID', 'PHILSYS', 'PHILIPPINE IDENTIFICATION', 'PHILID',
-  'DRIVER', 'LICENSE', 'LTO',
+  'DRIVER', 'LICENSE', 'LTO', 'LAND TRANSPORTATION',
   'PASSPORT', 'DFA',
-  'VOTER', 'COMELEC',
+  'VOTER', 'COMELEC', 'COMMISSION ON ELECTIONS',
   'POSTAL', 'POST OFFICE', 'PHLPOST',
   'SSS', 'SOCIAL SECURITY',
   'GSIS', 'GOVERNMENT SERVICE INSURANCE',
@@ -44,6 +44,29 @@ const SUPPORTED_ID_KEYWORDS = [
   'BARANGAY', 'POBLACION', 'CERTIFICATE', 'CLEARANCE',
   'IDENTIFICATION', 'IDENTITY CARD', 'ID CARD', 'GOVERNMENT',
   'EMPLOYEE ID', 'STAFF', 'CIVIC LEDGER', 'OFFICIAL', 'MUNICIPALITY'
+];
+
+// Screenshot & digital display indicator keywords detected via OCR
+const SCREENSHOT_OCR_KEYWORDS = [
+  'BATTERY', 'WIFI', 'LTE', '5G', '4G', 'SCREENSHOT', 'CAPTURED',
+  'SCREEN CAPTURE', 'SCREEN RECORDER', 'NOTIFICATION', 'STATUS BAR',
+  'AIRPLANE MODE', 'MESSENGER', 'FACEBOOK', 'WHATSAPP', 'TELEGRAM',
+  'INSTAGRAM', 'TIKTOK', 'GOOGLE CHROME', 'SAFARI', 'SCREENSHOTS',
+  'SYSTEM UI', 'NAVBAR', 'BATTERY LEVEL'
+];
+
+// File name patterns typical of mobile or desktop screenshots
+const SCREENSHOT_FILENAME_PATTERNS = [
+  /screenshot/i,
+  /screen_shot/i,
+  /screen-shot/i,
+  /screen_capture/i,
+  /screencap/i,
+  /capture_\d+/i,
+  /snip(?:ping)?/i,
+  /prntscr/i,
+  /printscreen/i,
+  /shot_\d+/i,
 ];
 
 /**
@@ -201,7 +224,31 @@ async function validateIdImage(fileOrUrl, options = {}) {
       };
     }
 
-    // 4. OCR Analysis: Expiration Check
+    // 4. Check for Mobile / Desktop Screenshot indicators
+    const originalFileName = typeof fileOrUrl === 'string'
+      ? path.basename(fileOrUrl)
+      : (fileOrUrl?.originalname || fileOrUrl?.filename || '');
+
+    const isScreenshotFilename = SCREENSHOT_FILENAME_PATTERNS.some((pat) => pat.test(originalFileName));
+    const upperOcr = ocrText ? ocrText.toUpperCase() : '';
+    const foundScreenshotKeywords = SCREENSHOT_OCR_KEYWORDS.filter((kw) => upperOcr.includes(kw));
+    const isScreenshotOcr = foundScreenshotKeywords.length >= 2;
+
+    if (isScreenshotFilename || isScreenshotOcr) {
+      return {
+        status: 'screenshot_detected',
+        score: null,
+        sharpness,
+        brightness,
+        ocrText,
+        facesCount: faces.length,
+        summary: options.isIdCard
+          ? 'Screenshots Not Allowed: Please do not upload a phone or computer screenshot. Upload an original, direct physical photograph of your valid ID card.'
+          : 'Screenshots Not Allowed: Please do not upload a screenshot. You must take and upload an original live photo or camera selfie of yourself holding your physical ID card.',
+      };
+    }
+
+    // 5. OCR Analysis: Expiration Check
     if (ocrText) {
       const expiry = extractExpirationDate(ocrText);
       if (expiry && expiry.date) {
@@ -221,10 +268,9 @@ async function validateIdImage(fileOrUrl, options = {}) {
         }
       }
 
-      // 5. OCR Analysis: Unsupported ID Check (only for ID card, not for selfie)
-      if (options.isIdCard && ocrText.length >= 30) {
-        const upper = ocrText.toUpperCase();
-        const hasIdKeywords = SUPPORTED_ID_KEYWORDS.some((kw) => upper.includes(kw));
+      // 6. OCR Analysis: Unsupported ID Check (only for ID card, not for selfie)
+      if (options.isIdCard) {
+        const hasIdKeywords = SUPPORTED_ID_KEYWORDS.some((kw) => upperOcr.includes(kw));
         if (!hasIdKeywords) {
           return {
             status: 'unsupported_id',
@@ -233,10 +279,21 @@ async function validateIdImage(fileOrUrl, options = {}) {
             brightness,
             ocrText,
             facesCount: faces.length,
-            summary: 'Unsupported Document: The uploaded image does not appear to be a recognized government or institutional ID card. Please upload a PhilSys ID, Driver\'s License, Passport, UMID, Voter\'s ID, or Barangay ID.',
+            summary: 'Unsupported Document: The uploaded image is not a recognized valid government or institutional ID card. Screenshots, random pictures, or unapproved documents are strictly rejected. Please upload a PhilSys ID, Driver\'s License, Passport, UMID, Voter\'s ID, Postal ID, PRC ID, or Barangay ID.',
           };
         }
       }
+    } else if (options.isIdCard) {
+      // No text detected at all on the ID card
+      return {
+        status: 'unsupported_id',
+        score: null,
+        sharpness,
+        brightness,
+        ocrText: '',
+        facesCount: faces.length,
+        summary: 'No Valid ID Information Detected: The image does not contain recognizable ID card text or government seal. Please upload a clear photo of an authentic physical government ID card.',
+      };
     }
 
     // 6. Moderate AI suspicion notice
@@ -367,7 +424,18 @@ async function verifyIdDocumentStep(idDocFile, options = {}) {
     };
   }
 
-  // 1e. Unsupported document check
+  // 1e. Screenshot detection check
+  if (idScan.status === 'screenshot_detected') {
+    return {
+      step: 1,
+      valid: false,
+      rejectedField: 'idDocument',
+      idScan,
+      reason: `Screenshot Rejected: ${idScan.summary}`,
+    };
+  }
+
+  // 1f. Unsupported document check
   if (idScan.status === 'unsupported_id') {
     return {
       step: 1,
@@ -453,7 +521,18 @@ async function verifySelfieHoldingIdStep(selfieFile, idDocFile, idScan) {
   // 2b. AI scan of the selfie image (sharpness, lighting, deepfakes, face detection)
   const selfieScan = await validateIdImage(selfieFile, { isIdCard: false });
 
-  // 2c. Image quality: Blur check
+  // 2c. Screenshot rejection check
+  if (selfieScan.status === 'screenshot_detected') {
+    return {
+      step: 2,
+      valid: false,
+      rejectedField: 'selfieWithId',
+      selfieScan,
+      reason: `Selfie Screenshot Rejected: ${selfieScan.summary}`,
+    };
+  }
+
+  // 2d. Image quality: Blur check
   if (selfieScan.status === 'blurry') {
     return {
       step: 2,
@@ -493,11 +572,27 @@ async function verifySelfieHoldingIdStep(selfieFile, idDocFile, idScan) {
       valid: false,
       rejectedField: 'selfieWithId',
       selfieScan,
-      reason: 'Face Matching Failed: No clear human face was detected in your selfie. Please ensure your face is fully visible and unobscured while holding your ID.',
+      reason: 'Face Matching Failed: No clear human face was detected in your selfie. Please ensure your face is fully visible, well-lit, and unobscured while holding your physical ID next to your face.',
     };
   }
 
-  // 2g. Exact same ID cross-match: Confirm the ID held in the selfie matches the uploaded ID card
+  // 2g. Face Consistency Check: Verify both the ID document and the selfie contain a human face
+  if (
+    idScan?.facesCount !== undefined &&
+    idScan.facesCount > 0 &&
+    selfieScan?.facesCount !== undefined &&
+    selfieScan.facesCount === 0
+  ) {
+    return {
+      step: 2,
+      valid: false,
+      rejectedField: 'selfieWithId',
+      selfieScan,
+      reason: 'Face Verification Failed: The photo on your valid ID could not be matched with a face in your selfie. Your face in the selfie must match the portrait on your physical ID.',
+    };
+  }
+
+  // 2h. Exact same ID cross-match: Confirm the ID held in the selfie matches the uploaded ID card
   const idTokens = extractIdTokens(idScan?.ocrText);
   const selfieOcrText = (selfieScan.ocrText || '').toUpperCase();
 
@@ -509,7 +604,7 @@ async function verifySelfieHoldingIdStep(selfieFile, idDocFile, idScan) {
         valid: false,
         rejectedField: 'selfieWithId',
         selfieScan,
-        reason: 'ID Document Mismatch: The ID document shown in your selfie does not match the valid ID card you uploaded in Step 1. Please hold the exact same ID next to your face.',
+        reason: 'ID Document Mismatch: The ID document shown in your selfie does not match the valid ID card you uploaded in Step 1. Please hold the exact same physical ID next to your face so both your face and ID are clearly visible.',
       };
     }
   }

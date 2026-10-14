@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import Recaptcha from '../components/Recaptcha.jsx';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -8,6 +9,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState('');
+  const recaptchaRef = useRef(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -15,11 +18,39 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
-      await login(email, password);
+      // Check credentials first: only if true account credentials are confirmed, trigger puzzle
+      const res = await login(email, password, recaptchaToken || undefined);
+      if (res?.requiresCaptcha) {
+        setLoading(false);
+        recaptchaRef.current?.openChallenge();
+        return;
+      }
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Unable to log in. Please try again.');
+      recaptchaRef.current?.reset();
+      setRecaptchaToken('');
+      setError(err.response?.data?.message || err.message || 'Unable to log in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRecaptchaVerify = async (token) => {
+    setRecaptchaToken(token);
+    setError('');
+    // Automatically complete login now that captcha is solved
+    setLoading(true);
+    try {
+      const res = await login(email, password, token);
+      if (!res?.requiresCaptcha) {
+        navigate('/');
+      }
+    } catch (err) {
+      recaptchaRef.current?.reset();
+      setRecaptchaToken('');
+      setError(err.response?.data?.message || err.message || 'Unable to log in. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -55,7 +86,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="admin@civicledger.gov"
+                placeholder="brgypoblacoin@admin.gov"
                 required
               />
             </div>
@@ -98,6 +129,17 @@ export default function Login() {
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
+            <Recaptcha
+              ref={recaptchaRef}
+              hideTriggerBox={true}
+              onVerify={handleRecaptchaVerify}
+              onExpire={() => setRecaptchaToken('')}
+              onError={() => {
+                setRecaptchaToken('');
+                setError('reCAPTCHA encountered an issue. Please try again.');
+              }}
+            />
+
             <button
               type="submit"
               disabled={loading}
@@ -113,11 +155,6 @@ export default function Login() {
               </Link>
             </p>
           </form>
-
-          <p className="mt-6 text-center text-[11px] text-slate-400">
-            Demo credentials — Email: <span className="font-mono">admin@civicledger.gov</span> · Password:{' '}
-            <span className="font-mono">admin123</span>
-          </p>
         </div>
       </div>
     </div>

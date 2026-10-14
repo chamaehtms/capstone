@@ -24,8 +24,8 @@ export function AuthProvider({ children }) {
     }
   });
 
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+  const login = async (email, password, recaptchaToken) => {
+    const { data } = await api.post('/auth/login', { email, password, recaptchaToken });
     localStorage.setItem('token', data.token);
     localStorage.setItem('admin', JSON.stringify(data.admin));
     setAdmin(data.admin);

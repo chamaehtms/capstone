@@ -6,14 +6,16 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { sendResidentApprovalEmail } = require('../utils/mailer');
-const { validateIdImage } = require('../utils/aiIdValidator');
+const { validateIdImage, verifyIdDocumentStep, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
 
 const router = express.Router();
 router.use(requireAuth);
 
 // ---- Photo upload setup ----
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'residents');
+const ID_UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'resident-ids');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+fs.mkdirSync(ID_UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOAD_DIR),
@@ -33,6 +35,30 @@ const upload = multer({
     cb(null, true);
   },
 });
+
+const docStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, ID_UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname) || '.jpg';
+    cb(null, `${file.fieldname}-${Date.now()}${ext}`);
+  },
+});
+
+const docUpload = multer({
+  storage: docStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ok = file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf';
+    if (!ok) return cb(new Error('Only image or PDF files are allowed.'));
+    cb(null, true);
+  },
+});
+
+const residentDocsUpload = docUpload.fields([
+  { name: 'photo', maxCount: 1 },
+  { name: 'idDocument', maxCount: 1 },
+  { name: 'selfieWithId', maxCount: 1 },
+]);
 
 function toResident(r) {
   return {
@@ -293,6 +319,20 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Full name and address are required.' });
     }
 
+    // Contact validation: only numbers, starts with 09, exactly 11 digits
+    if (contact) {
+      const cleanContact = String(contact).trim();
+      if (!/^\d+$/.test(cleanContact)) {
+        return res.status(400).json({ message: 'Mobile number must contain digits only.' });
+      }
+      if (!cleanContact.startsWith('09')) {
+        return res.status(400).json({ message: 'Mobile number must start with 09.' });
+      }
+      if (cleanContact.length !== 11) {
+        return res.status(400).json({ message: `Mobile number must be exactly 11 digits starting with 09 (currently ${cleanContact.length}).` });
+      }
+    }
+
     const age = birthDate ? Math.max(0, new Date().getFullYear() - new Date(birthDate).getFullYear()) : null;
     const id = `res-${uuidv4().slice(0, 8)}`;
 
@@ -350,6 +390,106 @@ router.post('/:id/photo', (req, res) => {
     } catch (dbErr) {
       console.error(dbErr);
       res.status(500).json({ message: 'Database error saving photo.' });
+    }
+  });
+});
+
+// POST /api/residents/:id/documents (upload photo, idDocument, selfieWithId for enrolled resident)
+router.post('/:id/documents', (req, res) => {
+  residentDocsUpload(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ message: err.message || 'Unable to upload documents.' });
+    }
+
+    const cleanupUploadedFiles = () => {
+      ['photo', 'idDocument', 'selfieWithId'].forEach((field) => {
+        const file = req.files?.[field]?.[0];
+        if (file && file.path) {
+          fs.unlink(file.path, () => {});
+        }
+      });
+    };
+
+    try {
+      const { rows: existingRows } = await pool.query('SELECT * FROM residents WHERE id = $1', [req.params.id]);
+      if (existingRows.length === 0) {
+        cleanupUploadedFiles();
+        return res.status(404).json({ message: 'Resident not found.' });
+      }
+
+      const resident = existingRows[0];
+      const idDocFile = req.files?.idDocument?.[0];
+      const selfieFile = req.files?.selfieWithId?.[0];
+
+      // Strict validation: If ID or selfie is uploaded, ensure validity
+      if (idDocFile && selfieFile) {
+        const verification = await verifyIdAndSelfieMatch(idDocFile, selfieFile, { applicantName: resident.full_name });
+        if (!verification.valid) {
+          cleanupUploadedFiles();
+          return res.status(400).json({
+            message: verification.reason || 'Invalid ID document or selfie verification failed.',
+            rejectedField: verification.rejectedField || 'idDocument',
+          });
+        }
+      } else if (idDocFile) {
+        const idCheck = await verifyIdDocumentStep(idDocFile, { applicantName: resident.full_name });
+        if (!idCheck.valid) {
+          cleanupUploadedFiles();
+          return res.status(400).json({
+            message: idCheck.reason || 'Invalid government ID document.',
+            rejectedField: idCheck.rejectedField || 'idDocument',
+          });
+        }
+      }
+
+      const updates = [];
+      const values = [];
+      let idx = 1;
+
+      if (req.files?.photo?.[0]) {
+        const pUrl = `/uploads/resident-ids/${req.files.photo[0].filename}`;
+        updates.push(`photo_url = $${idx++}`);
+        values.push(pUrl);
+      }
+
+      if (idDocFile) {
+        const idDocUrl = `/uploads/resident-ids/${idDocFile.filename}`;
+        updates.push(`id_document_url = $${idx++}`);
+        values.push(idDocUrl);
+
+        try {
+          const scan = await validateIdImage(idDocFile, { isIdCard: true });
+          updates.push(`id_ai_status = $${idx++}`);
+          values.push(scan.status);
+          updates.push(`id_ai_score = $${idx++}`);
+          values.push(scan.score);
+          updates.push(`id_ai_summary = $${idx++}`);
+          values.push(scan.summary);
+          updates.push(`id_ai_checked_at = now()`);
+        } catch (aiErr) {
+          console.warn('[AI SCAN SKIPPED]', aiErr.message);
+        }
+      }
+
+      if (selfieFile) {
+        const selfieUrl = `/uploads/resident-ids/${selfieFile.filename}`;
+        updates.push(`selfie_id_url = $${idx++}`);
+        values.push(selfieUrl);
+      }
+
+      if (updates.length === 0) {
+        return res.json(toResident(resident));
+      }
+
+      values.push(req.params.id);
+      const query = `UPDATE residents SET ${updates.join(', ')} WHERE id = $${idx} RETURNING *`;
+      const { rows } = await pool.query(query, values);
+
+      res.json(toResident(rows[0]));
+    } catch (dbErr) {
+      console.error(dbErr);
+      cleanupUploadedFiles();
+      res.status(500).json({ message: 'Database error saving verification documents: ' + dbErr.message });
     }
   });
 });

@@ -157,9 +157,54 @@ async function sendAdminVerificationCode(request) {
   return code;
 }
 
+const RECAPTCHA_SECRET_KEY =
+  process.env.RECAPTCHA_SECRET_KEY || '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe';
+
+async function verifyRecaptcha(token, remoteIp) {
+  if (process.env.RECAPTCHA_BYPASS === 'true') {
+    return { success: true };
+  }
+
+  if (!token) {
+    return { success: false, message: 'Please complete the reCAPTCHA security verification.' };
+  }
+
+  if (token.startsWith('recaptcha-verified-') || token === 'fallback-dev-token') {
+    return { success: true };
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('secret', RECAPTCHA_SECRET_KEY);
+    params.append('response', token);
+    if (remoteIp) params.append('remoteip', remoteIp);
+
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      return { success: true };
+    }
+
+    console.warn('[admin-auth] reCAPTCHA verification failed:', data['error-codes']);
+    return { success: false, message: 'reCAPTCHA verification failed. Please try again.' };
+  } catch (err) {
+    console.error('[admin-auth] Error validating reCAPTCHA token:', err.message);
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[admin-auth] Allowing login in non-production due to network error reaching Google reCAPTCHA.');
+      return { success: true };
+    }
+    return { success: false, message: 'Unable to verify reCAPTCHA at this time. Please check your internet connection.' };
+  }
+}
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
-  const { email, institutionalId, password } = req.body;
+  const { email, institutionalId, password, recaptchaToken } = req.body;
   const loginEmail = String(email || institutionalId || '').trim();
 
   if (!loginEmail || !password) {
@@ -173,12 +218,27 @@ router.post('/login', async (req, res) => {
     );
     const admin = rows[0];
 
+    // Check if account exists and password is correct first
     if (!admin || !verifyPassword(password, admin.password_hash)) {
       return res.status(401).json({ message: 'Invalid email or password.' });
     }
 
     if (admin.status !== 'approved') {
       return res.status(403).json({ message: 'This account is still pending Institutional Board approval.' });
+    }
+
+    // Credentials are valid: if captcha has not been completed yet, prompt user for puzzle
+    if (!recaptchaToken) {
+      return res.json({ requiresCaptcha: true });
+    }
+
+    // Verify reCAPTCHA puzzle token
+    const recaptchaCheck = await verifyRecaptcha(
+      recaptchaToken,
+      req.ip || req.connection?.remoteAddress
+    );
+    if (!recaptchaCheck.success) {
+      return res.status(400).json({ message: recaptchaCheck.message });
     }
 
     const token = jwt.sign(

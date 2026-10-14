@@ -63,6 +63,15 @@ export default function RequestAccess() {
       setIdPhotoError('ID image file size must be less than 5MB.');
       return;
     }
+
+    const screenshotPatterns = [/screenshot/i, /screen_shot/i, /screen-shot/i, /screen_capture/i, /screencap/i, /capture_\d+/i, /snip(?:ping)?/i, /prntscr/i, /printscreen/i];
+    if (screenshotPatterns.some(p => p.test(file.name || ''))) {
+      setIdPhoto(null);
+      setIdPhotoPreview('');
+      setIdPhotoError('Screenshots are not accepted. Please upload an original physical photograph of your valid government ID.');
+      return;
+    }
+
     setError('');
     setIdPhoto(file);
     setIdPhotoPreview(URL.createObjectURL(file));
@@ -86,6 +95,15 @@ export default function RequestAccess() {
       setSelfiePhotoError('Selfie image file size must be less than 5MB.');
       return;
     }
+
+    const screenshotPatterns = [/screenshot/i, /screen_shot/i, /screen-shot/i, /screen_capture/i, /screencap/i, /capture_\d+/i, /snip(?:ping)?/i, /prntscr/i, /printscreen/i];
+    if (screenshotPatterns.some(p => p.test(file.name || ''))) {
+      setSelfiePhoto(null);
+      setSelfiePhotoPreview('');
+      setSelfiePhotoError('Screenshots are not accepted. Please take and upload an original live photo of yourself holding your physical ID.');
+      return;
+    }
+
     setError('');
     setSelfiePhoto(file);
     setSelfiePhotoPreview(URL.createObjectURL(file));

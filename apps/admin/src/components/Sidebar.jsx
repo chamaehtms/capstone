@@ -1,16 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 import AdminIcon from './AdminIcons.jsx';
 
 const links = [
   { to: '/', label: 'Overview', icon: 'grid', end: true },
   { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
   { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
-  { to: '/meetings', label: 'Meeting Minutes', icon: 'calendar', badgeKey: 'meetings' },
+  { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
   { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
-  { to: '/complaints/new', label: 'Case Filing', icon: 'document', badgeKey: 'caseFiling' },
   { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
   { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
 ];
@@ -80,7 +79,6 @@ export default function Sidebar() {
           complaints: updateCount('complaints', complaintIds, initialized),
           meetings: updateCount('meetings', meetingIds, initialized),
           escalations: updateCount('escalations', escalationIds, initialized),
-          caseFiling: updateCount('caseFiling', complaintIds, initialized),
           pendingRequests: updateCount('pendingRequests', pendingIds, initialized),
         };
         currentIds.current.initialized = true;
@@ -188,7 +186,7 @@ export default function Sidebar() {
           <div className="flex items-center gap-2.5 px-3 pt-3 mt-1 border-t border-white/10">
             {admin.photoUrl ? (
               <img
-                src={admin.photoUrl}
+                src={toAssetUrl(admin.photoUrl)}
                 alt={admin.fullName}
                 className="h-7 w-7 rounded-full object-cover shrink-0"
               />

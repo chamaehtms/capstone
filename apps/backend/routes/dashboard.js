@@ -26,8 +26,36 @@ router.get('/overview', async (req, res) => {
     const { rows: recentMeetings } = await pool.query(
       'SELECT * FROM meetings ORDER BY date DESC, created_at DESC LIMIT 1'
     );
+    const { rows: pendingResidents } = await pool.query(
+      `SELECT id, full_name, email, created_at FROM residents 
+       WHERE self_registered = true AND status = 'Pending' 
+       ORDER BY created_at DESC LIMIT 10`
+    );
+    const { rows: pendingAccess } = await pool.query(
+      `SELECT id, full_name, email, department, requested_at FROM access_requests 
+       WHERE status = 'pending' AND (email_verified = true OR email_verified IS NULL)
+       ORDER BY requested_at DESC LIMIT 10`
+    );
 
     const recentActivity = [
+      ...pendingResidents.map((r) => ({
+        type: 'pending_resident',
+        id: `pending-resident-${r.id}`,
+        createdAt: r.created_at,
+        title: 'New Resident Registration',
+        detail: `${r.full_name || 'A new resident'} submitted an account registration with ID for verification.`,
+        when: 'Recently',
+        link: '/pending-requests',
+      })),
+      ...pendingAccess.map((a) => ({
+        type: 'pending_access',
+        id: `pending-access-${a.id}`,
+        createdAt: a.requested_at,
+        title: 'New Staff Access Request',
+        detail: `${a.full_name || 'Staff member'} requested administrative access (${a.department || 'Barangay Staff'}).`,
+        when: 'Recently',
+        link: '/pending-requests',
+      })),
       ...recentComplaints.map((c) => ({
         type: 'case',
         id: c.id,
@@ -36,12 +64,14 @@ router.get('/overview', async (req, res) => {
         title: `New Case Filed: #${c.id}`,
         detail: `Resident ${c.resident || 'Resident'} registered a ${(c.category || 'formal').toLowerCase()} complaint.`,
         when: 'Recently',
+        link: `/complaints/${c.id}`,
       })),
       ...recentMeetings.map((m) => ({
         type: 'meeting',
         title: 'Session Adjourned',
         detail: `${m.title || 'Barangay Session'} concluded. Minutes and proposed resolutions have been uploaded to the archives.`,
         when: 'Yesterday',
+        link: '/meetings',
       })),
     ];
 

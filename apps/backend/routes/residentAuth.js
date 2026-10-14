@@ -15,6 +15,11 @@ const {
   sendResidentPendingVerificationEmail,
 } = require('../utils/mailer');
 const { validateIdImage, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
+const {
+  isCloudinaryConfigured,
+  uploadToCloudinary,
+  deleteLocalUpload,
+} = require('../utils/cloudinary');
 
 const router = express.Router();
 
@@ -391,8 +396,17 @@ router.post('/register', (req, res) => {
         return res.status(400).json({ message: 'Selfie holding your valid ID is required.' });
       }
 
-      const idDocumentUrl = `/uploads/resident-ids/${idDocFile.filename}`;
-      const selfieIdUrl = `/uploads/resident-ids/${selfieFile.filename}`;
+      let idDocumentUrl = `/uploads/resident-ids/${idDocFile.filename}`;
+      let selfieIdUrl = `/uploads/resident-ids/${selfieFile.filename}`;
+
+      if (isCloudinaryConfigured()) {
+        const [cloudIdUrl, cloudSelfieUrl] = await Promise.all([
+          uploadToCloudinary(idDocFile, 'barangay/resident-ids'),
+          uploadToCloudinary(selfieFile, 'barangay/resident-selfies'),
+        ]);
+        if (cloudIdUrl) idDocumentUrl = cloudIdUrl;
+        if (cloudSelfieUrl) selfieIdUrl = cloudSelfieUrl;
+      }
 
       const { rows: existing } = await pool.query(
         'SELECT id, full_name, email FROM residents WHERE LOWER(email) = $1 AND password_hash IS NOT NULL',
@@ -634,21 +648,14 @@ router.post('/login', async (req, res) => {
     return res.status(400).json({ message: 'Email/username and password are required.' });
   }
 
-  const recaptchaCheck = await verifyRecaptcha(
-    recaptchaToken,
-    req.ip || req.headers['x-forwarded-for']
-  );
-  if (!recaptchaCheck.success) {
-    return res.status(400).json({ message: recaptchaCheck.message });
-  }
-
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM residents WHERE email = $1 AND password_hash IS NOT NULL',
+      'SELECT * FROM residents WHERE LOWER(email) = LOWER($1) AND password_hash IS NOT NULL',
       [email]
     );
     const resident = rows[0];
 
+    // Check credentials first: account exists and password matches
     if (!resident || !verifyPassword(password, resident.password_hash)) {
       return res.status(401).json({ message: 'Invalid email/username or password.' });
     }
@@ -661,6 +668,19 @@ router.post('/login', async (req, res) => {
       return res.status(403).json({
         message: 'Your registration was not approved. Please visit the barangay office for assistance.',
       });
+    }
+
+    // Credentials are correct: if captcha has not been completed yet, prompt user for puzzle
+    if (!recaptchaToken) {
+      return res.json({ requiresCaptcha: true });
+    }
+
+    const recaptchaCheck = await verifyRecaptcha(
+      recaptchaToken,
+      req.ip || req.headers['x-forwarded-for']
+    );
+    if (!recaptchaCheck.success) {
+      return res.status(400).json({ message: recaptchaCheck.message });
     }
 
     const token = jwt.sign(
@@ -787,7 +807,16 @@ router.post('/me/photo', requireResidentAuth, (req, res) => {
         fs.unlink(oldPath, () => {});
       }
 
-      const photoUrl = `/uploads/residents/${req.file.filename}`;
+      let photoUrl = `/uploads/residents/${req.file.filename}`;
+
+      if (isCloudinaryConfigured()) {
+        const cloudUrl = await uploadToCloudinary(req.file, 'barangay/resident-photos');
+        if (cloudUrl) {
+          photoUrl = cloudUrl;
+          await deleteLocalUpload(req.file);
+        }
+      }
+
       const { rows } = await pool.query(
         'UPDATE residents SET photo_url = $1 WHERE id = $2 RETURNING *',
         [photoUrl, req.resident.id]

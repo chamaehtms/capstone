@@ -138,6 +138,7 @@ export function statusBadgeClass(status) {
 // ---------------------------------------------------------------------
 
 function toLegacyUser(r) {
+  if (!r) return null;
   const parts = (r.fullName || '').trim().split(/\s+/).filter(Boolean);
   const firstName = parts[0] || '';
   const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
@@ -149,7 +150,7 @@ function toLegacyUser(r) {
     firstName,
     middleName,
     lastName,
-    fullName: r.fullName,
+    fullName: r.fullName || '',
     dateOfBirth: r.birthDate,
     sex: r.gender,
     contactNumber: r.contact,
@@ -163,10 +164,15 @@ function toLegacyUser(r) {
     emailAnnouncements: !!r.emailAnnouncements,
     language: r.language,
     status: r.status || 'Pending',
-    role: 'resident',
-    photoUrl: r.photoUrl,
+    accountStatus: r.accountStatus || 'active',
+    category: r.category || [],
     idDocumentUrl: r.idDocumentUrl,
-    selfieIdUrl: r.selfieIdUrl
+    selfieIdUrl: r.selfieIdUrl,
+    photoUrl: r.photoUrl || r.selfieIdUrl,
+    verificationDetails: r.verificationDetails,
+    idAiStatus: r.idAiStatus,
+    idAiScore: r.idAiScore,
+    role: 'resident',
   };
 }
 
@@ -241,6 +247,9 @@ export async function login(identifier, password, recaptchaToken) {
     body: { email: identifier, password, recaptchaToken },
     auth: false,
   });
+  if (data?.requiresCaptcha) {
+    return { requiresCaptcha: true };
+  }
   return { token: data.token, user: toLegacyUser(data.resident) };
 }
 

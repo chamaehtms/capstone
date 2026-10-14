@@ -152,13 +152,18 @@ export default function ComplaintsRecord() {
       ) return false;
     } else if (statusFilter === 'pending') {
       if (complaint.status !== 'Pending') return false;
+    } else if (statusFilter === 'escalated') {
+      const isEscalated =
+        complaint.needsEscalation === true ||
+        complaint.status === 'Escalated';
+      if (!isEscalated) return false;
     } else if (statusFilter === 'resolved') {
       const isResolved =
         complaint.status === 'Resolved' ||
         complaint.status === 'Resolved/Escalated' ||
         complaint.status === 'Resolved / Escalated' ||
         complaint.status === 'Closed';
-      if (!isResolved) return false;
+      if (!isResolved || complaint.needsEscalation === true || complaint.status === 'Escalated') return false;
     } else if (statusFilter === 'rejected') {
       if (complaint.status !== 'Rejected') return false;
     }
@@ -290,6 +295,7 @@ export default function ComplaintsRecord() {
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="in-progress">In Progress</option>
+              <option value="escalated">Escalated</option>
               <option value="resolved">Resolved</option>
               <option value="rejected">Rejected</option>
             </select>

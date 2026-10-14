@@ -335,6 +335,19 @@ export default function MeetingMinutes() {
       return;
     }
 
+    const selectedDate = String(form.date).trim().slice(0, 10);
+    const isEditing = modalMode === 'edit' && selected;
+    const conflictMeeting = meetings.find((m) => {
+      const mDate = String(m.date || '').trim().slice(0, 10);
+      if (isEditing && m.id === selected?.id) return false;
+      return mDate === selectedDate;
+    });
+
+    if (conflictMeeting) {
+      alert(`Date Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled on ${selectedDate}. Please choose a different date.`);
+      return;
+    }
+
     setSaving(true);
     setError('');
     setMessage('');
@@ -382,6 +395,19 @@ export default function MeetingMinutes() {
     e.preventDefault();
     if (!mediationForm.title.trim() || !mediationForm.date) {
       alert('Title and Hearing Date are required.');
+      return;
+    }
+
+    const selectedDate = String(mediationForm.date).trim().slice(0, 10);
+    const isExistingMediation = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
+    const conflictMeeting = meetings.find((m) => {
+      const mDate = String(m.date || '').trim().slice(0, 10);
+      if (isExistingMediation && m.id === selected?.id) return false;
+      return mDate === selectedDate;
+    });
+
+    if (conflictMeeting) {
+      alert(`Date Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled on ${selectedDate}. Please choose a different date.`);
       return;
     }
 
@@ -629,7 +655,7 @@ export default function MeetingMinutes() {
           ) : (
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-slate-900">Meeting Minutes & Mediation</h1>
+                <h1 className="text-2xl font-bold text-slate-900">Mediation</h1>
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                   Official Session Records
                 </span>
@@ -1707,16 +1733,47 @@ export default function MeetingMinutes() {
               {/* Date, Time, Venue & Mediator */}
               <div className="grid sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">
-                    Hearing Date <span className="text-red-500">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-semibold text-slate-700 block">
+                      Hearing Date <span className="text-red-500">*</span>
+                    </label>
+                    {(() => {
+                      const sel = String(mediationForm.date || '').trim().slice(0, 10);
+                      const isExisting = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
+                      const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
+                      if (!conflict) return null;
+                      return (
+                        <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
+                          Already Booked
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <input
                     type="date"
                     required
                     value={mediationForm.date}
                     onChange={(e) => setMediationForm({ ...mediationForm, date: e.target.value })}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-purple-500"
+                    className={`w-full border rounded-lg p-2.5 text-xs focus:ring-2 ${
+                      (() => {
+                        const sel = String(mediationForm.date || '').trim().slice(0, 10);
+                        const isExisting = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
+                        const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
+                        return conflict ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-red-400' : 'border-slate-300 focus:ring-purple-500';
+                      })()
+                    }`}
                   />
+                  {(() => {
+                    const sel = String(mediationForm.date || '').trim().slice(0, 10);
+                    const isExisting = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
+                    const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
+                    if (!conflict) return null;
+                    return (
+                      <p className="text-[11px] text-red-600 font-medium mt-1 leading-tight">
+                        ⚠️ Already scheduled: "{conflict.title}"{conflict.time ? ` at ${conflict.time}` : ''}. You cannot choose this day.
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 <div>
