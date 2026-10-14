@@ -150,7 +150,8 @@ export default function MeetingMinutes() {
       const matchRespondent = (m.respondentName || '').toLowerCase().includes(q);
       const matchLocation = (m.location || '').toLowerCase().includes(q);
       const matchDate = (m.date || '').toLowerCase().includes(q);
-      return matchTitle || matchCase || matchResident || matchRespondent || matchLocation || matchDate;
+      const matchStatus = (m.mediationStatus || '').toLowerCase().includes(q);
+      return matchTitle || matchCase || matchResident || matchRespondent || matchLocation || matchDate || matchStatus;
     }
     return true;
   });
@@ -971,14 +972,59 @@ export default function MeetingMinutes() {
                             </div>
                           </td>
                           <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full font-semibold text-xs border ${
-                              isMed
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                            }`}>
-                              <AdminIcon name={isMed ? 'scale' : 'building'} size={13} />
-                              <span>{isMed ? (m.hearingStage || 'Mediation Hearing') : 'Council Session'}</span>
-                            </span>
+                            <div className="flex flex-col gap-1.5 items-start">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold text-xs border ${
+                                isMed
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                              }`}>
+                                <AdminIcon name={isMed ? 'scale' : 'building'} size={13} />
+                                <span>{isMed ? (m.hearingStage || 'Mediation Hearing') : 'Council Session'}</span>
+                              </span>
+
+                              {isMed && (
+                                <div
+                                  className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border"
+                                  style={{
+                                    backgroundColor:
+                                      m.mediationStatus === 'Settled' ? '#f0fdf4' :
+                                      m.mediationStatus === 'Cancelled' ? '#fef2f2' :
+                                      m.mediationStatus === 'Ongoing' ? '#fffbeb' :
+                                      m.mediationStatus === 'Rescheduled' ? '#fff7ed' :
+                                      m.mediationStatus === 'Unsettled' ? '#f8fafc' : '#faf5ff',
+                                    borderColor:
+                                      m.mediationStatus === 'Settled' ? '#bbf7d0' :
+                                      m.mediationStatus === 'Cancelled' ? '#fecaca' :
+                                      m.mediationStatus === 'Ongoing' ? '#fde68a' :
+                                      m.mediationStatus === 'Rescheduled' ? '#fed7aa' :
+                                      m.mediationStatus === 'Unsettled' ? '#e2e8f0' : '#e9d5ff',
+                                    color:
+                                      m.mediationStatus === 'Settled' ? '#166534' :
+                                      m.mediationStatus === 'Cancelled' ? '#991b1b' :
+                                      m.mediationStatus === 'Ongoing' ? '#92400e' :
+                                      m.mediationStatus === 'Rescheduled' ? '#9a3412' :
+                                      m.mediationStatus === 'Unsettled' ? '#475569' : '#6b21a8',
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Click to update mediation status"
+                                >
+                                  <span className="text-[10px] uppercase font-bold opacity-75">Status:</span>
+                                  <select
+                                    value={m.mediationStatus || 'Scheduled'}
+                                    onChange={(e) => handleQuickMediationStatusChange(m.id, e.target.value)}
+                                    className="bg-transparent font-bold text-[11px] border-0 outline-none cursor-pointer"
+                                  >
+                                    <option value="Pending">Pending</option>
+                                    <option value="Scheduled">Scheduled</option>
+                                    <option value="Ongoing">Ongoing</option>
+                                    <option value="Rescheduled">Rescheduled</option>
+                                    <option value="Settled">Settled</option>
+                                    <option value="Unsettled">Unsettled</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="py-4 px-4 border-r border-slate-300">
                             {isMed ? (
