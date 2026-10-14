@@ -134,6 +134,28 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Head of household name, Purok/Zone, and Address are required.' });
     }
 
+    // Helper to sanitize and validate household members
+    const cleanMembers = (Array.isArray(members) ? members : []).map(m => {
+      let bDate = (m.birthDate || '').trim();
+      if (bDate) {
+        // Enforce valid date string YYYY-MM-DD
+        const parsed = new Date(bDate);
+        const year = parsed.getFullYear();
+        const nowYear = new Date().getFullYear();
+        if (isNaN(parsed.getTime()) || year < 1900 || year > nowYear) {
+          bDate = ''; // discard invalid or corrupt future years
+        } else {
+          bDate = bDate.slice(0, 10);
+        }
+      }
+      return {
+        name: (m.name || '').trim(),
+        relation: (m.relation || '').trim(),
+        occupation: (m.occupation || '').trim(),
+        birthDate: bDate,
+      };
+    });
+
     // Auto-generate household number if not provided: HH-YYYY-XXXX
     let finalHouseholdNo = (householdNo || '').trim();
     if (!finalHouseholdNo) {
@@ -173,7 +195,7 @@ router.post('/', async (req, res) => {
         wasteManagement,
         Boolean(is4psBeneficiary),
         Boolean(isIndigent),
-        JSON.stringify(members || []),
+        JSON.stringify(cleanMembers),
         remarks.trim(),
       ]
     );
@@ -211,6 +233,27 @@ router.put('/:id', async (req, res) => {
       remarks = current.remarks,
     } = req.body;
 
+    // Helper to sanitize and validate household members
+    const cleanMembers = (Array.isArray(members) ? members : []).map(m => {
+      let bDate = (m.birthDate || '').trim();
+      if (bDate) {
+        const parsed = new Date(bDate);
+        const year = parsed.getFullYear();
+        const nowYear = new Date().getFullYear();
+        if (isNaN(parsed.getTime()) || year < 1900 || year > nowYear) {
+          bDate = '';
+        } else {
+          bDate = bDate.slice(0, 10);
+        }
+      }
+      return {
+        name: (m.name || '').trim(),
+        relation: (m.relation || '').trim(),
+        occupation: (m.occupation || '').trim(),
+        birthDate: bDate,
+      };
+    });
+
     // Check unique household number excluding self
     if (householdNo && householdNo.trim() !== current.household_no) {
       const { rows: dupRows } = await pool.query(
@@ -243,7 +286,7 @@ router.put('/:id', async (req, res) => {
         wasteManagement,
         Boolean(is4psBeneficiary),
         Boolean(isIndigent),
-        JSON.stringify(members || []),
+        JSON.stringify(cleanMembers),
         remarks.trim(),
         req.params.id,
       ]

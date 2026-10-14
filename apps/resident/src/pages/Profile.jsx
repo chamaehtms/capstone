@@ -225,7 +225,13 @@ export default function Profile() {
                 <div className="field-row">
                   <div className="field">
                     <label className="field-label">Birthdate</label>
-                    <input type="date" value={editForm.dateOfBirth} onChange={e => setEditForm(f => ({ ...f, dateOfBirth: e.target.value }))} />
+                    <input
+                      type="date"
+                      min="1900-01-01"
+                      max={new Date().toISOString().slice(0, 10)}
+                      value={editForm.dateOfBirth}
+                      onChange={e => setEditForm(f => ({ ...f, dateOfBirth: e.target.value }))}
+                    />
                   </div>
                   <div className="field">
                     <label className="field-label">Sex</label>

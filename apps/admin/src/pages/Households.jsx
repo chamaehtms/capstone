@@ -44,6 +44,40 @@ const WATER_SOURCES = [
   'Bought / Refilling Station',
 ];
 
+function formatDate(val) {
+  if (!val) return '—';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatDateTime(val) {
+  if (!val) return '—';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+}
+
+function calculateAge(birthDate) {
+  if (!birthDate) return null;
+  const birth = new Date(birthDate);
+  if (isNaN(birth.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age--;
+  }
+  return age >= 0 ? age : null;
+}
+
 export default function Households() {
   const [households, setHouseholds] = useState([]);
   const [residents, setResidents] = useState([]);
@@ -198,6 +232,20 @@ export default function Households() {
       return;
     }
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    for (const m of form.members || []) {
+      if (m.birthDate) {
+        if (m.birthDate > todayStr) {
+          alert(`Invalid birthdate for member "${m.name || 'Dependent'}": birthdate cannot be in the future.`);
+          return;
+        }
+        if (m.birthDate < '1900-01-01') {
+          alert(`Invalid birthdate for member "${m.name || 'Dependent'}": please enter a valid historical birthdate (after 1900).`);
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     setError('');
     setMessage('');
@@ -346,8 +394,11 @@ export default function Households() {
               const memberCount = (hh.members?.length || 0) + 1;
               return (
                 <tr key={hh.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-5 py-3.5 font-mono font-bold text-blue-700">
-                    {hh.householdNo}
+                  <td className="px-5 py-3.5">
+                    <span className="font-mono font-bold text-blue-700 block">{hh.householdNo}</span>
+                    <span className="text-[10px] text-slate-400 block mt-0.5" title={`Last updated: ${formatDateTime(hh.updatedAt)}`}>
+                      Enrolled: {formatDate(hh.createdAt)}
+                    </span>
                   </td>
                   <td className="px-5 py-3.5 font-medium text-slate-900">
                     <div className="flex items-center gap-2">
@@ -677,7 +728,9 @@ export default function Households() {
                         <div className="col-span-2">
                           <input
                             type="date"
-                            value={m.birthDate}
+                            min="1900-01-01"
+                            max={new Date().toISOString().slice(0, 10)}
+                            value={m.birthDate || ''}
                             onChange={(e) => updateMember(idx, 'birthDate', e.target.value)}
                             className="w-full border border-slate-300 rounded p-1.5 text-xs bg-white"
                           />
@@ -809,22 +862,50 @@ export default function Households() {
                           <th className="px-3 py-2">Name</th>
                           <th className="px-3 py-2">Relationship</th>
                           <th className="px-3 py-2">Occupation</th>
-                          <th className="px-3 py-2">Birthdate</th>
+                          <th className="px-3 py-2">Birthdate & Age</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {viewDetail.members.map((m, idx) => (
-                          <tr key={idx}>
-                            <td className="px-3 py-2 font-medium text-slate-800">{m.name || '-'}</td>
-                            <td className="px-3 py-2 text-slate-600">{m.relation || '-'}</td>
-                            <td className="px-3 py-2 text-slate-600">{m.occupation || '-'}</td>
-                            <td className="px-3 py-2 text-slate-500">{m.birthDate || '-'}</td>
-                          </tr>
-                        ))}
+                        {viewDetail.members.map((m, idx) => {
+                          const age = calculateAge(m.birthDate);
+                          return (
+                            <tr key={idx}>
+                              <td className="px-3 py-2 font-medium text-slate-800">{m.name || '—'}</td>
+                              <td className="px-3 py-2 text-slate-600">{m.relation || '—'}</td>
+                              <td className="px-3 py-2 text-slate-600">{m.occupation || '—'}</td>
+                              <td className="px-3 py-2 text-slate-600">
+                                {m.birthDate ? (
+                                  <span>
+                                    {formatDate(m.birthDate)}{' '}
+                                    {age !== null && (
+                                      <span className="text-[10px] text-slate-400 font-medium">
+                                        ({age} {age === 1 ? 'yr old' : 'yrs old'})
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  '—'
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 )}
+              </div>
+
+              {/* Record Metadata Timestamps */}
+              <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-500">
+                <div>
+                  <span className="font-semibold text-slate-700">Enrolled: </span>
+                  <span>{formatDateTime(viewDetail.createdAt)}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-700">Last Modified: </span>
+                  <span>{formatDateTime(viewDetail.updatedAt)}</span>
+                </div>
               </div>
 
               {viewDetail.remarks && (
