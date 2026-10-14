@@ -40,12 +40,19 @@ export default function Profile() {
   }
 
   function handleContactChange(e) {
-    let val = e.target.value;
-    if (val.startsWith('+')) {
-      val = '+' + val.slice(1).replace(/\D/g, '').slice(0, 12);
+    let raw = e.target.value.trim();
+    // Auto-prefix +63 if user starts typing 9 or 09
+    if (/^09\d*$/.test(raw)) {
+      raw = '+63' + raw.slice(1);
+    } else if (/^9\d*$/.test(raw)) {
+      raw = '+63' + raw;
+    } else if (!raw.startsWith('+')) {
+      raw = '+' + raw.replace(/\D/g, '');
     } else {
-      val = val.replace(/\D/g, '').slice(0, 11);
+      raw = '+' + raw.slice(1).replace(/\D/g, '');
     }
+    // Limit to max 13 characters (+639XXXXXXXXX)
+    const val = raw.slice(0, 13);
     setEditForm(f => ({ ...f, contactNumber: val }));
   }
 
@@ -54,11 +61,8 @@ export default function Profile() {
     setFormError('');
 
     const rawContact = (editForm.contactNumber || '').trim();
-    const isDomestic = /^09\d{9}$/.test(rawContact);
-    const isInternational = /^\+639\d{9}$/.test(rawContact);
-
-    if (!isDomestic && !isInternational) {
-      setFormError('Please enter a valid Philippine mobile number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 characters).');
+    if (!/^\+639\d{9}$/.test(rawContact)) {
+      setFormError('Contact number must follow the format +639XXXXXXXXX (13 characters, e.g. +639171234567).');
       return;
     }
 
@@ -274,18 +278,18 @@ export default function Profile() {
                     </select>
                   </div>
                   <div className="field">
-                    <label className="field-label">Contact Number</label>
+                    <label className="field-label">Contact Number (+639XXXXXXXXX)</label>
                     <input
                       type="tel"
                       inputMode="tel"
                       maxLength={13}
-                      placeholder="09XXXXXXXXX or +639XXXXXXXXX"
+                      placeholder="+639XXXXXXXXX"
                       value={editForm.contactNumber}
                       onChange={handleContactChange}
                       required
                     />
                     <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
-                      Accepts Philippine mobile formats: <strong>09XXXXXXXXX</strong> (11 digits) or <strong>+639XXXXXXXXX</strong> (13 chars)
+                      Must follow <strong>+639XXXXXXXXX</strong> (13 characters, e.g. +639171234567)
                     </small>
                   </div>
                 </div>

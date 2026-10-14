@@ -742,12 +742,9 @@ router.put('/me', requireResidentAuth, async (req, res) => {
 
     if (merged.contact) {
       const cleanContact = String(merged.contact).trim();
-      const isDomestic = /^09\d{9}$/.test(cleanContact);
-      const isInternational = /^\+639\d{9}$/.test(cleanContact);
-
-      if (!isDomestic && !isInternational) {
+      if (!/^\+639\d{9}$/.test(cleanContact)) {
         return res.status(400).json({
-          message: 'Invalid Philippine contact number. Format must be 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 characters).',
+          message: 'Invalid contact number. Must strictly follow the +639XXXXXXXXX format (13 characters, e.g. +639171234567).',
         });
       }
       merged.contact = cleanContact;
