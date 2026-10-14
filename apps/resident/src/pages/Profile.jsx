@@ -40,23 +40,31 @@ export default function Profile() {
   }
 
   function handleContactChange(e) {
-    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 12);
-    setEditForm(f => ({ ...f, contactNumber: digitsOnly }));
+    let val = e.target.value;
+    if (val.startsWith('+')) {
+      val = '+' + val.slice(1).replace(/\D/g, '').slice(0, 12);
+    } else {
+      val = val.replace(/\D/g, '').slice(0, 11);
+    }
+    setEditForm(f => ({ ...f, contactNumber: val }));
   }
 
   async function saveEdit(e) {
     e.preventDefault();
     setFormError('');
 
-    const cleanContact = (editForm.contactNumber || '').replace(/\D/g, '');
-    if (cleanContact.length !== 12) {
-      setFormError(`Contact number must be exactly 12 digits (currently ${cleanContact.length} digit${cleanContact.length === 1 ? '' : 's'}).`);
+    const rawContact = (editForm.contactNumber || '').trim();
+    const isDomestic = /^09\d{9}$/.test(rawContact);
+    const isInternational = /^\+639\d{9}$/.test(rawContact);
+
+    if (!isDomestic && !isInternational) {
+      setFormError('Please enter a valid Philippine mobile number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 characters).');
       return;
     }
 
     setSaving(true);
     try {
-      const { user } = await updateProfile({ ...editForm, contactNumber: cleanContact });
+      const { user } = await updateProfile({ ...editForm, contactNumber: rawContact });
       Session.setUser(user);
       setData(d => ({ ...d, user }));
       setMode('view');
@@ -266,19 +274,18 @@ export default function Profile() {
                     </select>
                   </div>
                   <div className="field">
-                    <label className="field-label">Contact Number (12 digits)</label>
+                    <label className="field-label">Contact Number</label>
                     <input
                       type="tel"
-                      inputMode="numeric"
-                      maxLength={12}
-                      pattern="[0-9]{12}"
-                      placeholder="e.g. 639171234567"
+                      inputMode="tel"
+                      maxLength={13}
+                      placeholder="09XXXXXXXXX or +639XXXXXXXXX"
                       value={editForm.contactNumber}
                       onChange={handleContactChange}
                       required
                     />
                     <small style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 4, display: 'block' }}>
-                      Must be exactly 12 numeric digits (e.g., 639XXXXXXXXX or 09XXXXXXXXXX)
+                      Accepts Philippine mobile formats: <strong>09XXXXXXXXX</strong> (11 digits) or <strong>+639XXXXXXXXX</strong> (13 chars)
                     </small>
                   </div>
                 </div>

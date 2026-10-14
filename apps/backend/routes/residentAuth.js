@@ -741,9 +741,14 @@ router.put('/me', requireResidentAuth, async (req, res) => {
     const merged = { ...existing, ...req.body };
 
     if (merged.contact) {
-      const cleanContact = String(merged.contact).replace(/\D/g, '');
-      if (cleanContact.length !== 12) {
-        return res.status(400).json({ message: `Contact number must be exactly 12 digits (currently ${cleanContact.length}).` });
+      const cleanContact = String(merged.contact).trim();
+      const isDomestic = /^09\d{9}$/.test(cleanContact);
+      const isInternational = /^\+639\d{9}$/.test(cleanContact);
+
+      if (!isDomestic && !isInternational) {
+        return res.status(400).json({
+          message: 'Invalid Philippine contact number. Format must be 09XXXXXXXXX (11 digits) or +639XXXXXXXXX (13 characters).',
+        });
       }
       merged.contact = cleanContact;
     }
