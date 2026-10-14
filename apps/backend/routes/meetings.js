@@ -136,9 +136,9 @@ router.post('/', async (req, res) => {
     // Check if the selected date already has a scheduled session / meeting
     const { rows: conflictRows } = await pool.query(
       `SELECT id, title, time, meeting_type FROM meetings
-       WHERE date = $1 OR date LIKE $2
+       WHERE date = $1::date
        LIMIT 1`,
-      [cleanDate, `${cleanDate}%`]
+      [cleanDate]
     );
 
     if (conflictRows.length > 0) {
@@ -380,9 +380,9 @@ router.put('/:id', async (req, res) => {
     if (cleanDate && cleanDate !== existingCleanDate) {
       const { rows: conflictRows } = await pool.query(
         `SELECT id, title, time, meeting_type FROM meetings
-         WHERE (date = $1 OR date LIKE $2) AND id <> $3
+         WHERE date = $1::date AND id <> $2
          LIMIT 1`,
-        [cleanDate, `${cleanDate}%`, req.params.id]
+        [cleanDate, req.params.id]
       );
       if (conflictRows.length > 0) {
         const conflict = conflictRows[0];
