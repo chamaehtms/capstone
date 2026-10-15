@@ -224,6 +224,19 @@ export default function ModernIcon({ name, size = 18, color = 'currentColor', cl
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
       );
+    case 'camera':
+      return (
+        <svg {...props}>
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+          <circle cx="12" cy="13" r="3" />
+        </svg>
+      );
+    case 'refresh':
+      return (
+        <svg {...props}>
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.19" />
+        </svg>
+      );
     default:
       return null;
   }

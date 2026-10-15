@@ -68,7 +68,97 @@ export default function Register() {
     }
   }
 
+  const [isIdCameraActive, setIsIdCameraActive] = useState(false);
+  const [idCameraError, setIdCameraError] = useState('');
+  const [idCameraFacing, setIdCameraFacing] = useState('environment'); // 'environment' (back) or 'user' (front)
+  const idVideoRef = useRef(null);
+  const idStreamRef = useRef(null);
+
+  // Stop ID Camera stream
+  const stopIdCamera = () => {
+    if (idStreamRef.current) {
+      idStreamRef.current.getTracks().forEach((track) => track.stop());
+      idStreamRef.current = null;
+    }
+    setIsIdCameraActive(false);
+  };
+
+  // Start ID Camera stream
+  const startIdCamera = async (facing = idCameraFacing) => {
+    stopIdCamera();
+    setIdCameraError('');
+    setIsIdCameraActive(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          facingMode: { ideal: facing },
+        },
+        audio: false,
+      });
+      idStreamRef.current = stream;
+      if (idVideoRef.current) {
+        idVideoRef.current.srcObject = stream;
+        idVideoRef.current.play();
+      }
+    } catch (err) {
+      console.error('ID Camera error:', err);
+      // Fallback to any available video device if specific facingMode fails
+      try {
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        idStreamRef.current = fallbackStream;
+        if (idVideoRef.current) {
+          idVideoRef.current.srcObject = fallbackStream;
+          idVideoRef.current.play();
+        }
+      } catch (fallbackErr) {
+        setIdCameraError('Unable to access camera. Please allow camera permissions in your browser or upload an image file.');
+        setIsIdCameraActive(false);
+      }
+    }
+  };
+
+  const switchIdCamera = () => {
+    const nextFacing = idCameraFacing === 'environment' ? 'user' : 'environment';
+    setIdCameraFacing(nextFacing);
+    startIdCamera(nextFacing);
+  };
+
+  // Capture Photo from ID Camera
+  const captureIdPhoto = () => {
+    if (!idVideoRef.current) return;
+    const video = idVideoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `valid-id-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      setIdFile(file);
+      setIdPhotoPreview(URL.createObjectURL(blob));
+      setIdFileError('');
+      stopIdCamera();
+    }, 'image/jpeg', 0.95);
+  };
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (idStreamRef.current) {
+        idStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
   function handleRemoveIdFile() {
+    stopIdCamera();
     setIdFile(null);
     setIdPhotoPreview('');
     setIdFileError('');
@@ -963,7 +1053,101 @@ export default function Register() {
             <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
               Clear front photo of your valid Government ID (PhilSys ID, Driver's License, Passport, Voter's ID, PRC, or Barangay ID).
             </p>
-            {idFile ? (
+            {isIdCameraActive ? (
+              <div style={{ background: '#0f172a', borderRadius: 14, overflow: 'hidden', padding: 14, textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.2)' }}>
+                <div style={{ position: 'relative', width: '100%', maxWidth: 440, margin: '0 auto', borderRadius: 10, overflow: 'hidden', background: '#000', aspectRatio: '4/3' }}>
+                  <video
+                    ref={idVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                  {/* ID card alignment guide overlay */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '12%',
+                      left: '8%',
+                      right: '8%',
+                      bottom: '12%',
+                      border: '2px dashed rgba(255, 255, 255, 0.85)',
+                      borderRadius: 12,
+                      boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.45)',
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <span style={{ color: '#fff', fontSize: '.78rem', fontWeight: 700, background: 'rgba(0,0,0,0.65)', padding: '4px 10px', borderRadius: 20 }}>
+                      Align ID inside this frame
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 14 }}>
+                  <button
+                    type="button"
+                    onClick={captureIdPhoto}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      background: '#2563eb',
+                      color: '#fff',
+                      border: 'none',
+                      padding: '10px 22px',
+                      borderRadius: 999,
+                      fontWeight: 700,
+                      fontSize: '.92rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 10px rgba(37, 99, 235, 0.4)',
+                    }}
+                  >
+                    <ModernIcon name="camera" size={18} color="#fff" />
+                    Take Picture of ID
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={switchIdCamera}
+                    title="Flip camera"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 42,
+                      height: 42,
+                      background: 'rgba(255,255,255,0.15)',
+                      color: '#fff',
+                      border: '1px solid rgba(255,255,255,0.25)',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ModernIcon name="refresh" size={18} color="#fff" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={stopIdCamera}
+                    style={{
+                      background: 'transparent',
+                      color: '#cbd5e1',
+                      border: 'none',
+                      padding: '8px 14px',
+                      fontSize: '.85rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : idFile ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 {idPhotoPreview ? (
                   <img
@@ -981,11 +1165,19 @@ export default function Register() {
                     {idFile.name}
                   </div>
                   <div style={{ fontSize: '.8rem', color: 'var(--muted)', marginTop: 2 }}>
-                    {(idFile.size / (1024 * 1024)).toFixed(2)} MB • ID Document Attached
+                    {(idFile.size / (1024 * 1024)).toFixed(2)} MB • ID Document Ready
                   </div>
-                  <div style={{ marginTop: 8, display: 'flex', gap: 14 }}>
-                    <label style={{ fontSize: '.82rem', color: '#2563eb', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
-                      Change Photo
+                  <div style={{ marginTop: 8, display: 'flex', gap: 14, alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={() => startIdCamera()}
+                      style={{ background: 'none', border: 'none', padding: 0, fontSize: '.82rem', color: '#2563eb', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    >
+                      <ModernIcon name="camera" size={14} color="#2563eb" />
+                      Retake with Camera
+                    </button>
+                    <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+                      Choose file
                       <input
                         type="file"
                         accept="image/*,application/pdf"
@@ -1004,20 +1196,58 @@ export default function Register() {
                 </div>
               </div>
             ) : (
-              <label className="upload-box" htmlFor="idDocumentInput" style={{ cursor: 'pointer', display: 'block' }}>
-                <div className="icon">
-                  <ModernIcon name="id-card" size={24} color="#2563eb" />
-                </div>
-                <strong>Click to upload your valid ID card</strong>
-                <small>JPG or PNG up to 5MB • Must be a clear photo of an authentic physical government ID (Screenshots & non-ID pictures are rejected)</small>
-                <input
-                  id="idDocumentInput"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={e => handleIdFile(e.target.files?.[0] || null)}
-                />
-              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Primary Action: Direct Camera Photo */}
+                <button
+                  type="button"
+                  onClick={() => startIdCamera()}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '16px 20px',
+                    background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 12,
+                    fontWeight: 700,
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <ModernIcon name="camera" size={22} color="#fff" />
+                  <span>Take Picture of ID with Camera</span>
+                </button>
+
+                {/* Secondary Option: Or upload from files */}
+                <label
+                  className="upload-box"
+                  htmlFor="idDocumentInput"
+                  style={{ cursor: 'pointer', display: 'block', margin: 0, padding: '16px 12px' }}
+                >
+                  <div className="icon" style={{ marginBottom: 6 }}>
+                    <ModernIcon name="id-card" size={22} color="#64748b" />
+                  </div>
+                  <strong style={{ fontSize: '.88rem', color: '#334155' }}>Or upload an existing ID photo file</strong>
+                  <small style={{ fontSize: '.78rem' }}>JPG or PNG up to 5MB (Screenshots & non-ID pictures are rejected)</small>
+                  <input
+                    id="idDocumentInput"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={e => handleIdFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+            )}
+            {idCameraError && (
+              <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: '.82rem' }}>
+                {idCameraError}
+              </div>
             )}
             {idFileError && (
               <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: '.84rem', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
