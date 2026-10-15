@@ -216,7 +216,28 @@ router.post('/', (req, res) => {
         ]
       );
 
-      res.status(201).json(toComplaint(rows[0]));
+      const createdComplaint = toComplaint(rows[0]);
+
+      // Notify barangay admin team about new complaint
+      try {
+        const { v4: uuidv4 } = require('uuid');
+        await pool.query(
+          `INSERT INTO notifications (id, target_role, case_id, title, message, type, link, actor_name, created_at)
+           VALUES ($1, 'admin', $2, $3, $4, 'case', $5, $6, now())`,
+          [
+            `notif-${uuidv4().slice(0, 8)}`,
+            id,
+            `New Case Filed: #${id}`,
+            `${residentName} filed a new ${category.toLowerCase()} complaint.`,
+            `/complaints/${id}`,
+            residentName,
+          ]
+        );
+      } catch (adminNotifErr) {
+        console.error('[notifications] Failed to log admin notification for new complaint:', adminNotifErr.message);
+      }
+
+      res.status(201).json(createdComplaint);
     } catch (err) {
       console.error(err);
       res.status(500).json({ message: 'Database error filing complaint.' });
@@ -369,12 +390,13 @@ router.get('/notifications', async (req, res) => {
   try {
     const residentEmail = req.resident.email || '';
     const { rows } = await pool.query(
-      `SELECT id, resident_id, resident_email, case_id, title, message, type, link, read, created_at
+      `SELECT id, resident_id, resident_email, case_id, title, message, type, link, read, created_at,
+              actor_name, actor_avatar
        FROM notifications
        WHERE resident_id = $1
           OR (resident_email IS NOT NULL AND resident_email <> '' AND LOWER(resident_email) = LOWER($2))
        ORDER BY created_at DESC
-       LIMIT 50`,
+       LIMIT 100`,
       [req.resident.id, residentEmail]
     );
 
@@ -388,6 +410,8 @@ router.get('/notifications', async (req, res) => {
       type: n.type,
       link: n.link,
       read: !!n.read,
+      actorName: n.actor_name,
+      actorAvatar: n.actor_avatar,
       createdAt: n.created_at,
     })));
   } catch (err) {

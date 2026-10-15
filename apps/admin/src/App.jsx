@@ -24,6 +24,7 @@ import LetterIssued from './pages/LetterIssued.jsx';
 import PendingRequests from './pages/PendingRequests.jsx';
 import Announcements from './pages/Announcements.jsx';
 import Settings from './pages/Settings.jsx';
+import Notifications from './pages/Notifications.jsx';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="escalation/:id/issued" element={<LetterIssued />} />
         <Route path="pending-requests" element={<PendingRequests />} />
         <Route path="announcements" element={<Announcements />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="settings" element={<Settings />} />
       </Route>
 

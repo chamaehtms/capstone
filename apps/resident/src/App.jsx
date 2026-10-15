@@ -12,6 +12,7 @@ import FileComplaint from './pages/FileComplaint.jsx';
 import SubmissionSuccess from './pages/SubmissionSuccess.jsx';
 import Track from './pages/Track.jsx';
 import Profile from './pages/Profile.jsx';
+import Notifications from './pages/Notifications.jsx';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
       <Route path="/submission-success" element={<ProtectedRoute><SubmissionSuccess /></ProtectedRoute>} />
       <Route path="/track" element={<ProtectedRoute><Track /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
     </Routes>
   );
 }

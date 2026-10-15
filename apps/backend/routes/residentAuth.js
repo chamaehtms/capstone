@@ -511,6 +511,24 @@ router.post('/register', (req, res) => {
         console.error('[registration] Warning: Could not send verification code email:', mailErr.message);
       }
 
+      // Notify barangay admin team about new resident registration
+      try {
+        await pool.query(
+          `INSERT INTO notifications (id, target_role, resident_id, title, message, type, link, actor_name, actor_avatar, created_at)
+           VALUES ($1, 'admin', $2, $3, $4, 'pending_resident', '/pending-requests', $5, $6, now())`,
+          [
+            `notif-${uuidv4().slice(0, 8)}`,
+            residentRow.id,
+            'New Resident Registration',
+            `${fullName} submitted an account registration with ID for verification.`,
+            fullName,
+            selfieIdUrl || null,
+          ]
+        );
+      } catch (adminNotifErr) {
+        console.error('[notifications] Failed to log admin notification for resident registration:', adminNotifErr.message);
+      }
+
       res.status(201).json({
         success: true,
         requiresVerification: true,

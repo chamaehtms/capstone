@@ -479,6 +479,23 @@ router.post('/request-access', (req, res) => {
         { id: requestId, email: normalizedEmail, full_name: finalFullName }
       );
 
+      // Notify admin team about new staff access request
+      try {
+        await pool.query(
+          `INSERT INTO notifications (id, target_role, title, message, type, link, actor_name, actor_avatar, created_at)
+           VALUES ($1, 'admin', $2, $3, 'pending_access', '/pending-requests', $4, $5, now())`,
+          [
+            `notif-${uuidv4().slice(0, 8)}`,
+            'New Staff Access Request',
+            `${finalFullName} requested administrative access (${dept || 'Barangay Staff'}).`,
+            finalFullName,
+            selfieIdUrl || null,
+          ]
+        );
+      } catch (adminNotifErr) {
+        console.error('[notifications] Failed to log admin notification for access request:', adminNotifErr.message);
+      }
+
       if (uploadedIdUrl) {
         await deleteLocalUpload(idPhotoFile);
       }

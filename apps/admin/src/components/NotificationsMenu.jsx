@@ -154,13 +154,20 @@ export default function NotificationsMenu() {
               })}
           </div>
 
-          <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 text-center">
+          <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-xs">
             <Link
               to="/pending-requests"
               onClick={() => setOpen(false)}
-              className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
+              className="text-[11px] font-semibold text-slate-500 hover:text-slate-800"
             >
-              View All Pending Requests &rarr;
+              Pending Requests
+            </Link>
+            <Link
+              to="/notifications"
+              onClick={() => setOpen(false)}
+              className="text-[11px] font-bold text-blue-600 hover:text-blue-800"
+            >
+              See all in Notifications &rarr;
             </Link>
           </div>
         </div>

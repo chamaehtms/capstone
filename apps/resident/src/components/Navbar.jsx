@@ -193,7 +193,7 @@ export default function Navbar() {
               {notifications.length === 0 ? (
                 <div className="notification-empty">No notifications recorded.</div>
               ) : (
-                notifications.map((notification) => (
+                notifications.slice(0, 5).map((notification) => (
                   <NavLink
                     to={notification.link || '/services'}
                     className={`notification-item ${notification.unread ? 'unread' : ''}`}
@@ -211,6 +211,15 @@ export default function Navbar() {
                   </NavLink>
                 ))
               )}
+              <div style={{ padding: '8px 12px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
+                <NavLink
+                  to="/notifications"
+                  onClick={() => setShowNotifications(false)}
+                  style={{ fontSize: '0.82rem', color: '#2563eb', fontWeight: 700, display: 'block', padding: '4px 0' }}
+                >
+                  See all in Notifications →
+                </NavLink>
+              </div>
             </div>
           )}
         </div>

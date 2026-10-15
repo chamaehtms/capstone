@@ -207,12 +207,16 @@ async function run() {
     CREATE INDEX IF NOT EXISTS idx_households_head ON households(head_resident_id);
   `);
 
-  console.log('Ensuring resident notifications table exists...');
+  console.log('Ensuring notifications table exists...');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notifications (
       id TEXT PRIMARY KEY,
+      target_role TEXT DEFAULT 'resident',
+      admin_id TEXT,
       resident_id TEXT,
       resident_email TEXT,
+      actor_name TEXT,
+      actor_avatar TEXT,
       case_id TEXT,
       title TEXT NOT NULL,
       message TEXT NOT NULL,
@@ -223,6 +227,8 @@ async function run() {
     );
     CREATE INDEX IF NOT EXISTS idx_notifications_resident ON notifications(resident_id);
     CREATE INDEX IF NOT EXISTS idx_notifications_email ON notifications(resident_email);
+    CREATE INDEX IF NOT EXISTS idx_notifications_target_role ON notifications(target_role);
+    CREATE INDEX IF NOT EXISTS idx_notifications_admin ON notifications(admin_id);
   `);
 
   const { rows: adminCountRows } = await pool.query('SELECT COUNT(*) FROM admins');
