@@ -4,7 +4,6 @@ import api from '../api';
 import AdminIcon from '../components/AdminIcons';
 
 export default function PendingRequests() {
-  const [requests, setRequests] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -19,51 +18,20 @@ export default function PendingRequests() {
 
   const load = () => {
     setLoading(true);
-    Promise.all([
-      api.get('/auth/access-requests').then((res) => res.data),
-      api.get('/residents/pending-registrations').then((res) => res.data),
-    ])
-      .then(([accessRequests, pendingResidents]) => {
-        setRequests(accessRequests);
-        setRegistrations(pendingResidents);
+    api.get('/residents/pending-registrations')
+      .then((res) => {
+        setRegistrations(res.data || []);
       })
-      .catch(() => setError('Unable to load pending requests.'))
+      .catch((err) => {
+        console.error('Failed to load pending registrations:', err);
+        setError(err.response?.data?.message || 'Unable to load pending registrations.');
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
   }, []);
-
-  const handleApprove = async (id) => {
-    setActioningId(id);
-    setError('');
-    setMessage('');
-    try {
-      const { data } = await api.post(`/auth/access-requests/${id}/approve`);
-      setMessage(data.message);
-      setRequests((prev) => prev.filter((r) => r.id !== id));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to approve this request.');
-    } finally {
-      setActioningId(null);
-    }
-  };
-
-  const handleReject = async (id) => {
-    setActioningId(id);
-    setError('');
-    setMessage('');
-    try {
-      const { data } = await api.post(`/auth/access-requests/${id}/reject`);
-      setMessage(data.message);
-      setRequests((prev) => prev.filter((r) => r.id !== id));
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to reject this request.');
-    } finally {
-      setActioningId(null);
-    }
-  };
 
   const handleApproveResident = async (id, fullName) => {
     setActioningId(id);
@@ -122,30 +90,7 @@ export default function PendingRequests() {
     }
   };
 
-  const handleScanAdminId = async (id) => {
-    setScanningId(id);
-    setError('');
-    setMessage('');
-    try {
-      const { data } = await api.post(`/auth/access-requests/${id}/scan-id`);
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, ...data } : r))
-      );
-      setMessage('AI ID validation completed for access request.');
-      if (previewDoc && previewDoc.id === id) {
-        setPreviewDoc((p) => ({
-          ...p,
-          idAiStatus: data.idAiStatus,
-          idAiScore: data.idAiScore,
-          idAiSummary: data.idAiSummary,
-        }));
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Unable to run AI ID validation.');
-    } finally {
-      setScanningId(null);
-    }
-  };
+
 
   const openPreview = (person, defaultTab = 'compare', type = 'resident') => {
     const hasId = !!person.idDocumentUrl;
@@ -300,10 +245,9 @@ export default function PendingRequests() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Pending Requests</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Pending Registrations</h1>
         <p className="text-sm text-slate-500">
-          Review and approve or reject requests for administrative access, and household registrations
-          submitted through the Residents Portal. Inspect both the Valid ID and the Selfie holding ID to confirm identity.
+          Review and approve or reject resident registrations submitted through the Residents Portal. Inspect both the Valid ID and the Selfie holding ID to confirm identity.
         </p>
       </div>
 
@@ -472,176 +416,7 @@ export default function PendingRequests() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">Staff Access Requests</h2>
-          <p className="text-xs text-slate-500 mt-0.5">Requests for administrative access to the Civic Ledger portal.</p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[950px]">
-            <thead>
-            <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
-              <th className="px-5 py-3 font-medium">FULL NAME</th>
-              <th className="px-5 py-3 font-medium">SEX</th>
-              <th className="px-5 py-3 font-medium">CONTACT</th>
-              <th className="px-5 py-3 font-medium">EMAIL</th>
-              <th className="px-5 py-3 font-medium">DEPARTMENT</th>
-              <th className="px-5 py-3 font-medium">EMPLOYEE ID</th>
-              <th className="px-5 py-3 font-medium">ID CARD</th>
-              <th className="px-5 py-3 font-medium">AI ID VALIDATION</th>
-              <th className="px-5 py-3 font-medium">SELFIE W/ ID</th>
-              <th className="px-5 py-3 font-medium">REQUESTED</th>
-              <th className="px-5 py-3 font-medium">ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={11} className="px-5 py-6 text-center text-slate-400">
-                  Loading requests…
-                </td>
-              </tr>
-            )}
-            {!loading && requests.length === 0 && (
-              <tr>
-                <td colSpan={11} className="px-5 py-6 text-center text-slate-400">
-                  No pending requests.
-                </td>
-              </tr>
-            )}
-            {requests.map((r) => (
-              <tr key={r.id} className="border-b border-slate-50 hover:bg-slate-50">
-                <td className="px-5 py-3 font-medium text-slate-800">
-                  <div>{r.fullName}</div>
-                  {(r.firstName || r.lastName) && (
-                    <div className="text-[11px] text-slate-400">
-                      {[r.firstName, r.middleName, r.lastName].filter(Boolean).join(' ')}
-                    </div>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-slate-600">{r.sex || '—'}</td>
-                <td className="px-5 py-3 text-slate-600">{r.contactNo || '—'}</td>
-                <td className="px-5 py-3 text-slate-500">{r.email}</td>
-                <td className="px-5 py-3 text-slate-500">{r.department}</td>
-                <td className="px-5 py-3 text-slate-500">{r.employeeId}</td>
-                <td className="px-5 py-3">
-                  {r.idDocumentUrl ? (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openPreview(r, 'id', 'staff')}
-                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100 flex items-center justify-center"
-                        title="Click to preview ID photo"
-                      >
-                        {brokenImages[`staff-id-${r.id}`] ? (
-                          <div className="flex items-center justify-center w-full h-full bg-slate-100 text-slate-400" title="Image unavailable">
-                            <AdminIcon name="id-card" size={16} color="#94a3b8" />
-                          </div>
-                        ) : (
-                          <>
-                            <img
-                              src={r.idDocumentUrl}
-                              alt={r.fullName}
-                              onError={() => handleImageError(`staff-id-${r.id}`)}
-                              className="w-full h-full object-cover group-hover:scale-105 transition"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                              <AdminIcon name="search" size={14} color="#ffffff" />
-                            </div>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openPreview(r, 'id', 'staff')}
-                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-md transition"
-                      >
-                        <AdminIcon name="id-card" size={13} color="#1d4ed8" />
-                        <span>ID</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-400">None</span>
-                  )}
-                </td>
-                <td className="px-5 py-3">
-                  {renderAiBadge(r, handleScanAdminId)}
-                </td>
-                <td className="px-5 py-3">
-                  {r.selfieIdUrl ? (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openPreview(r, 'selfie')}
-                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100 flex items-center justify-center"
-                        title="Click to preview selfie holding ID"
-                      >
-                        {brokenImages[`staff-selfie-${r.id}`] ? (
-                          <div className="flex items-center justify-center w-full h-full bg-slate-100 text-slate-400" title="Selfie unavailable">
-                            <AdminIcon name="selfie" size={16} color="#94a3b8" />
-                          </div>
-                        ) : (
-                          <>
-                            <img
-                              src={r.selfieIdUrl}
-                              alt="Selfie"
-                              onError={() => handleImageError(`staff-selfie-${r.id}`)}
-                              className="w-full h-full object-cover group-hover:scale-105 transition"
-                            />
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                              <AdminIcon name="search" size={14} color="#ffffff" />
-                            </div>
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => openPreview(r, 'selfie')}
-                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-md transition"
-                      >
-                        <AdminIcon name="selfie" size={13} color="#6d28d9" />
-                        <span>Selfie</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-xs text-slate-400">None</span>
-                  )}
-                </td>
-                <td className="px-5 py-3 text-slate-400 text-xs whitespace-nowrap">
-                  {new Date(r.requestedAt).toLocaleString()}
-                </td>
-                <td className="px-5 py-3 space-x-2 whitespace-nowrap">
-                  {r.idDocumentUrl && r.selfieIdUrl && (
-                    <button
-                      type="button"
-                      onClick={() => openPreview(r, 'compare')}
-                      className="text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 px-2.5 py-1.5 rounded-lg border border-blue-200 transition"
-                      title="Compare ID and Selfie side-by-side"
-                    >
-                      Compare
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleApprove(r.id)}
-                    disabled={actioningId === r.id}
-                    className="text-xs font-medium bg-green-600 hover:bg-green-500 text-white px-3 py-1.5 rounded-lg disabled:opacity-60"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => handleReject(r.id)}
-                    disabled={actioningId === r.id}
-                    className="text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg disabled:opacity-60"
-                  >
-                    Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
-      </div>
+
 
       {previewDoc && (
         <div
@@ -770,7 +545,7 @@ export default function PendingRequests() {
               </div>
               <button
                 type="button"
-                onClick={() => previewDoc.type === 'staff' ? handleScanAdminId(previewDoc.id) : handleScanResidentId(previewDoc.id)}
+                onClick={() => handleScanResidentId(previewDoc.id)}
                 disabled={scanningId === previewDoc.id}
                 className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 transition flex items-center gap-1.5 shadow-2xs disabled:opacity-60"
               >

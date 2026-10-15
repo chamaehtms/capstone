@@ -114,10 +114,7 @@ router.get('/sidebar-counts', async (req, res) => {
       pool.query(`SELECT id FROM notifications WHERE (target_role = 'admin' OR admin_id = $1) AND read = false LIMIT 50`, [adminId]),
     ]);
 
-    const pendingIds = [
-      ...pendingResidentsRes.rows.map((r) => `resident-${r.id}`),
-      ...pendingAccessRes.rows.map((a) => `access-${a.id}`),
-    ];
+    const pendingIds = pendingResidentsRes.rows.map((r) => `resident-${r.id}`);
 
     res.json({
       residents: residentsRes.rows.map((r) => r.id),
