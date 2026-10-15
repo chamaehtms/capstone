@@ -59,10 +59,17 @@ export default function ComplaintsRecord() {
 
   const fetchComplaints = async (q = '') => {
     setLoading(true);
-    const { data } = await api.get('/complaints', { params: { search: q } });
-    setComplaints(data.complaints);
-    setStats(data.stats);
-    setLoading(false);
+    setError('');
+    try {
+      const { data } = await api.get('/complaints', { params: { search: q } });
+      setComplaints(data.complaints || []);
+      setStats(data.stats || { active: 0, resolutionRate: 0 });
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Unable to load complaints records.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

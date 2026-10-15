@@ -1,33 +1,58 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
-import ForgotPassword from './pages/ForgotPassword.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import Services from './pages/Services.jsx';
-import FileComplaint from './pages/FileComplaint.jsx';
-import SubmissionSuccess from './pages/SubmissionSuccess.jsx';
-import Track from './pages/Track.jsx';
-import Profile from './pages/Profile.jsx';
-import Notifications from './pages/Notifications.jsx';
+
+// Lazy-load module pages
+const Register = lazy(() => import('./pages/Register.jsx'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
+const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
+const Services = lazy(() => import('./pages/Services.jsx'));
+const FileComplaint = lazy(() => import('./pages/FileComplaint.jsx'));
+const SubmissionSuccess = lazy(() => import('./pages/SubmissionSuccess.jsx'));
+const Track = lazy(() => import('./pages/Track.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const Notifications = lazy(() => import('./pages/Notifications.jsx'));
+
+function ResidentPageLoading() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div
+          style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid #e2e8f0',
+            borderTopColor: '#2b6ef2',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto 12px',
+          }}
+        />
+        <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Loading...</span>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
-      <Route path="/file-complaint" element={<ProtectedRoute><FileComplaint /></ProtectedRoute>} />
-      <Route path="/submission-success" element={<ProtectedRoute><SubmissionSuccess /></ProtectedRoute>} />
-      <Route path="/track" element={<ProtectedRoute><Track /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
-    </Routes>
+    <Suspense fallback={<ResidentPageLoading />}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
+        <Route path="/file-complaint" element={<ProtectedRoute><FileComplaint /></ProtectedRoute>} />
+        <Route path="/submission-success" element={<ProtectedRoute><SubmissionSuccess /></ProtectedRoute>} />
+        <Route path="/track" element={<ProtectedRoute><Track /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+      </Routes>
+    </Suspense>
   );
 }

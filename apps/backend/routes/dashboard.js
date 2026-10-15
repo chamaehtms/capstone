@@ -90,6 +90,49 @@ router.get('/overview', async (req, res) => {
   }
 });
 
+// GET /api/dashboard/sidebar-counts
+// Fast aggregation endpoint providing sidebar badge IDs in a single query
+router.get('/sidebar-counts', async (req, res) => {
+  try {
+    const adminId = req.user?.id || req.user?.userId || null;
+
+    const [
+      residentsRes,
+      complaintsRes,
+      meetingsRes,
+      escalationsRes,
+      pendingResidentsRes,
+      pendingAccessRes,
+      notificationsRes,
+    ] = await Promise.all([
+      pool.query(`SELECT id FROM residents WHERE NOT (self_registered = true AND status = 'Pending') ORDER BY created_at DESC LIMIT 100`),
+      pool.query(`SELECT id FROM complaints ORDER BY created_at DESC LIMIT 100`),
+      pool.query(`SELECT id FROM meetings ORDER BY date DESC, created_at DESC LIMIT 100`),
+      pool.query(`SELECT id FROM escalations ORDER BY created_at DESC LIMIT 100`),
+      pool.query(`SELECT id FROM residents WHERE self_registered = true AND status = 'Pending' LIMIT 50`),
+      pool.query(`SELECT id FROM access_requests WHERE status = 'pending' AND (email_verified = true OR email_verified IS NULL) LIMIT 50`),
+      pool.query(`SELECT id FROM notifications WHERE (target_role = 'admin' OR admin_id = $1) AND read = false LIMIT 50`, [adminId]),
+    ]);
+
+    const pendingIds = [
+      ...pendingResidentsRes.rows.map((r) => `resident-${r.id}`),
+      ...pendingAccessRes.rows.map((a) => `access-${a.id}`),
+    ];
+
+    res.json({
+      residents: residentsRes.rows.map((r) => r.id),
+      complaints: complaintsRes.rows.map((c) => c.id),
+      meetings: meetingsRes.rows.map((m) => m.id),
+      escalations: escalationsRes.rows.map((e) => e.id),
+      pendingRequests: pendingIds,
+      notifications: notificationsRes.rows.map((n) => n.id),
+    });
+  } catch (err) {
+    console.error('[SIDEBAR COUNTS] Error:', err);
+    res.status(500).json({ message: 'Error retrieving counts.' });
+  }
+});
+
 // GET /api/dashboard/notifications
 // Retrieves admin-targeted notifications
 router.get('/notifications', async (req, res) => {

@@ -16,87 +16,14 @@ export default function Navbar() {
 
     const loadNotifications = async () => {
       try {
-        const [announcements, escalations, mediations, dbNotifs] = await Promise.all([
-          isVerified ? getAnnouncements().catch(() => []) : Promise.resolve([]),
-          getMyEscalations().catch(() => []),
-          getMyMediations().catch(() => []),
-          getMyNotifications().catch(() => []),
-        ]);
+        const dbNotifs = await getMyNotifications().catch(() => []);
         if (!active) return;
 
         const seenIds = JSON.parse(localStorage.getItem('bp_seen_notifications') || '[]');
+        const unread = (Array.isArray(dbNotifs) ? dbNotifs : []).filter(
+          (n) => !n.read && !seenIds.includes(`db-${n.id}`) && !seenIds.includes(n.id)
+        ).length;
 
-        // Convert announcements into notification objects only for verified residents
-        const announcementNotifications = isVerified
-          ? announcements.map((announcement) => ({
-              id: `announcement-${announcement.id}`,
-              title: '📢 Community Announcement',
-              message: announcement.title,
-              type: 'announcement',
-              link: '/services',
-              unread: !seenIds.includes(`announcement-${announcement.id}`),
-            }))
-          : [];
-
-        // Convert escalations
-        const escalationNotifications = escalations.map((escalation) => ({
-          id: `escalation-${escalation.id}`,
-          title: '⚖️ Case Escalated for Review',
-          message: `${escalation.caseRef || escalation.complaintId} has been escalated for review.`,
-          type: 'escalation',
-          link: '/services',
-          unread: !seenIds.includes(`escalation-${escalation.id}`),
-        }));
-
-        // Convert primary mediations
-        const mediationNotifications = mediations.map((m) => ({
-          id: `mediation-${m.id}`,
-          title: `⚖️ Mediation Hearing: ${m.hearingStage || 'Lupon Session'}`,
-          message: `Notice of hearing for ${m.caseId}: ${m.date} at ${m.time || '10:00 AM'} (${m.location || 'Barangay Hall'}).`,
-          type: 'mediation',
-          link: `/track?ref=${encodeURIComponent(m.caseId)}`,
-          unread: !seenIds.includes(`mediation-${m.id}`),
-        }));
-
-        // Convert next session / follow-up mediation hearings (Section 7)
-        const nextSessionNotifications = mediations
-          .filter((m) => m.nextMeetingDate && String(m.nextMeetingDate).trim())
-          .map((m) => ({
-            id: `mediation-next-${m.id}-${m.nextMeetingDate}`,
-            title: '🗓️ Next Mediation Hearing Scheduled',
-            message: `Follow-up session for ${m.caseId}: ${m.nextMeetingDate} at ${m.nextMeetingTime || '10:00 AM'} (${m.nextMeetingVenue || 'Barangay Poblacion Mediation Hall'}).`,
-            type: 'next_hearing',
-            link: `/track?ref=${encodeURIComponent(m.caseId)}`,
-            unread: !seenIds.includes(`mediation-next-${m.id}-${m.nextMeetingDate}`),
-          }));
-
-        // Convert persistent db notifications
-        const persistentNotifications = dbNotifs.map((n) => ({
-          id: `db-${n.id}`,
-          title: n.title,
-          message: n.message,
-          type: n.type,
-          link: n.link || '/track',
-          unread: !n.read && !seenIds.includes(`db-${n.id}`),
-        }));
-
-        // Deduplicate all by id
-        const map = new Map();
-        [
-          ...persistentNotifications,
-          ...nextSessionNotifications,
-          ...mediationNotifications,
-          ...announcementNotifications,
-          ...escalationNotifications,
-        ].forEach((item) => {
-          if (!map.has(item.id)) map.set(item.id, item);
-        });
-
-        const allNotifications = Array.from(map.values());
-        const unread = allNotifications.filter((n) => n.unread).length;
-
-        allNotifications.forEach((n) => lastKnownIdsRef.current.add(n.id));
-        setNotifications(allNotifications);
         setUnreadCount(unread);
         initialized.current = true;
       } catch {
@@ -105,7 +32,7 @@ export default function Navbar() {
     };
 
     loadNotifications();
-    const intervalId = window.setInterval(loadNotifications, 10000);
+    const intervalId = window.setInterval(loadNotifications, 30000);
     return () => {
       active = false;
       window.clearInterval(intervalId);

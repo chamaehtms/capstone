@@ -231,6 +231,37 @@ async function run() {
     CREATE INDEX IF NOT EXISTS idx_notifications_admin ON notifications(admin_id);
   `);
 
+  console.log('Ensuring query performance indexes exist on core tables...');
+  await pool.query(`
+    -- Residents performance indexes
+    CREATE INDEX IF NOT EXISTS idx_residents_created_at ON residents(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_residents_self_reg_status ON residents(self_registered, status);
+    CREATE INDEX IF NOT EXISTS idx_residents_zone ON residents(zone);
+    CREATE INDEX IF NOT EXISTS idx_residents_lower_email ON residents(LOWER(email));
+    CREATE INDEX IF NOT EXISTS idx_residents_lower_full_name ON residents(LOWER(full_name));
+
+    -- Complaints performance indexes
+    CREATE INDEX IF NOT EXISTS idx_complaints_created_at ON complaints(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);
+    CREATE INDEX IF NOT EXISTS idx_complaints_category ON complaints(category);
+    CREATE INDEX IF NOT EXISTS idx_complaints_priority ON complaints(priority);
+    CREATE INDEX IF NOT EXISTS idx_complaints_filed_by ON complaints(filed_by_resident_id);
+
+    -- Meetings & Mediation performance indexes
+    CREATE INDEX IF NOT EXISTS idx_meetings_date ON meetings(date DESC);
+    CREATE INDEX IF NOT EXISTS idx_meetings_type ON meetings(meeting_type);
+    CREATE INDEX IF NOT EXISTS idx_meetings_case_id ON meetings(case_id);
+    CREATE INDEX IF NOT EXISTS idx_meetings_resident_id ON meetings(resident_id);
+
+    -- Access Requests performance indexes
+    CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status, requested_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_access_requests_lower_email ON access_requests(LOWER(email));
+
+    -- Escalations performance indexes
+    CREATE INDEX IF NOT EXISTS idx_escalations_created_at ON escalations(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_escalations_status ON escalations(status);
+  `);
+
   const { rows: adminCountRows } = await pool.query('SELECT COUNT(*) FROM admins');
   if (Number(adminCountRows[0].count) === 0) {
     console.log('Seeding default admin account (brgypoblacoin@admin.gov / admin123)...');

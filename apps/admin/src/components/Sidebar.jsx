@@ -56,36 +56,18 @@ export default function Sidebar({ isOpen = false, onClose = () => {} }) {
 
     const loadCounts = async () => {
       try {
-        const [residents, complaints, meetings, escalations, pendingResidents, accessRequests, notifsRes] = await Promise.all([
-          api.get('/residents'),
-          api.get('/complaints'),
-          api.get('/meetings'),
-          api.get('/escalations'),
-          api.get('/residents/pending-registrations'),
-          api.get('/auth/access-requests'),
-          api.get('/dashboard/notifications').catch(() => ({ data: [] })),
-        ]);
-        if (!active) return;
+        const { data } = await api.get('/dashboard/sidebar-counts');
+        if (!active || !data) return;
 
         const initialized = currentIds.current.initialized === true;
-        const residentIds = residents.data.residents.map((item) => item.id);
-        const complaintIds = complaints.data.complaints.map((item) => item.id);
-        const meetingIds = meetings.data.map((item) => item.id);
-        const escalationIds = escalations.data.escalations.map((item) => item.id);
-        const pendingIds = [
-          ...pendingResidents.data.map((item) => `resident-${item.id}`),
-          ...accessRequests.data.map((item) => `access-${item.id}`),
-        ];
-        const notifItems = Array.isArray(notifsRes?.data) ? notifsRes.data : [];
-        const unreadNotifIds = notifItems.filter((n) => !n.read).map((n) => n.id);
 
         const counts = {
-          residents: updateCount('residents', residentIds, initialized),
-          complaints: updateCount('complaints', complaintIds, initialized),
-          meetings: updateCount('meetings', meetingIds, initialized),
-          escalations: updateCount('escalations', escalationIds, initialized),
-          pendingRequests: updateCount('pendingRequests', pendingIds, initialized),
-          notifications: updateCount('notifications', unreadNotifIds, initialized),
+          residents: updateCount('residents', data.residents || [], initialized),
+          complaints: updateCount('complaints', data.complaints || [], initialized),
+          meetings: updateCount('meetings', data.meetings || [], initialized),
+          escalations: updateCount('escalations', data.escalations || [], initialized),
+          pendingRequests: updateCount('pendingRequests', data.pendingRequests || [], initialized),
+          notifications: updateCount('notifications', data.notifications || [], initialized),
         };
         currentIds.current.initialized = true;
         setNewCounts(counts);
@@ -95,7 +77,7 @@ export default function Sidebar({ isOpen = false, onClose = () => {} }) {
     };
 
     loadCounts();
-    const intervalId = window.setInterval(loadCounts, 15000);
+    const intervalId = window.setInterval(loadCounts, 30000);
     return () => {
       active = false;
       window.clearInterval(intervalId);
