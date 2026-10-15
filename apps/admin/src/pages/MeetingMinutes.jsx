@@ -661,7 +661,7 @@ export default function MeetingMinutes() {
   return (
     <div className="space-y-6">
       {/* TOP HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print-hidden">
         <div>
           {selected ? (
             <div className="flex items-center gap-3">
@@ -760,7 +760,7 @@ export default function MeetingMinutes() {
       </div>
 
       {message && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center justify-between">
+        <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center justify-between print-hidden">
           <span>{message}</span>
           <button type="button" onClick={() => setMessage('')} className="text-emerald-600 hover:text-emerald-900 p-1">
             <AdminIcon name="close" size={14} />
@@ -768,7 +768,7 @@ export default function MeetingMinutes() {
         </div>
       )}
       {error && (
-        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-semibold flex items-center justify-between">
+        <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-semibold flex items-center justify-between print-hidden">
           <span>{error}</span>
           <button type="button" onClick={() => setError('')} className="text-red-600 hover:text-red-900 p-1">
             <AdminIcon name="close" size={14} />
@@ -1079,9 +1079,29 @@ export default function MeetingMinutes() {
         </div>
       ) : (
         /* WHEN A MEETING IS CLICKED: DISPLAY PROCEEDINGS & MINUTES (SECTIONS 1 TO 7) */
-        <div className="space-y-6">
+        <div className="space-y-6 printable-document">
+          {/* Official Letterhead for Print/File Output */}
+          <div className="print-only-header">
+            <div className="flex items-center justify-center gap-3">
+              <img src="/barangay-seal.png" alt="Barangay Poblacion Seal" className="w-14 h-14 object-contain inline-block" />
+              <div>
+                <p className="text-xs uppercase tracking-widest text-slate-600 font-semibold">Republic of the Philippines · Province of Cavite</p>
+                <h1 className="text-xl font-bold text-slate-900 tracking-wide">BARANGAY POBLACION</h1>
+                <p className="text-xs text-slate-700 font-semibold tracking-wider">OFFICE OF THE LUPONG TAGAPAMAYAPA / SANGGUNIANG BARANGAY</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-2 border-t border-slate-300">
+              <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">
+                {isSelectedMediation ? 'OFFICIAL MEDIATION PROCEEDINGS & MINUTES RECORD' : 'OFFICIAL SANGGUNIANG BARANGAY SESSION MINUTES'}
+              </h2>
+              {selected.caseId && (
+                <p className="text-xs font-semibold text-slate-700 mt-0.5">KP Case Reference Number: #{selected.caseId}</p>
+              )}
+            </div>
+          </div>
+
           {/* Detail Back Navigation Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs print-hidden">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -1112,14 +1132,14 @@ export default function MeetingMinutes() {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg transition shadow-2xs"
               >
                 <AdminIcon name="printer" size={14} />
-                <span>Print</span>
+                <span>Print Document</span>
               </button>
             </div>
           </div>
 
           {/* NOTIFICATION STATUS BANNER (for Mediation Meetings) */}
           {isSelectedMediation && (
-            <div className={`rounded-xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+            <div className={`rounded-xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 print-hidden ${
               selected.notificationSent
                 ? 'bg-purple-50/80 border-purple-200 text-purple-900'
                 : 'bg-amber-50 border-amber-200 text-amber-900'
@@ -1707,8 +1727,36 @@ export default function MeetingMinutes() {
             </div>
           </div>
 
+          {/* OFFICIAL SIGNATURE / ATTESTATION BLOCK (For Print & Official Records) */}
+          <div className="print-only-signatures pt-6">
+            <p className="text-xs font-semibold text-slate-600 mb-8">
+              I hereby certify that the above proceedings, undertakings, and recorded minutes are true and correct:
+            </p>
+            <div className="grid grid-cols-2 gap-12 text-center text-xs">
+              <div>
+                <div className="border-b border-slate-900 pb-1 font-bold text-slate-900">
+                  {selected.mediator || 'HON. ROBERTO CRUZ'}
+                </div>
+                <div className="text-[11px] text-slate-600 mt-1 uppercase font-semibold">
+                  {isSelectedMediation ? 'Punong Barangay / Lupon Chairman' : 'Presiding Officer'}
+                </div>
+              </div>
+              <div>
+                <div className="border-b border-slate-900 pb-1 font-bold text-slate-900">
+                  MARIA SANTOS
+                </div>
+                <div className="text-[11px] text-slate-600 mt-1 uppercase font-semibold">
+                  {isSelectedMediation ? 'Lupon Secretary / Attesting Officer' : 'Barangay Secretary'}
+                </div>
+              </div>
+            </div>
+            <div className="text-center text-[10px] text-slate-400 mt-8">
+              Official Document Generated on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · Barangay Poblacion LGU
+            </div>
+          </div>
+
           {/* BOTTOM BACK BUTTON */}
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-2 flex items-center justify-between print-hidden">
             <button
               type="button"
               onClick={() => setSelected(null)}

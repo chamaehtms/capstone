@@ -146,3 +146,79 @@
     padding: 24px 0 0;
   }
 }
+
+/* ==========================================================================
+   PRINT STYLES FOR OFFICIAL MEDIATION & BARANGAY DOCUMENTS
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm 15mm 15mm 15mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide app shell chrome: sidebar, top header, banners, modals, and all buttons */
+  aside,
+  header.admin-header,
+  .print-hidden,
+  button,
+  select,
+  input,
+  textarea,
+  .no-print {
+    display: none !important;
+  }
+
+  .admin-main {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Expand print document container to full width with crisp typography */
+  .printable-document {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Official Barangay letterhead when printing */
+  .print-only-header {
+    display: block !important;
+    text-align: center;
+    border-bottom: 2px solid #1e3a8a;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+
+  .print-only-signatures {
+    display: block !important;
+    margin-top: 36px;
+    page-break-inside: avoid;
+  }
+
+  /* Prevent awkward page breaks across cards and tables */
+  .bg-white,
+  table,
+  tr,
+  .border {
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+}
+
+.print-only-header,
+.print-only-signatures {
+  display: none;
+}
