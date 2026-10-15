@@ -9,11 +9,27 @@ async function sendEmail({ to, subject, text, html }) {
   if (!isResendConfigured()) throw new Error('Resend email configuration is missing.');
 
   const resend = new Resend(process.env.RESEND_API_KEY.trim());
+  const rawFrom = process.env.RESEND_FROM.trim();
+  const fromFormatted = rawFrom.includes('<')
+    ? rawFrom
+    : `Barangay Poblacion <${rawFrom}>`;
+
+  // Auto-generate clean plain-text alternative if not explicitly supplied
+  const cleanText =
+    text ||
+    (html
+      ? html
+          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      : '');
+
   const { data, error } = await resend.emails.send({
-    from: process.env.RESEND_FROM.trim(),
+    from: fromFormatted,
     to: Array.isArray(to) ? to : [to],
     subject,
-    text,
+    text: cleanText,
     html,
   });
   if (error) throw new Error(error.message || 'Resend could not send the email.');
