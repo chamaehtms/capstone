@@ -63,7 +63,7 @@ export default function Overview() {
           label="Total Population"
           value={data.totalPopulation.toLocaleString()}
           accent="blue"
-          sub="↑ 2.4% increase from last quarter"
+          sub="Verified registered residents"
         />
         <StatCard label="Pending Complaints" value={data.pendingComplaints} accent="red">
           {data.highPriorityComplaints > 0 && (

@@ -75,13 +75,21 @@ router.get('/overview', async (req, res) => {
       })),
     ];
 
+    // Real-time resolved complaints count from the database
+    const { rows: resolvedStatRows } = await pool.query(
+      `SELECT COUNT(*)::int AS resolved FROM complaints WHERE status = 'Resolved'`
+    );
+    const totalComplaints = complaintStatRows[0].pending + resolvedStatRows[0].resolved;
+    const resolvedCount = resolvedStatRows[0].resolved;
+    const resolutionPct = totalComplaints > 0 ? Math.round((resolvedCount / totalComplaints) * 100) : 100;
+
     res.json({
-      totalPopulation: 12482,
+      totalPopulation: residentCountRows[0].count,
       totalEnrolledResidents: residentCountRows[0].count,
       pendingComplaints: complaintStatRows[0].pending,
       highPriorityComplaints: complaintStatRows[0].high_priority,
-      activeProjects: 8,
-      activeProjectsCompletionPct: 75,
+      activeProjects: resolvedCount,
+      activeProjectsCompletionPct: resolutionPct,
       recentActivity,
     });
   } catch (err) {
