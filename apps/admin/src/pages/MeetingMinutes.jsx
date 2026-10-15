@@ -744,18 +744,6 @@ export default function MeetingMinutes() {
             <AdminIcon name="plus" size={14} />
             <span>Record Council Session</span>
           </button>
-
-          {selected && (
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg transition shadow-xs"
-              title="Print meeting minutes"
-            >
-              <AdminIcon name="printer" size={14} />
-              <span>Print</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -1125,14 +1113,6 @@ export default function MeetingMinutes() {
               >
                 <AdminIcon name="edit" size={14} />
                 <span>Edit Record</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg transition shadow-2xs"
-              >
-                <AdminIcon name="printer" size={14} />
-                <span>Print Document</span>
               </button>
             </div>
           </div>
