@@ -16,6 +16,7 @@ export default function Announcements() {
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [removeExistingImage, setRemoveExistingImage] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const load = () => {
     setLoading(true);
