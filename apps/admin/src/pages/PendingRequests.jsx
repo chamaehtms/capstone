@@ -9,8 +9,12 @@ export default function PendingRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actioningId, setActioningId] = useState(null);
-  const [message, setMessage] = useState('');
   const [previewDoc, setPreviewDoc] = useState(null);
+  const [brokenImages, setBrokenImages] = useState({});
+
+  const handleImageError = (key) => {
+    setBrokenImages((prev) => ({ ...prev, [key]: true }));
+  };
 
   const load = () => {
     setLoading(true);
@@ -357,17 +361,26 @@ export default function PendingRequests() {
                       <button
                         type="button"
                         onClick={() => openPreview(r, 'id', 'resident')}
-                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100"
+                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100 flex items-center justify-center"
                         title="Click to preview ID card"
                       >
-                        <img
-                          src={r.idDocumentUrl}
-                          alt="ID"
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          <AdminIcon name="search" size={14} color="#ffffff" />
-                        </div>
+                        {brokenImages[`res-id-${r.id}`] ? (
+                          <div className="flex items-center justify-center w-full h-full bg-slate-100 text-slate-400" title="Image unavailable">
+                            <AdminIcon name="id-card" size={16} color="#94a3b8" />
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={r.idDocumentUrl}
+                              alt="ID"
+                              onError={() => handleImageError(`res-id-${r.id}`)}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              <AdminIcon name="search" size={14} color="#ffffff" />
+                            </div>
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -391,17 +404,26 @@ export default function PendingRequests() {
                       <button
                         type="button"
                         onClick={() => openPreview(r, 'selfie')}
-                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100"
+                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100 flex items-center justify-center"
                         title="Click to preview selfie holding ID"
                       >
-                        <img
-                          src={r.selfieIdUrl}
-                          alt="Selfie"
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          <AdminIcon name="search" size={14} color="#ffffff" />
-                        </div>
+                        {brokenImages[`res-selfie-${r.id}`] ? (
+                          <div className="flex items-center justify-center w-full h-full bg-slate-100 text-slate-400" title="Selfie unavailable">
+                            <AdminIcon name="selfie" size={16} color="#94a3b8" />
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={r.selfieIdUrl}
+                              alt="Selfie"
+                              onError={() => handleImageError(`res-selfie-${r.id}`)}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              <AdminIcon name="search" size={14} color="#ffffff" />
+                            </div>
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -507,17 +529,26 @@ export default function PendingRequests() {
                       <button
                         type="button"
                         onClick={() => openPreview(r, 'id', 'staff')}
-                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100"
+                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-blue-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100 flex items-center justify-center"
                         title="Click to preview ID photo"
                       >
-                        <img
-                          src={r.idDocumentUrl}
-                          alt={r.fullName}
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          <AdminIcon name="search" size={14} color="#ffffff" />
-                        </div>
+                        {brokenImages[`staff-id-${r.id}`] ? (
+                          <div className="flex items-center justify-center w-full h-full bg-slate-100 text-slate-400" title="Image unavailable">
+                            <AdminIcon name="id-card" size={16} color="#94a3b8" />
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={r.idDocumentUrl}
+                              alt={r.fullName}
+                              onError={() => handleImageError(`staff-id-${r.id}`)}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              <AdminIcon name="search" size={14} color="#ffffff" />
+                            </div>
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -541,17 +572,26 @@ export default function PendingRequests() {
                       <button
                         type="button"
                         onClick={() => openPreview(r, 'selfie')}
-                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100"
+                        className="relative group w-9 h-9 rounded-lg overflow-hidden border border-slate-200 hover:border-purple-500 transition shrink-0 cursor-pointer shadow-xs bg-slate-100 flex items-center justify-center"
                         title="Click to preview selfie holding ID"
                       >
-                        <img
-                          src={r.selfieIdUrl}
-                          alt="Selfie"
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
-                          <AdminIcon name="search" size={14} color="#ffffff" />
-                        </div>
+                        {brokenImages[`staff-selfie-${r.id}`] ? (
+                          <div className="flex items-center justify-center w-full h-full bg-slate-100 text-slate-400" title="Selfie unavailable">
+                            <AdminIcon name="selfie" size={16} color="#94a3b8" />
+                          </div>
+                        ) : (
+                          <>
+                            <img
+                              src={r.selfieIdUrl}
+                              alt="Selfie"
+                              onError={() => handleImageError(`staff-selfie-${r.id}`)}
+                              className="w-full h-full object-cover group-hover:scale-105 transition"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                              <AdminIcon name="search" size={14} color="#ffffff" />
+                            </div>
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
@@ -759,11 +799,20 @@ export default function PendingRequests() {
                       </a>
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-[300px] max-h-[50vh] bg-slate-900/5 rounded-lg p-2 overflow-hidden">
-                      <img
-                        src={previewDoc.idUrl}
-                        alt="Valid ID Card"
-                        className="max-h-[46vh] w-auto object-contain rounded shadow-xs"
-                      />
+                      {brokenImages[`modal-id-${previewDoc.id}`] ? (
+                        <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                          <AdminIcon name="id-card" size={40} color="#94a3b8" />
+                          <p className="text-xs font-semibold mt-2 text-slate-500">Physical ID image file was cleaned up from local disk.</p>
+                          <span className="text-[11px] text-slate-400 mt-1">Cloudinary storage keeps new uploads permanent.</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={previewDoc.idUrl}
+                          alt="Valid ID Card"
+                          onError={() => handleImageError(`modal-id-${previewDoc.id}`)}
+                          className="max-h-[46vh] w-auto object-contain rounded shadow-xs"
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -784,22 +833,40 @@ export default function PendingRequests() {
                       </a>
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-[300px] max-h-[50vh] bg-slate-900/5 rounded-lg p-2 overflow-hidden">
-                      <img
-                        src={previewDoc.selfieUrl}
-                        alt="Selfie Holding ID"
-                        className="max-h-[46vh] w-auto object-contain rounded shadow-xs"
-                      />
+                      {brokenImages[`modal-selfie-${previewDoc.id}`] ? (
+                        <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
+                          <AdminIcon name="selfie" size={40} color="#94a3b8" />
+                          <p className="text-xs font-semibold mt-2 text-slate-500">Selfie image file was cleaned up from local disk.</p>
+                          <span className="text-[11px] text-slate-400 mt-1">Cloudinary storage keeps new uploads permanent.</span>
+                        </div>
+                      ) : (
+                        <img
+                          src={previewDoc.selfieUrl}
+                          alt="Selfie Holding ID"
+                          onError={() => handleImageError(`modal-selfie-${previewDoc.id}`)}
+                          className="max-h-[46vh] w-auto object-contain rounded shadow-xs"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center">
                   <div className="w-full flex items-center justify-center max-h-[60vh] overflow-auto rounded-xl bg-slate-900/5 p-3">
-                    <img
-                      src={previewDoc.tab === 'selfie' ? previewDoc.selfieUrl : previewDoc.idUrl}
-                      alt="Verification Document"
-                      className="max-h-[55vh] w-auto object-contain rounded-lg shadow-sm"
-                    />
+                    {brokenImages[`modal-single-${previewDoc.id}-${previewDoc.tab}`] ? (
+                      <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                        <AdminIcon name={previewDoc.tab === 'selfie' ? 'selfie' : 'id-card'} size={48} color="#94a3b8" />
+                        <p className="text-xs font-semibold mt-2 text-slate-500">Document image file is no longer on disk.</p>
+                        <span className="text-[11px] text-slate-400 mt-1">Cloud storage ensures all future submissions remain accessible.</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={previewDoc.tab === 'selfie' ? previewDoc.selfieUrl : previewDoc.idUrl}
+                        alt="Verification Document"
+                        onError={() => handleImageError(`modal-single-${previewDoc.id}-${previewDoc.tab}`)}
+                        className="max-h-[55vh] w-auto object-contain rounded-lg shadow-sm"
+                      />
+                    )}
                   </div>
                   <div className="mt-2 text-center">
                     <span className="text-xs font-semibold text-slate-600 flex items-center justify-center gap-1.5">
