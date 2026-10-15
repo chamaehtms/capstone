@@ -62,7 +62,17 @@ input:focus, select:focus, textarea:focus{outline:2px solid var(--blue);backgrou
 textarea{resize:vertical;min-height:90px}
 .field{margin-bottom:16px}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.phone-row{display:grid;grid-template-columns:70px 1fr;gap:10px}
+.phone-row{display:grid;grid-template-columns:72px 1fr;gap:8px;align-items:center;width:100%}
+.phone-row input[disabled]{
+  text-align:center;
+  font-weight:700;
+  color:#1e293b;
+  background:#e2e8f0;
+  cursor:not-allowed;
+  user-select:none;
+  padding-left:4px;
+  padding-right:4px;
+}
 
 /* Login */
 .auth-card{width:100%;max-width:460px;background:#ffffff;border-radius:var(--radius-lg);padding:36px 34px;text-align:center;border:1px solid #d1d5db;box-shadow:0 20px 45px rgba(0,0,0,.25)}
@@ -376,8 +386,8 @@ hr.dash{border:none;border-top:1px dashed var(--border);margin:20px 0}
   .notification-menu{width:min(290px,calc(100vw - 28px))}
   .announcement-toast{left:14px;right:14px;min-width:0;top:70px}
   .auth-card{padding:28px 20px}
-  .auth-title{font-size:1.25rem}
-  .field-row,.phone-row{grid-template-columns:1fr;gap:0}
+  .field-row{grid-template-columns:1fr;gap:0}
+  .phone-row{grid-template-columns:64px 1fr;gap:6px}
   .hero-title{font-size:1.55rem;margin-top:22px}
   .section-title{align-items:flex-start;gap:10px;flex-wrap:wrap}
   .card{padding:18px 16px}

@@ -105,8 +105,13 @@ export default function Register() {
 
   function update(field, value) {
     if (field === 'contactNumber') {
-      const clean = value.replace(/\D/g, '').slice(0, 10);
-      setForm(f => ({ ...f, [field]: clean }));
+      let digits = String(value || '').replace(/\D/g, '');
+      if (digits.startsWith('09')) {
+        digits = digits.slice(1);
+      } else if (digits.startsWith('639')) {
+        digits = digits.slice(2);
+      }
+      setForm(f => ({ ...f, [field]: digits.slice(0, 10) }));
       return;
     }
     if (field === 'email') {
@@ -233,8 +238,9 @@ export default function Register() {
       return;
     }
 
-    if (!/^\+?\d{10,13}$/.test('+63' + form.contactNumber.trim())) {
-      setError('Contact number must start with +63 and contain 10 digits after the country code.');
+    const cleanDigits = (form.contactNumber || '').trim().replace(/\D/g, '');
+    if (!/^9\d{9}$/.test(cleanDigits)) {
+      setError('Contact number must be 10 digits starting with 9 (e.g., 9171234567).');
       return;
     }
 
@@ -258,7 +264,7 @@ export default function Register() {
         lastName: form.lastName.trim(),
         dateOfBirth: form.dateOfBirth,
         sex: form.sex,
-        contactNumber: '+63 ' + form.contactNumber.trim(),
+        contactNumber: `+63${cleanDigits}`,
         purok: form.purok,
         email: form.email.trim(),
         password: form.password,
@@ -820,14 +826,26 @@ export default function Register() {
               <div className="field">
                 <label className="field-label">Contact Number</label>
                 <div className="phone-row">
-                  <input value="+63" disabled />
                   <input
+                    value="+63"
+                    disabled
+                    aria-label="Country Code"
+                    style={{
+                      textAlign: 'center',
+                      fontWeight: 700,
+                      cursor: 'not-allowed',
+                      userSelect: 'none',
+                    }}
+                  />
+                  <input
+                    type="tel"
                     value={form.contactNumber}
                     onChange={e => update('contactNumber', e.target.value)}
-                    placeholder="917 123 4567"
+                    placeholder="9171234567"
                     maxLength={10}
                     inputMode="numeric"
                     required
+                    aria-label="10-digit mobile number"
                   />
                 </div>
               </div>
