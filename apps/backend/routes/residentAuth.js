@@ -611,20 +611,16 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ message: 'The verification code is incorrect.' });
     }
     const { rows: updatedRows } = await pool.query(
-      `UPDATE residents SET email_verified = true, email_verification_code_hash = NULL,
+      `UPDATE residents SET email_verified = true, status = 'Verified', email_verification_code_hash = NULL,
        email_verification_expires_at = NULL, email_verification_attempts = 0 WHERE id = $1
        RETURNING *`,
       [resident.id]
     );
     const updatedResident = updatedRows[0] || resident;
 
-    // Send status notification email (Approved vs Pending) now that email is verified
+    // Send official approval email to resident now that email verification is confirmed
     try {
-      if (updatedResident.status === 'Verified') {
-        await sendResidentApprovalEmail(updatedResident);
-      } else {
-        await sendResidentPendingVerificationEmail(updatedResident);
-      }
+      await sendResidentApprovalEmail(updatedResident);
     } catch (mailErr) {
       console.error('[verify-email] Notice email failed:', mailErr.message);
     }
@@ -635,17 +631,13 @@ router.post('/verify-email', async (req, res) => {
       { expiresIn: '30d' }
     );
 
-    const isVerified = updatedResident.status === 'Verified';
-
     res.json({
       success: true,
       token,
       resident: toResidentAccount(updatedResident),
-      verified: isVerified,
-      status: updatedResident.status,
-      message: isVerified
-        ? 'Email verified successfully! Your account is approved and ready.'
-        : 'Email verified successfully! Your registration is awaiting barangay approval.',
+      verified: true,
+      status: 'Verified',
+      message: 'Email and identity verified successfully! Your account has been automatically approved for full portal access.',
     });
   } catch (err) {
     console.error(err);

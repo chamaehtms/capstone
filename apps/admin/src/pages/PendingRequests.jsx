@@ -244,11 +244,17 @@ export default function PendingRequests() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Pending Registrations</h1>
-        <p className="text-sm text-slate-500">
-          Review and approve or reject resident registrations submitted through the Residents Portal. Inspect both the Valid ID and the Selfie holding ID to confirm identity.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Pending Registrations</h1>
+          <p className="text-sm text-slate-500">
+            Review resident registrations submitted through the Residents Portal. Registrants who verify their 6-digit Gmail code with an authentic ID are automatically approved.
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold shrink-0">
+          <AdminIcon name="check-circle" size={14} color="#15803d" />
+          <span>AI Auto-Accept: Active on Gmail Code</span>
+        </div>
       </div>
 
       {message && <p className="text-sm text-green-600">{message}</p>}
