@@ -16,11 +16,20 @@ export default function Announcements() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
 
-  const load = () =>
-    api.get('/announcements').then((res) => {
-      setAnnouncements(res.data);
-      setLoading(false);
-    });
+  const load = () => {
+    setLoading(true);
+    api.get('/announcements')
+      .then((res) => {
+        setAnnouncements(res.data);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('Unable to load announcements.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
     load();

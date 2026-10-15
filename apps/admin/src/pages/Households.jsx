@@ -113,17 +113,20 @@ export default function Households() {
     remarks: '',
   });
 
-  const loadData = async () => {
+  const loadData = async (refreshDirectory = false) => {
     setLoading(true);
     setError('');
     try {
-      const [hhRes, resRes] = await Promise.all([
-        api.get('/households', { params: { search, zone: filterZone } }),
-        api.get('/residents/all-directory').catch(() => ({ data: [] })),
-      ]);
+      const promises = [api.get('/households', { params: { search, zone: filterZone } })];
+      if (refreshDirectory || residents.length === 0) {
+        promises.push(api.get('/residents/all-directory').catch(() => ({ data: [] })));
+      }
+      const [hhRes, resRes] = await Promise.all(promises);
       setHouseholds(hhRes.data.households || []);
       setStats(hhRes.data.stats || { totalHouseholds: 0, totalMembers: 0, total4ps: 0, totalIndigent: 0 });
-      setResidents(Array.isArray(resRes.data) ? resRes.data : []);
+      if (resRes) {
+        setResidents(Array.isArray(resRes.data) ? resRes.data : []);
+      }
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.message || 'Unable to load household records.');
