@@ -8,15 +8,22 @@ export default function ResidentRecords() {
   const [residents, setResidents] = useState([]);
   const [stats, setStats] = useState({ total: 0, male: 0, female: 0, verified: 0 });
   const [search, setSearch] = useState('');
+  const [selectedGender, setSelectedGender] = useState('All'); // 'All' | 'Male' | 'Female' | 'Verified'
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState('');
   const [brokenImages, setBrokenImages] = useState({});
 
-  const fetchResidents = async (q = '') => {
+  const fetchResidents = async (q = '', gender = selectedGender) => {
     setLoading(true);
     try {
-      const { data } = await api.get('/residents', { params: { search: q } });
+      const params = { search: q };
+      if (gender === 'Male' || gender === 'Female') {
+        params.gender = gender;
+      } else if (gender === 'Verified') {
+        params.status = 'Verified';
+      }
+      const { data } = await api.get('/residents', { params });
       setResidents(data.residents);
       setStats(data.stats);
     } catch (err) {
@@ -27,12 +34,17 @@ export default function ResidentRecords() {
   };
 
   useEffect(() => {
-    fetchResidents();
-  }, []);
+    fetchResidents(search, selectedGender);
+  }, [selectedGender]);
+
+  const handleGenderToggle = (genderKey) => {
+    // If user clicks the currently active filter, reset to 'All'
+    setSelectedGender((prev) => (prev === genderKey ? 'All' : genderKey));
+  };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    fetchResidents(search);
+    fetchResidents(search, selectedGender);
   };
 
   const handleDelete = async (resident) => {
@@ -43,7 +55,7 @@ export default function ResidentRecords() {
     setDeletingId(resident.id);
     try {
       await api.delete(`/residents/${resident.id}`);
-      await fetchResidents(search);
+      await fetchResidents(search, selectedGender);
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to delete resident.');
     } finally {
@@ -61,10 +73,54 @@ export default function ResidentRecords() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Total Residents" value={stats.total} accent="blue" />
-        <StatCard label="Total Male" value={stats.male} accent="blue" />
-        <StatCard label="Total Female" value={stats.female} accent="orange" />
-        <StatCard label="Verified" value={stats.verified} accent="green" />
+        <StatCard
+          label="Total Residents"
+          value={stats.total}
+          accent="blue"
+          sub="Click to show all"
+          onClick={() => handleGenderToggle('All')}
+          className={`transition-all ${
+            selectedGender === 'All'
+              ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50/20'
+              : 'hover:border-slate-300'
+          }`}
+        />
+        <StatCard
+          label="Total Male"
+          value={stats.male}
+          accent="blue"
+          sub={selectedGender === 'Male' ? '✓ Showing Male only' : 'Click to filter Male'}
+          onClick={() => handleGenderToggle('Male')}
+          className={`transition-all ${
+            selectedGender === 'Male'
+              ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50/30'
+              : 'hover:border-blue-300'
+          }`}
+        />
+        <StatCard
+          label="Total Female"
+          value={stats.female}
+          accent="orange"
+          sub={selectedGender === 'Female' ? '✓ Showing Female only' : 'Click to filter Female'}
+          onClick={() => handleGenderToggle('Female')}
+          className={`transition-all ${
+            selectedGender === 'Female'
+              ? 'ring-2 ring-orange-500 ring-offset-2 bg-orange-50/30'
+              : 'hover:border-orange-300'
+          }`}
+        />
+        <StatCard
+          label="Verified"
+          value={stats.verified}
+          accent="green"
+          sub={selectedGender === 'Verified' ? '✓ Showing Verified only' : 'Click to filter Verified'}
+          onClick={() => handleGenderToggle('Verified')}
+          className={`transition-all ${
+            selectedGender === 'Verified'
+              ? 'ring-2 ring-green-500 ring-offset-2 bg-green-50/30'
+              : 'hover:border-green-300'
+          }`}
+        />
       </div>
 
       {error && (
@@ -83,7 +139,22 @@ export default function ResidentRecords() {
 
       <div className="bg-white rounded-xl shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-800">Resident Registry</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold text-slate-800">Resident Registry</h2>
+            {selectedGender !== 'All' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                <span>Filter: <strong>{selectedGender}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedGender('All')}
+                  className="text-slate-400 hover:text-slate-600 ml-0.5"
+                  title="Clear filter"
+                >
+                  <AdminIcon name="x" size={12} />
+                </button>
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <form onSubmit={handleSearch} className="flex-1 sm:flex-initial">
               <input
@@ -107,6 +178,7 @@ export default function ResidentRecords() {
           <thead>
             <tr className="text-left text-xs text-slate-400 border-b border-slate-100">
               <th className="px-5 py-3 font-medium">FULL NAME</th>
+              <th className="px-5 py-3 font-medium">GENDER</th>
               <th className="px-5 py-3 font-medium">ADDRESS</th>
               <th className="px-5 py-3 font-medium">STATUS</th>
               <th className="px-5 py-3 font-medium">CATEGORY</th>
@@ -117,15 +189,15 @@ export default function ResidentRecords() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
+                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
                   Loading residents…
                 </td>
               </tr>
             )}
             {!loading && residents.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
-                  No residents found.
+                <td colSpan={7} className="px-5 py-6 text-center text-slate-400">
+                  {selectedGender !== 'All' ? `No ${selectedGender.toLowerCase()} residents found.` : 'No residents found.'}
                 </td>
               </tr>
             )}
@@ -147,6 +219,19 @@ export default function ResidentRecords() {
                     )}
                     <span>{r.fullName}</span>
                   </div>
+                </td>
+                <td className="px-5 py-3">
+                  <span
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      r.gender === 'Male'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : r.gender === 'Female'
+                        ? 'bg-orange-50 text-orange-700 border border-orange-200'
+                        : 'bg-slate-50 text-slate-600 border border-slate-200'
+                    }`}
+                  >
+                    {r.gender || '—'}
+                  </span>
                 </td>
                 <td className="px-5 py-3 text-slate-500">{r.zone}</td>
                 <td className="px-5 py-3">

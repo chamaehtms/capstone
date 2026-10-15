@@ -100,7 +100,7 @@ function toResident(r) {
 // admin enrolled directly always show up here immediately, Pending or not.
 router.get('/', async (req, res) => {
   try {
-    const { search, zone, status } = req.query;
+    const { search, zone, status, gender } = req.query;
     const conditions = [`NOT (self_registered = true AND status = 'Pending')`];
     const params = [];
 
@@ -115,6 +115,10 @@ router.get('/', async (req, res) => {
     if (status && status !== 'All Types') {
       params.push(status);
       conditions.push(`status = $${params.length}`);
+    }
+    if (gender && gender !== 'All') {
+      params.push(gender);
+      conditions.push(`gender = $${params.length}`);
     }
 
     const where = `WHERE ${conditions.join(' AND ')}`;
