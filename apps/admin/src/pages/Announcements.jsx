@@ -14,7 +14,8 @@ export default function Announcements() {
   const [imagePreview, setImagePreview] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
-  const [deletingId, setDeletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [removeExistingImage, setRemoveExistingImage] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -45,6 +46,31 @@ export default function Announcements() {
     if (file.size > 5 * 1024 * 1024) { setError('Image is too large — max size is 5MB.'); return; }
     setImage(file);
     setImagePreview(URL.createObjectURL(file));
+    setRemoveExistingImage(false);
+  }
+
+  function handleStartEdit(a) {
+    setEditingId(a.id);
+    setForm({
+      title: a.title || '',
+      tag: a.tag || 'General',
+      body: a.body || '',
+      eventDate: a.eventDate ? a.eventDate.split('T')[0] : '',
+    });
+    setImage(null);
+    setImagePreview(a.imageUrl || '');
+    setRemoveExistingImage(false);
+    setError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setImage(null);
+    setImagePreview('');
+    setRemoveExistingImage(false);
+    setError('');
   }
 
   async function handlePost(e) {
@@ -61,23 +87,35 @@ export default function Announcements() {
       fd.append('tag', form.tag);
       fd.append('body', form.body);
       fd.append('eventDate', form.eventDate);
-      if (image) fd.append('image', image);
-      await api.post('/announcements', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setForm(emptyForm);
-      setImage(null);
-      setImagePreview('');
+      if (image) {
+        fd.append('image', image);
+      } else if (editingId && removeExistingImage) {
+        fd.append('removeImage', 'true');
+      }
+
+      if (editingId) {
+        await api.put(`/announcements/${editingId}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } else {
+        await api.post('/announcements', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      }
+
+      handleCancelEdit();
       await load();
     } catch (err) {
-      setError(err.response?.data?.message || 'Unable to post announcement.');
+      setError(err.response?.data?.message || (editingId ? 'Unable to update announcement.' : 'Unable to post announcement.'));
     } finally {
       setPosting(false);
     }
   }
 
   async function handleDelete(id) {
+    if (!window.confirm('Are you sure you want to delete this announcement?')) return;
     setDeletingId(id);
     try {
       await api.delete(`/announcements/${id}`);
+      if (editingId === id) {
+        handleCancelEdit();
+      }
       await load();
     } catch {
       setError('Unable to delete that announcement.');
@@ -95,8 +133,28 @@ export default function Announcements() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="font-semibold text-slate-800 mb-4">Post a New Announcement</h2>
+      <div className={`bg-white rounded-xl shadow-sm p-6 transition-all ${editingId ? 'ring-2 ring-blue-500' : ''}`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-slate-800">
+              {editingId ? 'Edit Announcement' : 'Post a New Announcement'}
+            </h2>
+            {editingId && (
+              <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+                Editing
+              </span>
+            )}
+          </div>
+          {editingId && (
+            <button
+              type="button"
+              onClick={handleCancelEdit}
+              className="text-xs text-slate-500 hover:text-slate-800 font-medium underline"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
         {error && <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">{error}</div>}
         <form onSubmit={handlePost} className="space-y-4">
           <div className="grid sm:grid-cols-3 gap-4">
@@ -152,7 +210,11 @@ export default function Announcements() {
               {imagePreview && (
                 <button
                   type="button"
-                  onClick={() => { setImage(null); setImagePreview(''); }}
+                  onClick={() => {
+                    setImage(null);
+                    setImagePreview('');
+                    setRemoveExistingImage(true);
+                  }}
                   className="text-xs text-slate-400 hover:text-red-600"
                 >
                   Remove
@@ -172,13 +234,27 @@ export default function Announcements() {
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <div className="sm:col-span-2 flex justify-end">
+            <div className="sm:col-span-2 flex justify-end gap-2">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={posting}
+                  className="border border-slate-200 hover:bg-slate-50 text-slate-600 text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={posting}
-                className="bg-navy-900 hover:bg-navy-800 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-5 py-2.5"
+                className="bg-navy-900 hover:bg-navy-800 disabled:opacity-60 text-white text-sm font-medium rounded-lg px-5 py-2.5 transition-colors flex items-center gap-2"
               >
-                {posting ? 'Posting…' : 'Post Announcement'}
+                {posting ? (
+                  editingId ? 'Saving…' : 'Posting…'
+                ) : (
+                  editingId ? 'Save Changes' : 'Post Announcement'
+                )}
               </button>
             </div>
           </div>
@@ -197,7 +273,12 @@ export default function Announcements() {
             </p>
           )}
           {announcements.map((a) => (
-            <div key={a.id} className="px-5 py-4 flex items-start justify-between gap-4">
+            <div
+              key={a.id}
+              className={`px-5 py-4 flex items-start justify-between gap-4 transition-colors ${
+                editingId === a.id ? 'bg-blue-50/60' : ''
+              }`}
+            >
               {a.imageUrl && (
                 <img src={a.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
               )}
@@ -212,13 +293,24 @@ export default function Announcements() {
                   Posted {new Date(a.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 </p>
               </div>
-              <button
-                onClick={() => handleDelete(a.id)}
-                disabled={deletingId === a.id}
-                className="text-xs text-red-600 hover:underline whitespace-nowrap disabled:opacity-60"
-              >
-                {deletingId === a.id ? 'Removing…' : 'Remove'}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleStartEdit(a)}
+                  className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1 hover:underline"
+                >
+                  <AdminIcon name="edit" size={13} />
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(a.id)}
+                  disabled={deletingId === a.id}
+                  className="text-xs text-red-600 hover:underline whitespace-nowrap disabled:opacity-60"
+                >
+                  {deletingId === a.id ? 'Removing…' : 'Remove'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
