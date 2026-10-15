@@ -9,6 +9,7 @@ export default function PendingRequests() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actioningId, setActioningId] = useState(null);
+  const [message, setMessage] = useState('');
   const [previewDoc, setPreviewDoc] = useState(null);
   const [brokenImages, setBrokenImages] = useState({});
 
