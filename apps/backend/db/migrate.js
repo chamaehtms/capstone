@@ -264,7 +264,7 @@ async function run() {
 
   const { rows: adminCountRows } = await pool.query('SELECT COUNT(*) FROM admins');
   if (Number(adminCountRows[0].count) === 0) {
-    console.log('Seeding default admin account (brgypoblacoin@admin.gov / admin123)...');
+    console.log('Seeding default admin account (brgypoblacion@admin.gov / admin123)...');
     await pool.query(
       `INSERT INTO admins (id, institutional_id, full_name, email, department, password_hash, status, role)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
@@ -272,7 +272,7 @@ async function run() {
         'adm-001',
         'CL-8848-00X',
         'Poblacion Admin',
-        'brgypoblacoin@admin.gov',
+        'brgypoblacion@admin.gov',
         'Internal Oversight',
         hashPassword('admin123'),
         'approved',
