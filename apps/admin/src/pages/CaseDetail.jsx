@@ -290,7 +290,7 @@ export default function CaseDetail() {
             )}
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Case ID: {complaint.id} · Filed by {complaint.resident} · {complaint.filingDate}
+            Case ID: {complaint.id} · Filed by {complaint.resident} · Filed on {formatDateTime(complaint.filingDate || complaint.submittedAt) || formatDate(complaint.filingDate)}
           </p>
         </div>
         <div className="flex items-center gap-3">

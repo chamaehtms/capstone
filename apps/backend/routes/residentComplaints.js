@@ -112,14 +112,15 @@ async function scanWithSightengine(file) {
   }
 }
 
-function normalizeDateString(value) {
+function normalizeDateString(value, createdAt) {
+  if (createdAt) {
+    const cad = new Date(createdAt);
+    if (!Number.isNaN(cad.getTime())) return cad.toISOString();
+  }
   if (!value) return null;
-  const input = typeof value === 'string' ? value : String(value);
-  if (/^\d{4}-\d{2}-\d{2}T/.test(input)) return input;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return `${input}T00:00:00`;
-  const date = new Date(input);
-  if (Number.isNaN(date.getTime())) return input;
-  return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString();
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toISOString();
 }
 
 function toComplaint(c, currentResidentId) {
@@ -133,7 +134,7 @@ function toComplaint(c, currentResidentId) {
     complainantName: isAgainstMe ? 'Confidential Complainant' : c.resident,
     category: c.category,
     status: c.status,
-    filingDate: normalizeDateString(c.filing_date),
+    filingDate: normalizeDateString(c.filing_date, c.created_at),
     description: c.description,
     priority: c.priority,
     aiScanStatus: c.ai_scan_status,

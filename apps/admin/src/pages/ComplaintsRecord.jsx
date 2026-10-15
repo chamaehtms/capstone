@@ -25,10 +25,22 @@ function formatFilingDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleString('en-US', {
+  return date.toLocaleDateString('en-US', {
+    timeZone: 'Asia/Manila',
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+  });
+}
+
+function formatFilingDateTime(value) {
+  if (!value) return '';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return date.toLocaleTimeString('en-US', {
+    timeZone: 'Asia/Manila',
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -37,12 +49,12 @@ function formatFilingDate(value) {
 function getFilingAgeDays(filingDate) {
   if (!filingDate) return null;
 
-  const date = new Date(`${String(filingDate).slice(0, 10)}T00:00:00`);
+  const date = new Date(filingDate);
   if (Number.isNaN(date.getTime())) return null;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.floor((today - date) / 86400000);
+  const now = new Date();
+  const diffTime = Math.max(0, now - date);
+  return Math.floor(diffTime / 86400000);
 }
 
 export default function ComplaintsRecord() {
@@ -386,7 +398,10 @@ export default function ComplaintsRecord() {
                 </td>
                 <td className="px-5 py-3 text-slate-500">
                   <div className="flex flex-col">
-                    <span>{formatFilingDate(c.filingDate)}</span>
+                    <span className="font-medium text-slate-800">{formatFilingDate(c.filingDate)}</span>
+                    {formatFilingDateTime(c.filingDate) && (
+                      <span className="text-[11px] text-slate-400">{formatFilingDateTime(c.filingDate)}</span>
+                    )}
                     {c.status === 'In Progress' && !c.needsEscalation && c.status !== 'Escalated' && c.status !== 'Resolved' && c.status !== 'Rejected' && (() => {
                       const days = getFilingAgeDays(c.filingDate);
                       if (days === null) return null;
