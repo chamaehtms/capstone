@@ -77,6 +77,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+function getTodayManilaDateString() {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
+}
+
 // POST /api/announcements  (admin only, multipart — optional "image" file)
 router.post('/', requireAuth, (req, res) => {
   imageUpload.single('image')(req, res, async (uploadErr) => {
@@ -88,6 +98,15 @@ router.post('/', requireAuth, (req, res) => {
       if (!title || !title.trim()) {
         if (req.file) fs.unlink(req.file.path, () => {});
         return res.status(400).json({ message: 'Title is required.' });
+      }
+
+      if (eventDate) {
+        const cleanEventDate = String(eventDate).split('T')[0];
+        const todayManila = getTodayManilaDateString();
+        if (cleanEventDate < todayManila) {
+          if (req.file) fs.unlink(req.file.path, () => {});
+          return res.status(400).json({ message: 'Event date cannot be in the past. Please select today or a future date.' });
+        }
       }
 
       const id = `ann-${uuidv4().slice(0, 8)}`;
@@ -125,6 +144,19 @@ router.put('/:id', requireAuth, (req, res) => {
       if (!merged.title || !merged.title.trim()) {
         if (req.file) fs.unlink(req.file.path, () => {});
         return res.status(400).json({ message: 'Title is required.' });
+      }
+
+      // Check if eventDate was updated to a past date
+      if (merged.eventDate) {
+        const cleanEventDate = String(merged.eventDate).split('T')[0];
+        const existingEventDate = existing.eventDate ? String(existing.eventDate).split('T')[0] : '';
+        const todayManila = getTodayManilaDateString();
+
+        // If the date is being changed or newly set, prevent past dates
+        if (cleanEventDate !== existingEventDate && cleanEventDate < todayManila) {
+          if (req.file) fs.unlink(req.file.path, () => {});
+          return res.status(400).json({ message: 'Event date cannot be in the past. Please select today or a future date.' });
+        }
       }
 
       let imageUrl = existing.imageUrl;

@@ -6,6 +6,16 @@ const TAGS = ['General', 'Advisory', 'Event', 'Health', 'Safety', 'Utilities'];
 
 const emptyForm = { title: '', tag: 'General', body: '', eventDate: '' };
 
+function getTodayManilaDateString() {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
+}
+
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,8 +25,11 @@ export default function Announcements() {
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [editingOriginalDate, setEditingOriginalDate] = useState('');
   const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  const todayManila = getTodayManilaDateString();
 
   const load = () => {
     setLoading(true);
@@ -39,6 +52,20 @@ export default function Announcements() {
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
+  function handleDateChange(e) {
+    const selectedDate = e.target.value;
+    setError('');
+
+    // If an existing announcement originally had a past date and the user keeps it, allow it.
+    // Otherwise, prevent selecting or manually entering any past date.
+    if (selectedDate && selectedDate < todayManila && selectedDate !== editingOriginalDate) {
+      setError('Event date cannot be in the past. Please select today or a future date.');
+      return;
+    }
+
+    setForm({ ...form, eventDate: selectedDate });
+  }
+
   function handleImageSelect(e) {
     const file = e.target.files?.[0];
     setError('');
@@ -51,12 +78,14 @@ export default function Announcements() {
   }
 
   function handleStartEdit(a) {
+    const rawDate = a.eventDate ? a.eventDate.split('T')[0] : '';
     setEditingId(a.id);
+    setEditingOriginalDate(rawDate);
     setForm({
       title: a.title || '',
       tag: a.tag || 'General',
       body: a.body || '',
-      eventDate: a.eventDate ? a.eventDate.split('T')[0] : '',
+      eventDate: rawDate,
     });
     setImage(null);
     setImagePreview(a.imageUrl || '');
@@ -67,6 +96,7 @@ export default function Announcements() {
 
   function handleCancelEdit() {
     setEditingId(null);
+    setEditingOriginalDate('');
     setForm(emptyForm);
     setImage(null);
     setImagePreview('');
@@ -81,6 +111,16 @@ export default function Announcements() {
       setError('Title is required.');
       return;
     }
+
+    // Validate date against current Philippine date
+    if (form.eventDate) {
+      const cleanDate = form.eventDate.split('T')[0];
+      if (cleanDate < todayManila && cleanDate !== editingOriginalDate) {
+        setError('Event date cannot be in the past. Please select today or a future date.');
+        return;
+      }
+    }
+
     setPosting(true);
     try {
       const fd = new FormData();
@@ -227,13 +267,32 @@ export default function Announcements() {
 
           <div className="grid sm:grid-cols-3 gap-4 items-end">
             <div>
-              <label className="text-xs font-medium text-slate-500">Event Date (optional)</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-500">Event Date (optional)</label>
+                {form.eventDate && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, eventDate: '' })}
+                    className="text-[11px] text-slate-400 hover:text-red-500"
+                  >
+                    Clear date
+                  </button>
+                )}
+              </div>
               <input
                 type="date"
+                min={editingId && editingOriginalDate && editingOriginalDate < todayManila ? editingOriginalDate : todayManila}
                 value={form.eventDate}
-                onChange={update('eventDate')}
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={handleDateChange}
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               />
+              <p className="text-[11px] text-slate-400 mt-1">
+                {editingId && editingOriginalDate && editingOriginalDate < todayManila && form.eventDate === editingOriginalDate ? (
+                  <span className="text-amber-600 font-medium">Historical date preserved. To change, pick today or a future date.</span>
+                ) : (
+                  <span>Only today and future dates (PH Time) can be selected.</span>
+                )}
+              </p>
             </div>
             <div className="sm:col-span-2 flex justify-end gap-2">
               {editingId && (
