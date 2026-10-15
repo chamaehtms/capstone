@@ -1,13 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import ModernIcon from './ModernIcons.jsx';
-import { getAnnouncements, getMyEscalations, getMyMediations, getMyNotifications, markNotificationsRead, Session } from '../api.js';
+import { getAnnouncements, getMyEscalations, getMyMediations, getMyNotifications, Session } from '../api.js';
 
 export default function Navbar() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [newNotification, setNewNotification] = useState(null);
   const lastKnownIdsRef = useRef(new Set());
   const initialized = useRef(false);
   const user = Session.getUser();
@@ -97,14 +95,6 @@ export default function Navbar() {
         const allNotifications = Array.from(map.values());
         const unread = allNotifications.filter((n) => n.unread).length;
 
-        // Check if any brand new notification arrived after initial load
-        if (initialized.current) {
-          const fresh = allNotifications.find((n) => !lastKnownIdsRef.current.has(n.id));
-          if (fresh && (isVerified || fresh.type !== 'announcement')) {
-            setNewNotification(fresh);
-          }
-        }
-
         allNotifications.forEach((n) => lastKnownIdsRef.current.add(n.id));
         setNotifications(allNotifications);
         setUnreadCount(unread);
@@ -121,23 +111,6 @@ export default function Navbar() {
       window.clearInterval(intervalId);
     };
   }, [isVerified]);
-
-  async function openNotifications() {
-    setShowNotifications((isOpen) => !isOpen);
-    setNewNotification(null);
-
-    // Mark all as read locally and in the database
-    const allIds = notifications.map((n) => n.id);
-    localStorage.setItem('bp_seen_notifications', JSON.stringify(allIds));
-    setNotifications((curr) => curr.map((n) => ({ ...n, unread: false })));
-    setUnreadCount(0);
-
-    try {
-      await markNotificationsRead();
-    } catch {
-      // not fatal
-    }
-  }
 
   return (
     <nav className="navbar">
@@ -175,65 +148,22 @@ export default function Navbar() {
         <NavLink to="/track" className={({ isActive }) => isActive ? 'active' : ''}>
           <span className="nav-item-label"><ModernIcon name="chart" size={20} />Track</span>
         </NavLink>
-        <div className="notification-wrap">
-          <button type="button" className="notification-button" onClick={openNotifications} aria-label="Open notifications">
+        <NavLink
+          to="/notifications"
+          className={({ isActive }) => (isActive ? 'active notification-link' : 'notification-link')}
+          aria-label="Notifications"
+          style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+        >
+          <span className="nav-item-label">
             <ModernIcon name="bell" size={20} />
-            {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
-          </button>
-          {showNotifications && (
-            <div className="notification-menu">
-              <div className="notification-menu-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>Notifications</span>
-                {notifications.length > 0 && (
-                  <span style={{ fontSize: '0.72rem', color: '#6366f1', cursor: 'pointer', fontWeight: 600 }} onClick={openNotifications}>
-                    Mark all read
-                  </span>
-                )}
-              </div>
-              {notifications.length === 0 ? (
-                <div className="notification-empty">No notifications recorded.</div>
-              ) : (
-                notifications.slice(0, 5).map((notification) => (
-                  <NavLink
-                    to={notification.link || '/services'}
-                    className={`notification-item ${notification.unread ? 'unread' : ''}`}
-                    key={notification.id}
-                    onClick={() => setShowNotifications(false)}
-                    style={notification.unread ? { background: '#f5f3ff', borderLeft: '3px solid #7c3aed' } : {}}
-                  >
-                    <strong style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {notification.unread && (
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c3aed', display: 'inline-block' }} />
-                      )}
-                      {notification.title}
-                    </strong>
-                    <span>{notification.message}</span>
-                  </NavLink>
-                ))
-              )}
-              <div style={{ padding: '8px 12px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-                <NavLink
-                  to="/notifications"
-                  onClick={() => setShowNotifications(false)}
-                  style={{ fontSize: '0.82rem', color: '#2563eb', fontWeight: 700, display: 'block', padding: '4px 0' }}
-                >
-                  See all in Notifications →
-                </NavLink>
-              </div>
-            </div>
-          )}
-        </div>
+            Notifications
+          </span>
+          {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
+        </NavLink>
         <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
           <span className="nav-item-label"><ModernIcon name="profile" size={20} />Profile</span>
         </NavLink>
       </div>
-      {newNotification && (
-        <div className="announcement-toast" role="status">
-          <strong>{newNotification.title}</strong>
-          <span>{newNotification.message}</span>
-          <button type="button" onClick={() => setNewNotification(null)} aria-label="Dismiss notification">✕</button>
-        </div>
-      )}
     </nav>
   );
 }

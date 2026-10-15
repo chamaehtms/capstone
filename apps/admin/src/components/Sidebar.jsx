@@ -12,6 +12,7 @@ const links = [
   { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
   { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
   { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
+  { to: '/notifications', label: 'Notifications', icon: 'bell', badgeKey: 'notifications' },
   { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
 ];
 
@@ -55,13 +56,14 @@ export default function Sidebar({ isOpen = false, onClose = () => {} }) {
 
     const loadCounts = async () => {
       try {
-        const [residents, complaints, meetings, escalations, pendingResidents, accessRequests] = await Promise.all([
+        const [residents, complaints, meetings, escalations, pendingResidents, accessRequests, notifsRes] = await Promise.all([
           api.get('/residents'),
           api.get('/complaints'),
           api.get('/meetings'),
           api.get('/escalations'),
           api.get('/residents/pending-registrations'),
           api.get('/auth/access-requests'),
+          api.get('/dashboard/notifications').catch(() => ({ data: [] })),
         ]);
         if (!active) return;
 
@@ -74,6 +76,8 @@ export default function Sidebar({ isOpen = false, onClose = () => {} }) {
           ...pendingResidents.data.map((item) => `resident-${item.id}`),
           ...accessRequests.data.map((item) => `access-${item.id}`),
         ];
+        const notifItems = Array.isArray(notifsRes?.data) ? notifsRes.data : [];
+        const unreadNotifIds = notifItems.filter((n) => !n.read).map((n) => n.id);
 
         const counts = {
           residents: updateCount('residents', residentIds, initialized),
@@ -81,6 +85,7 @@ export default function Sidebar({ isOpen = false, onClose = () => {} }) {
           meetings: updateCount('meetings', meetingIds, initialized),
           escalations: updateCount('escalations', escalationIds, initialized),
           pendingRequests: updateCount('pendingRequests', pendingIds, initialized),
+          notifications: updateCount('notifications', unreadNotifIds, initialized),
         };
         currentIds.current.initialized = true;
         setNewCounts(counts);
