@@ -298,6 +298,25 @@ router.post('/:id/schedule-mediation', async (req, res) => {
       return res.status(400).json({ message: 'Mediation hearings cannot be scheduled on past dates. Please select today or a future date.' });
     }
 
+    let resolvedResidentEmail = (residentEmail || '').trim() || complaint.res_email || '';
+    let residentId = complaint.filed_by_resident_id || null;
+
+    // Fallback: If email is still empty, look up resident by full name matching complaint.resident
+    if (!resolvedResidentEmail && complaint.resident) {
+      const { rows: rRows } = await pool.query(
+        `SELECT id, email, full_name FROM residents
+         WHERE (LOWER(TRIM(full_name)) = LOWER(TRIM($1)) OR LOWER(TRIM(full_name)) LIKE LOWER(TRIM($2)))
+           AND email IS NOT NULL AND email <> ''
+         ORDER BY (LOWER(TRIM(full_name)) = LOWER(TRIM($1))) DESC
+         LIMIT 1`,
+        [complaint.resident, `%${complaint.resident}%`]
+      );
+      if (rRows.length > 0) {
+        resolvedResidentEmail = rRows[0].email;
+        residentId = residentId || rRows[0].id;
+      }
+    }
+
     const meetingTitle = `Mediation Session: ${complaint.category || 'Dispute'} (${complaint.id})`;
     const meetingId = `mtg-${uuidv4().slice(0, 8)}`;
 
@@ -327,9 +346,9 @@ router.post('/:id/schedule-mediation', async (req, res) => {
         '',
         '',
         complaint.id,
-        complaint.filed_by_resident_id || null,
+        residentId,
         complaint.resident || complaint.res_name || '',
-        residentEmail || '',
+        resolvedResidentEmail,
         complaint.respondent || '',
         mediator,
         hearingStage,
@@ -354,9 +373,9 @@ router.post('/:id/schedule-mediation', async (req, res) => {
 
     // Send email notification to resident
     let mailResult = { success: false, reason: 'Recipient email not available' };
-    if (sendNotification && residentEmail) {
+    if (sendNotification && resolvedResidentEmail) {
       mailResult = await sendMediationNoticeEmail({
-        to: residentEmail,
+        to: resolvedResidentEmail,
         residentName: complaint.resident || complaint.res_name,
         respondentName: complaint.respondent,
         caseId: complaint.id,
@@ -374,10 +393,30 @@ router.post('/:id/schedule-mediation', async (req, res) => {
           [meetingId]
         );
       }
+
+      // Add in-app notification in portal for the resident
+      try {
+        await pool.query(
+          `INSERT INTO notifications (id, resident_id, resident_email, case_id, title, message, type, link)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            `notif-${uuidv4().slice(0, 8)}`,
+            residentId,
+            resolvedResidentEmail,
+            complaint.id,
+            `⚖️ Mediation Hearing: ${hearingStage || 'Lupon Session'}`,
+            `Notice of hearing for Case #${complaint.id}: ${date}${time ? ` at ${time}` : ''} at ${venue}.`,
+            'mediation',
+            `/track?ref=${encodeURIComponent(complaint.id)}`,
+          ]
+        );
+      } catch (notifErr) {
+        console.error('[notifications] Failed to insert hearing notification:', notifErr.message);
+      }
     }
 
     const updatedComp = toComplaint(updatedCompRows[0]);
-    updatedComp.residentEmail = residentEmail;
+    updatedComp.residentEmail = resolvedResidentEmail;
     updatedComp.scheduledMeeting = {
       id: meetingId,
       date,
@@ -396,8 +435,8 @@ router.post('/:id/schedule-mediation', async (req, res) => {
       emailSent: mailResult.success,
       emailError: mailResult.error,
       message: mailResult.success
-        ? `Mediation scheduled and notification email sent to ${residentEmail}!`
-        : (residentEmail ? `Mediation scheduled (Notification error: ${mailResult.error || 'could not send'})` : 'Mediation scheduled successfully.'),
+        ? `Mediation scheduled and notification email sent to ${resolvedResidentEmail}!`
+        : (resolvedResidentEmail ? `Mediation scheduled (Notification error: ${mailResult.error || 'could not send'})` : 'Mediation scheduled successfully.'),
     });
   } catch (err) {
     console.error(err);
