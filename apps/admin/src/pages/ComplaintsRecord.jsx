@@ -52,7 +52,7 @@ export default function ComplaintsRecord() {
   const [filingRecency, setFilingRecency] = useState('all');
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [statusFilter, setStatusFilter] = useState('in-progress');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
   const [error, setError] = useState('');
@@ -159,6 +159,10 @@ export default function ComplaintsRecord() {
       ) return false;
     } else if (statusFilter === 'pending') {
       if (complaint.status !== 'Pending') return false;
+    } else if (statusFilter === 'under-review') {
+      if (complaint.status !== 'Under Review') return false;
+    } else if (statusFilter === 'mediation') {
+      if (complaint.status !== 'Mediation') return false;
     } else if (statusFilter === 'escalated') {
       const isEscalated =
         complaint.needsEscalation === true ||
@@ -294,14 +298,16 @@ export default function ComplaintsRecord() {
               </div>
             )}
             <select
-              aria-label="Sort complaints"
+              aria-label="Filter complaints by status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-52 max-w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
+              <option value="under-review">Under Review</option>
               <option value="in-progress">In Progress</option>
+              <option value="mediation">Mediation</option>
               <option value="escalated">Escalated</option>
               <option value="resolved">Resolved</option>
               <option value="rejected">Rejected</option>
