@@ -12,6 +12,7 @@
     "migrate": "node db/migrate.js"
   },
   "dependencies": {
+    "@heyputer/puter.js": "^2.6.4",
     "body-parser": "^1.20.2",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.5",

@@ -15,13 +15,22 @@ function isCloudinaryConfigured() {
   );
 }
 
+const { isPuterConfigured, uploadToPuter } = require('./puterStorage');
+
 /**
- * Uploads a file (Multer file object or file path) to Cloudinary
+ * Uploads a file (Multer file object or file path) to Cloud Storage (Puter.js or Cloudinary)
  * @param {object|string} file - Multer file object or local file path
- * @param {string} folder - Target Cloudinary directory
+ * @param {string} folder - Target directory
  * @returns {Promise<string|null>} Secure CDN URL or null if failed / not configured
  */
 async function uploadToCloudinary(file, folder = 'barangay/uploads') {
+  // If Puter.js is configured via PUTER_AUTH_TOKEN, upload to Puter storage
+  if (isPuterConfigured()) {
+    const puterUrl = await uploadToPuter(file, folder);
+    if (puterUrl) return puterUrl;
+  }
+
+  // Fallback to Cloudinary if configured
   if (!isCloudinaryConfigured()) return null;
 
   const filePath = typeof file === 'string' ? file : file?.path;
