@@ -1126,13 +1126,10 @@ export default function Register() {
             </div>
 
             {/* Field 1: Valid Government ID */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 6px' }}>
+            <div style={{ margin: '24px 0 6px' }}>
               <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>
                 1. Valid ID Card or Document <span style={{ color: '#dc2626' }}>*</span>
               </div>
-              <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <ModernIcon name="sparkles" size={14} color="#2563eb" /> AI Verified
-              </span>
             </div>
             <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
               Clear front photo of your valid Government ID (PhilSys ID, Driver's License, Passport, Voter's ID, PRC, or Barangay ID).
@@ -1349,13 +1346,10 @@ export default function Register() {
             )}
 
             {/* Field 2: Selfie Holding Your ID */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0 6px' }}>
+            <div style={{ margin: '24px 0 6px' }}>
               <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>
                 2. Live Photo Holding Your Valid ID <span style={{ color: '#dc2626' }}>*</span>
               </div>
-              <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <ModernIcon name="sparkles" size={14} color="#7c3aed" /> AI Biometrics
-              </span>
             </div>
             <p style={{ margin: '0 0 12px', fontSize: '.92rem', color: '#475569', lineHeight: 1.5 }}>
               Take an original photo of yourself holding your physical ID next to your face. Your face must match the portrait on your valid ID. <strong>Screenshots are strictly prohibited.</strong>
@@ -1589,7 +1583,7 @@ export default function Register() {
               <div style={{ marginBottom: 14, padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 10, color: '#1e40af', fontSize: '.88rem' }}>
                 <span className="spinner-border spinner-border-sm" style={{ width: 18, height: 18, borderWidth: 2, display: 'inline-block', border: '2px solid #3b82f6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                 <div>
-                  <strong>AI Identity Verification in Progress:</strong>
+                  <strong>Identity Verification in Progress:</strong>
                   <div style={{ fontSize: '.8rem', color: '#1d4ed8', marginTop: 2 }}>
                     {aiValidatingStep || 'Verifying ID document authenticity, readability, and facial biometrics…'}
                   </div>
@@ -1598,7 +1592,7 @@ export default function Register() {
             )}
 
             <button type="submit" className="btn btn-navy btn-block" disabled={loading}>
-              {loading ? (aiValidatingStep ? 'AI Validating Documents…' : 'Submitting…') : 'SUBMIT & VERIFY WITH AI →'}
+              {loading ? (aiValidatingStep ? 'Validating Documents…' : 'Submitting…') : 'SUBMIT & VERIFY EMAIL →'}
             </button>
             <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--muted)', fontSize: '.9rem' }}>
               Already registered? <Link to="/" className="link-blue">Sign In</Link>

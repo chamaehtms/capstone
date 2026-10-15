@@ -202,6 +202,19 @@ async function verifyRecaptcha(token, remoteIp) {
   }
 }
 
+// In-memory tracker for admin login attempts: Map<normalizedKey, { attempts: number, lockUntil: number }>
+const adminLoginAttempts = new Map();
+
+// Periodically clean up expired login attempt records
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of adminLoginAttempts.entries()) {
+    if (now > val.lockUntil && val.attempts === 0) {
+      adminLoginAttempts.delete(key);
+    }
+  }
+}, 60 * 1000);
+
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
   const { email, institutionalId, password, recaptchaToken } = req.body;
@@ -209,6 +222,28 @@ router.post('/login', async (req, res) => {
 
   if (!loginEmail || !password) {
     return res.status(400).json({ message: 'Email and password are required.' });
+  }
+
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  const attemptKey = `${loginEmail.toLowerCase()}_${clientIp}`;
+  const now = Date.now();
+
+  const attemptRecord = adminLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0 };
+
+  // Check if admin is locked out due to 5 consecutive wrong attempts
+  if (now < attemptRecord.lockUntil) {
+    const secondsRemaining = Math.ceil((attemptRecord.lockUntil - now) / 1000);
+    return res.status(429).json({
+      message: `Too many failed login attempts. Please wait ${secondsRemaining} second${secondsRemaining > 1 ? 's' : ''} before trying again.`,
+      locked: true,
+      secondsRemaining,
+    });
+  }
+
+  // If lockout expired, reset attempts counter
+  if (attemptRecord.lockUntil > 0 && now >= attemptRecord.lockUntil) {
+    attemptRecord.attempts = 0;
+    attemptRecord.lockUntil = 0;
   }
 
   try {
@@ -220,8 +255,26 @@ router.post('/login', async (req, res) => {
 
     // Check if account exists and password is correct first
     if (!admin || !verifyPassword(password, admin.password_hash)) {
-      return res.status(401).json({ message: 'Invalid email or password.' });
+      attemptRecord.attempts += 1;
+
+      if (attemptRecord.attempts >= 5) {
+        attemptRecord.lockUntil = now + 60 * 1000; // 1 minute lockout
+        adminLoginAttempts.set(attemptKey, attemptRecord);
+        return res.status(429).json({
+          message: 'Too many failed login attempts (5/5). Your account login is temporarily locked for 1 minute.',
+          locked: true,
+          secondsRemaining: 60,
+        });
+      }
+
+      adminLoginAttempts.set(attemptKey, attemptRecord);
+      return res.status(401).json({
+        message: 'Invalid email or password.',
+      });
     }
+
+    // On correct password, reset failed attempts
+    adminLoginAttempts.delete(attemptKey);
 
     if (admin.status !== 'approved') {
       return res.status(403).json({ message: 'This account is still pending Institutional Board approval.' });

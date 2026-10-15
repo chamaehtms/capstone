@@ -9,13 +9,30 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const recaptchaRef = useRef(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Handle active 1-minute lockout countdown timer
+  React.useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          setError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (lockoutSeconds > 0) return;
     setError('');
     setLoading(true);
 
@@ -31,6 +48,9 @@ export default function Login() {
     } catch (err) {
       recaptchaRef.current?.reset();
       setRecaptchaToken('');
+      if (err.response?.data?.secondsRemaining) {
+        setLockoutSeconds(err.response.data.secondsRemaining);
+      }
       setError(err.response?.data?.message || err.message || 'Unable to log in. Please try again.');
     } finally {
       setLoading(false);
@@ -142,10 +162,14 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || lockoutSeconds > 0}
               className="w-full bg-navy-900 hover:bg-navy-800 text-white font-medium rounded-lg px-4 py-3 transition-colors disabled:opacity-60"
             >
-              {loading ? 'Signing in…' : 'Secure Login →'}
+              {lockoutSeconds > 0
+                ? `Locked out (${lockoutSeconds}s)`
+                : loading
+                ? 'Signing in…'
+                : 'Secure Login →'}
             </button>
 
             <p className="text-center text-xs text-slate-500 pt-2">

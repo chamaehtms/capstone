@@ -702,7 +702,7 @@ router.post('/login', async (req, res) => {
 
   const attemptRecord = residentLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0 };
 
-  // Check if user is locked out due to 3 consecutive wrong attempts
+  // Check if user is locked out due to 5 consecutive wrong attempts
   if (now < attemptRecord.lockUntil) {
     const secondsRemaining = Math.ceil((attemptRecord.lockUntil - now) / 1000);
     return res.status(429).json({
@@ -729,21 +729,19 @@ router.post('/login', async (req, res) => {
     if (!resident || !verifyPassword(password, resident.password_hash)) {
       attemptRecord.attempts += 1;
 
-      if (attemptRecord.attempts >= 3) {
+      if (attemptRecord.attempts >= 5) {
         attemptRecord.lockUntil = now + 60 * 1000; // 1 minute lockout
         residentLoginAttempts.set(attemptKey, attemptRecord);
         return res.status(429).json({
-          message: 'Too many failed login attempts (3/3). Your account login is temporarily locked for 1 minute.',
+          message: 'Too many failed login attempts (5/5). Your account login is temporarily locked for 1 minute.',
           locked: true,
           secondsRemaining: 60,
         });
       }
 
       residentLoginAttempts.set(attemptKey, attemptRecord);
-      const remaining = 3 - attemptRecord.attempts;
       return res.status(401).json({
-        message: `Invalid email or password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining before a 1-minute lockout.`,
-        remainingAttempts: remaining,
+        message: 'Invalid email or password.',
       });
     }
 

@@ -159,6 +159,8 @@ export default function MeetingMinutes() {
   // Open Edit modal for existing record
   const openEditModal = (meeting) => {
     if (meeting.meetingType === 'mediation') {
+      loadComplaints();
+      loadResidents();
       setMediationModalMode('edit');
       setMediationForm({
         title: meeting.title || '',
@@ -1044,17 +1046,31 @@ export default function MeetingMinutes() {
                             </div>
                           </td>
                           <td className="py-4 px-4 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelected(m);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-200 transition shadow-2xs"
-                            >
-                              <AdminIcon name="eye" size={14} />
-                              <span>View (1–6)</span>
-                            </button>
+                            <div className="inline-flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditModal(m);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition shadow-2xs"
+                                title="Edit this record"
+                              >
+                                <AdminIcon name="edit" size={14} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelected(m);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-purple-100 hover:bg-purple-200 text-purple-800 border border-purple-200 transition shadow-2xs"
+                              >
+                                <AdminIcon name="eye" size={14} />
+                                <span>View (1–6)</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
