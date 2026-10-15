@@ -152,12 +152,10 @@ export default function Navbar() {
           to="/notifications"
           className={({ isActive }) => (isActive ? 'active notification-link' : 'notification-link')}
           aria-label="Notifications"
-          style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
+          title="Notifications"
+          style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '6px 8px' }}
         >
-          <span className="nav-item-label">
-            <ModernIcon name="bell" size={20} />
-            Notifications
-          </span>
+          <ModernIcon name="bell" size={20} />
           {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
