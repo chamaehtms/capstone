@@ -16,12 +16,28 @@ export default function Login() {
       : ''
   );
   const [loading, setLoading] = useState(false);
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const recaptchaRef = useRef(null);
 
   useEffect(() => {
     if (Session.isLoggedIn()) navigate('/dashboard');
   }, [navigate]);
+
+  // Handle active 1-minute lockout countdown timer
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds((prev) => {
+        if (prev <= 1) {
+          setError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
 
   useEffect(() => {
     const scrubElena = () => {
@@ -48,6 +64,7 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (lockoutSeconds > 0) return;
     setError('');
     setLoading(true);
 
@@ -64,12 +81,16 @@ export default function Login() {
     } catch (err) {
       recaptchaRef.current?.reset();
       setRecaptchaToken('');
+      if (err.data?.secondsRemaining) {
+        setLockoutSeconds(err.data.secondsRemaining);
+      }
       setError(err.message);
       setLoading(false);
     }
   }
 
   async function handleRecaptchaVerify(token) {
+    if (lockoutSeconds > 0) return;
     setRecaptchaToken(token);
     setError('');
     setLoading(true);
@@ -83,6 +104,9 @@ export default function Login() {
     } catch (err) {
       recaptchaRef.current?.reset();
       setRecaptchaToken('');
+      if (err.data?.secondsRemaining) {
+        setLockoutSeconds(err.data.secondsRemaining);
+      }
       setError(err.message);
       setLoading(false);
     }
@@ -162,8 +186,17 @@ export default function Login() {
             }}
           />
 
-          <button type="submit" className="btn btn-navy btn-block" disabled={loading}>
-            {loading ? 'Signing in…' : 'Secure Login →'}
+          <button
+            type="submit"
+            className="btn btn-navy btn-block"
+            disabled={loading || lockoutSeconds > 0}
+            style={lockoutSeconds > 0 ? { opacity: 0.75, cursor: 'not-allowed', background: '#dc2626' } : {}}
+          >
+            {lockoutSeconds > 0
+              ? `Locked out — Try again in ${lockoutSeconds}s`
+              : loading
+              ? 'Signing in…'
+              : 'Secure Login →'}
           </button>
         </form>
 

@@ -667,12 +667,47 @@ router.post('/resend-email-code', async (req, res) => {
   }
 });
 
+// In-memory tracker for resident login attempts: Map<normalizedKey, { attempts: number, lockUntil: number }>
+const residentLoginAttempts = new Map();
+
+// Periodically clean up expired login attempt records
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of residentLoginAttempts.entries()) {
+    if (now > val.lockUntil && val.attempts === 0) {
+      residentLoginAttempts.delete(key);
+    }
+  }
+}, 60 * 1000);
+
 // POST /api/resident-auth/login
 router.post('/login', async (req, res) => {
   const { email, password, recaptchaToken } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ message: 'Email/username and password are required.' });
+  }
+
+  const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown';
+  const attemptKey = `${String(email).trim().toLowerCase()}_${clientIp}`;
+  const now = Date.now();
+
+  const attemptRecord = residentLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0 };
+
+  // Check if user is locked out due to 3 consecutive wrong attempts
+  if (now < attemptRecord.lockUntil) {
+    const secondsRemaining = Math.ceil((attemptRecord.lockUntil - now) / 1000);
+    return res.status(429).json({
+      message: `Too many failed login attempts. Please wait ${secondsRemaining} second${secondsRemaining > 1 ? 's' : ''} before trying again.`,
+      locked: true,
+      secondsRemaining,
+    });
+  }
+
+  // If lockout expired, reset attempts counter
+  if (attemptRecord.lockUntil > 0 && now >= attemptRecord.lockUntil) {
+    attemptRecord.attempts = 0;
+    attemptRecord.lockUntil = 0;
   }
 
   try {
@@ -682,10 +717,30 @@ router.post('/login', async (req, res) => {
     );
     const resident = rows[0];
 
-    // Check credentials first: account exists and password matches
+    // Check credentials: account exists and password matches
     if (!resident || !verifyPassword(password, resident.password_hash)) {
-      return res.status(401).json({ message: 'Invalid email/username or password.' });
+      attemptRecord.attempts += 1;
+
+      if (attemptRecord.attempts >= 3) {
+        attemptRecord.lockUntil = now + 60 * 1000; // 1 minute lockout
+        residentLoginAttempts.set(attemptKey, attemptRecord);
+        return res.status(429).json({
+          message: 'Too many failed login attempts (3/3). Your account login is temporarily locked for 1 minute.',
+          locked: true,
+          secondsRemaining: 60,
+        });
+      }
+
+      residentLoginAttempts.set(attemptKey, attemptRecord);
+      const remaining = 3 - attemptRecord.attempts;
+      return res.status(401).json({
+        message: `Invalid email or password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining before a 1-minute lockout.`,
+        remainingAttempts: remaining,
+      });
     }
+
+    // On correct password, reset failed attempts
+    residentLoginAttempts.delete(attemptKey);
 
     if (!resident.email_verified) {
       return res.status(403).json({ message: 'Verify your email using the six-digit code before signing in.' });
