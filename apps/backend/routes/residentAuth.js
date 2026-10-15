@@ -407,14 +407,22 @@ router.post('/register', (req, res) => {
 
       let idDocumentUrl = `/uploads/resident-ids/${idDocFile.filename}`;
       let selfieIdUrl = `/uploads/resident-ids/${selfieFile.filename}`;
+      let cloudIdUrl = null;
+      let cloudSelfieUrl = null;
 
       if (isCloudinaryConfigured()) {
-        const [cloudIdUrl, cloudSelfieUrl] = await Promise.all([
+        const [uploadedId, uploadedSelfie] = await Promise.all([
           uploadToCloudinary(idDocFile, 'barangay/resident-ids'),
           uploadToCloudinary(selfieFile, 'barangay/resident-selfies'),
         ]);
-        if (cloudIdUrl) idDocumentUrl = cloudIdUrl;
-        if (cloudSelfieUrl) selfieIdUrl = cloudSelfieUrl;
+        if (uploadedId) {
+          cloudIdUrl = uploadedId;
+          idDocumentUrl = uploadedId;
+        }
+        if (uploadedSelfie) {
+          cloudSelfieUrl = uploadedSelfie;
+          selfieIdUrl = uploadedSelfie;
+        }
       }
 
       const { rows: existing } = await pool.query(
@@ -527,6 +535,14 @@ router.post('/register', (req, res) => {
         );
       } catch (adminNotifErr) {
         console.error('[notifications] Failed to log admin notification for resident registration:', adminNotifErr.message);
+      }
+
+      // If Cloudinary succeeded, clean up temporary local upload copies to save disk space
+      if (cloudIdUrl) {
+        await deleteLocalUpload(idDocFile);
+      }
+      if (cloudSelfieUrl) {
+        await deleteLocalUpload(selfieFile);
       }
 
       res.status(201).json({
