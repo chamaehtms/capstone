@@ -717,11 +717,11 @@ router.post('/resend-email-code', async (req, res) => {
 // In-memory tracker for resident login attempts: Map<normalizedKey, { attempts: number, lockUntil: number }>
 const residentLoginAttempts = new Map();
 
-// Periodically clean up expired login attempt records
+// Periodically clean up expired login attempt records (older than 10 minutes)
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of residentLoginAttempts.entries()) {
-    if (now > val.lockUntil && val.attempts === 0) {
+    if (now > (val.lockUntil || 0) && (!val.lastAttemptAt || now - val.lastAttemptAt > 10 * 60 * 1000)) {
       residentLoginAttempts.delete(key);
     }
   }
@@ -739,7 +739,8 @@ router.post('/login', async (req, res) => {
   const attemptKey = `${String(email).trim().toLowerCase()}_${clientIp}`;
   const now = Date.now();
 
-  const attemptRecord = residentLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0 };
+  const attemptRecord = residentLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0, lastAttemptAt: now };
+  attemptRecord.lastAttemptAt = now;
 
   // Check if user is locked out due to 5 consecutive wrong attempts
   if (now < attemptRecord.lockUntil) {
