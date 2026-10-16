@@ -225,7 +225,7 @@ async function findRegistryMatch({ firstName, middleName, lastName, fullName, bi
   // Search existing records in the Barangay Resident Database
   const { rows } = await pool.query(
     `SELECT * FROM residents
-     WHERE (password_hash IS NULL OR self_registered = false OR status = 'Verified')`
+     WHERE password_hash IS NULL AND (self_registered = false OR self_registered IS NULL)`
   );
 
   let bestMatch = null;
@@ -480,7 +480,8 @@ router.post('/register', (req, res) => {
       });
 
       const isVerified = Boolean(registryMatch && matchScore >= 50);
-      const residentStatus = isVerified ? 'Verified' : 'Pending';
+      // New self-registrations stay Pending until email verification code is confirmed or admin approves
+      const residentStatus = 'Pending';
       let residentRow;
 
       // Verify ID validity and ensure selfie matches
@@ -512,7 +513,7 @@ router.post('/register', (req, res) => {
             id_document_url = $10,
             selfie_id_url = $11,
             photo_url = COALESCE(photo_url, $11),
-            status = 'Verified',
+            status = 'Pending',
             self_registered = true,
             email_verified = false,
             id_ai_status = $12,
