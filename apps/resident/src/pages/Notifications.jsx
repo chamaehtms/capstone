@@ -30,16 +30,16 @@ function getNotificationBadge(type) {
   switch (type) {
     case 'mediation':
     case 'hearing':
-      return { icon: 'scale', iconColor: '#2563eb', bg: '#eff6ff', border: '#3b82f6', label: 'Mediation' };
+      return { icon: 'scale', iconColor: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', label: 'Mediation' };
     case 'case':
     case 'complaint':
-      return { icon: 'file', iconColor: '#d97706', bg: '#fef3c7', border: '#f59e0b', label: 'Case Update' };
+      return { icon: 'file', iconColor: '#b45309', bg: '#fef3c7', border: '#fde68a', label: 'Case Update' };
     case 'escalation':
-      return { icon: 'file', iconColor: '#db2777', bg: '#fce7f3', border: '#ec4899', label: 'Certificate' };
+      return { icon: 'file', iconColor: '#be185d', bg: '#fce7f3', border: '#fbcfe8', label: 'Certificate' };
     case 'announcement':
-      return { icon: 'megaphone', iconColor: '#059669', bg: '#ecfdf5', border: '#10b981', label: 'Announcement' };
+      return { icon: 'megaphone', iconColor: '#047857', bg: '#ecfdf5', border: '#a7f3d0', label: 'Announcement' };
     default:
-      return { icon: 'bell', iconColor: '#475569', bg: '#f1f5f9', border: '#64748b', label: 'Notice' };
+      return { icon: 'bell', iconColor: '#334155', bg: '#f1f5f9', border: '#cbd5e1', label: 'Notice' };
   }
 }
 

@@ -36,7 +36,9 @@ export default function SubmissionSuccess() {
 
         <div className="next-box">
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span>ⓘ</span>
+            <span style={{ color: '#0284c7', marginTop: 2, display: 'inline-flex' }}>
+              <ModernIcon name="shield" size={16} color="#0284c7" />
+            </span>
             <div>
               <strong>What happens next?</strong>
               <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '.9rem' }}>
@@ -46,8 +48,8 @@ export default function SubmissionSuccess() {
           </div>
           <div className="next-steps">
             <div className="step-item"><div className="step-dot done"><ModernIcon name="check" size={12} color="#ffffff" /></div>Submitted</div>
-            <div className="step-item"><div className="step-dot"><ModernIcon name="clock" size={12} color="#64748b" /></div>Review</div>
-            <div className="step-item"><div className="step-dot"><ModernIcon name="user" size={12} color="#64748b" /></div>Action</div>
+            <div className="step-item"><div className="step-dot"><ModernIcon name="clock" size={12} color="#475569" /></div>Review</div>
+            <div className="step-item"><div className="step-dot"><ModernIcon name="user" size={12} color="#475569" /></div>Action</div>
           </div>
         </div>
 
