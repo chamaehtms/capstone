@@ -228,7 +228,7 @@ router.post('/', (req, res) => {
         ]
       );
 
-      const createdComplaint = toComplaint(rows[0]);
+      const createdComplaint = toComplaint(rows[0], req.resident.id);
 
       // Notify barangay admin team about new complaint
       try {
