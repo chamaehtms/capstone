@@ -288,13 +288,17 @@ const Recaptcha = forwardRef(function Recaptcha(
                   background: 'none',
                   border: 'none',
                   color: '#94a3b8',
-                  fontSize: 18,
                   cursor: 'pointer',
                   padding: 4,
-                  lineHeight: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
+                aria-label="Close"
               >
-                ✕
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
@@ -334,7 +338,10 @@ const Recaptcha = forwardRef(function Recaptcha(
                   textShadow: '0 1px 2px rgba(0,0,0,0.4)',
                 }}
               >
-                <span>🛡️ Barangay Poblacion Official Bureau</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span>Barangay Poblacion Official Bureau</span>
               </div>
 
               {/* Target Slot (Missing Hole) */}
@@ -380,12 +387,12 @@ const Recaptcha = forwardRef(function Recaptcha(
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#ffffff',
-                    fontSize: 14,
-                    fontWeight: 900,
                     textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                   }}
                 >
-                  🧩
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M19.439 7.85c0-1.57-1.28-2.85-2.85-2.85h-1.44a3.5 3.5 0 0 0-6.298 0H7.41c-1.57 0-2.85 1.28-2.85 2.85v1.44a3.5 3.5 0 0 0 0 6.298v1.44c0 1.57 1.28 2.85 2.85 2.85h1.44a3.5 3.5 0 0 0 6.298 0h1.44c1.57 0 2.85-1.28 2.85-2.85v-1.44a3.5 3.5 0 0 0 0-6.298v-1.44z" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -470,7 +477,21 @@ const Recaptcha = forwardRef(function Recaptcha(
                   onMouseDown={handleDragStart}
                   onTouchStart={handleDragStart}
                 >
-                  {feedback === 'success' ? '✓' : feedback === 'fail' ? '✕' : '➔'}
+                  {feedback === 'success' ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : feedback === 'fail' ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  )}
                 </div>
               </div>
             </div>
@@ -488,12 +509,15 @@ const Recaptcha = forwardRef(function Recaptcha(
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4,
+                  gap: 6,
                   padding: 0,
                   fontWeight: 500,
                 }}
               >
-                🔄 Refresh Challenge
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                <span>Refresh Challenge</span>
               </button>
               <div style={{ fontSize: 10, color: '#94a3b8' }}>
                 Protected by reCAPTCHA v2

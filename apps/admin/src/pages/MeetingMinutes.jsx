@@ -1926,8 +1926,9 @@ export default function MeetingMinutes() {
                     const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
                     if (!conflict) return null;
                     return (
-                      <p className="text-[11px] text-red-600 font-medium mt-1 leading-tight">
-                        ⚠️ Already scheduled: "{conflict.title}"{conflict.time ? ` at ${conflict.time}` : ''}. You cannot choose this day.
+                      <p className="text-[11px] text-red-600 font-medium mt-1 leading-tight flex items-center gap-1.5">
+                        <AdminIcon name="warning" size={13} className="text-red-600 shrink-0" />
+                        <span>Already scheduled: "{conflict.title}"{conflict.time ? ` at ${conflict.time}` : ''}. You cannot choose this day.</span>
                       </p>
                     );
                   })()}

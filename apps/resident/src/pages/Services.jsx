@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
+import ModernIcon from '../components/ModernIcons.jsx';
 import { getAnnouncements, toAssetUrl, Session } from '../api.js';
 
 const emergencyContacts = [
@@ -58,7 +59,9 @@ export default function Services() {
       <Navbar />
       <div className="page">
         <label className="search-box">
-          <span aria-hidden="true">🔍</span>
+          <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', color: '#64748b' }}>
+            <ModernIcon name="search" size={16} />
+          </span>
           <input
             type="search"
             aria-label="Search services"
@@ -71,7 +74,9 @@ export default function Services() {
         {!isVerified && (
           <div className="card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb', marginBottom: 20, padding: '14px 18px', borderRadius: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: '1.1rem' }}>⏳</span>
+              <span style={{ color: '#d97706', display: 'flex', alignItems: 'center' }}>
+                <ModernIcon name="clock" size={16} color="#d97706" />
+              </span>
               <strong style={{ color: '#b45309', fontSize: '0.9rem' }}>Account Pending Verification — Limited Access Active</strong>
             </div>
             <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
@@ -87,7 +92,9 @@ export default function Services() {
             <div className="justice-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
               {showComplaintService && (
                 <div className="justice-card">
-                  <div className="icon-badge">📣</div>
+                  <div className="icon-badge">
+                    <ModernIcon name="megaphone" size={20} color="#0284c7" />
+                  </div>
                   <h4>File a Formal Complaint</h4>
                   <p>Initiate the official mediation process for civil or minor criminal disputes and other residential concerns.</p>
                   <Link to="/file-complaint?category=complaint"><button className="btn btn-sky">Start Form →</button></Link>
@@ -95,7 +102,9 @@ export default function Services() {
               )}
               {showInfrastructureService && (
                 <div className="justice-card">
-                  <div className="icon-badge">🛠️</div>
+                  <div className="icon-badge">
+                    <ModernIcon name="tool" size={20} color="#0284c7" />
+                  </div>
                   <h4>Infrastructure / Public Works</h4>
                   <p>Issues related to public facilities, roads, drainage, and utilities that require maintenance in your area.</p>
                   <Link to="/file-complaint?category=infrastructure"><button className="btn btn-sky">Start Form →</button></Link>
@@ -103,7 +112,9 @@ export default function Services() {
               )}
               {showTrackingService && (
                 <div className="justice-card">
-                  <div className="icon-badge">📈</div>
+                  <div className="icon-badge">
+                    <ModernIcon name="chart" size={20} color="#1d4ed8" />
+                  </div>
                   <h4>Track Filed Complaints</h4>
                   <p>Check ongoing case timelines, upcoming Lupon hearings, and resolution outcomes by Reference ID.</p>
                   <Link to="/track"><button className="btn btn-navy">Track Status →</button></Link>
@@ -124,7 +135,9 @@ export default function Services() {
                     setShowEmergencyDirectory(true);
                   }
                 }}>
-                  <div className="icon-badge">📞</div>
+                  <div className="icon-badge">
+                    <ModernIcon name="phone" size={20} color="#dc2626" />
+                  </div>
                   <h4>Emergency Contacts &amp; Hotlines</h4>
                   <p>Direct access to local police, the fire department, medical ambulances, and emergency response units.</p>
                 </div>
@@ -137,7 +150,9 @@ export default function Services() {
                     openAnnouncements();
                   }
                 }}>
-                  <div className="icon-badge">🔔</div>
+                  <div className="icon-badge">
+                    <ModernIcon name="bell" size={20} color="#d97706" />
+                  </div>
                   <h4>Announcements &amp; Safety Notifications</h4>
                   <p>Barangay announcements, event updates, and emergency alerts you should be aware of.</p>
                 </div>
@@ -155,7 +170,9 @@ export default function Services() {
         {isVerified && showAnnouncementsFeed && (
           <div className="announcement-feed-overlay" onClick={() => setShowAnnouncementsFeed(false)}>
             <div className="announcement-feed-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="lightbox-close emergency-close" onClick={() => setShowAnnouncementsFeed(false)} aria-label="Close">✕</button>
+              <button className="lightbox-close emergency-close" onClick={() => setShowAnnouncementsFeed(false)} aria-label="Close">
+                <ModernIcon name="close" size={16} />
+              </button>
 
               <div className="announcement-feed-header">
                 <h3>Announcements &amp; Safety Notifications</h3>
@@ -170,7 +187,9 @@ export default function Services() {
                 {!announcementsLoading && announcements.map((post) => (
                   <article className="announcement-post" key={post.id}>
                     <div className="announcement-post-header">
-                      <div className="announcement-avatar">🏛️</div>
+                      <div className="announcement-avatar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ModernIcon name="building" size={18} color="#2563eb" />
+                      </div>
                       <div>
                         <div className="announcement-author">Barangay Poblacion</div>
                         <div className="announcement-time">
@@ -199,10 +218,14 @@ export default function Services() {
         {showEmergencyDirectory && (
           <div className="emergency-directory-overlay" onClick={() => setShowEmergencyDirectory(false)}>
             <div className="emergency-directory-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="lightbox-close emergency-close" onClick={() => setShowEmergencyDirectory(false)} aria-label="Close">✕</button>
+              <button className="lightbox-close emergency-close" onClick={() => setShowEmergencyDirectory(false)} aria-label="Close">
+                <ModernIcon name="close" size={16} />
+              </button>
 
               <div className="emergency-header">
-                <div className="emergency-badge">🏛️</div>
+                <div className="emergency-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ModernIcon name="building" size={22} color="#dc2626" />
+                </div>
                 <div className="emergency-header-text">
                   <div className="municipality-line">MUNICIPALITY OF CORDOVA</div>
                   <div className="tagline">BAGONG PILIPINAS</div>

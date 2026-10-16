@@ -30,16 +30,16 @@ function getNotificationBadge(type) {
   switch (type) {
     case 'mediation':
     case 'hearing':
-      return { icon: '⚖️', bg: '#eff6ff', border: '#3b82f6', label: 'Mediation' };
+      return { icon: 'scale', iconColor: '#2563eb', bg: '#eff6ff', border: '#3b82f6', label: 'Mediation' };
     case 'case':
     case 'complaint':
-      return { icon: '📄', bg: '#fef3c7', border: '#f59e0b', label: 'Case Update' };
+      return { icon: 'file', iconColor: '#d97706', bg: '#fef3c7', border: '#f59e0b', label: 'Case Update' };
     case 'escalation':
-      return { icon: '📜', bg: '#fce7f3', border: '#ec4899', label: 'Certificate' };
+      return { icon: 'file', iconColor: '#db2777', bg: '#fce7f3', border: '#ec4899', label: 'Certificate' };
     case 'announcement':
-      return { icon: '📢', bg: '#ecfdf5', border: '#10b981', label: 'Announcement' };
+      return { icon: 'megaphone', iconColor: '#059669', bg: '#ecfdf5', border: '#10b981', label: 'Announcement' };
     default:
-      return { icon: '🔔', bg: '#f1f5f9', border: '#64748b', label: 'Notice' };
+      return { icon: 'bell', iconColor: '#475569', bg: '#f1f5f9', border: '#64748b', label: 'Notice' };
   }
 }
 
@@ -282,10 +282,10 @@ export default function Notifications() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   margin: '0 auto 16px',
-                  fontSize: '28px',
+                  color: '#94a3b8',
                 }}
               >
-                📭
+                <ModernIcon name="inbox" size={30} color="#94a3b8" />
               </div>
               <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem', color: '#1e293b' }}>
                 {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
@@ -352,7 +352,7 @@ export default function Notifications() {
                         ) : notif.actorName ? (
                           notif.actorName.charAt(0).toUpperCase()
                         ) : (
-                          '🏛️'
+                          <ModernIcon name="building" size={20} color="#64748b" />
                         )}
                       </div>
 
@@ -370,12 +370,11 @@ export default function Notifications() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '11px',
                           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         }}
                         title={badge.label}
                       >
-                        {badge.icon}
+                        <ModernIcon name={badge.icon} size={12} color={badge.iconColor} />
                       </div>
                     </div>
 

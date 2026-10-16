@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import ModernIcon from './ModernIcons.jsx';
 import { fileComplaint } from '../api.js';
 
 const CATEGORIES = [
@@ -240,13 +241,12 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: '1.6rem',
             color: '#ffffff',
             flexShrink: 0,
             boxShadow: '0 2px 8px rgba(30, 41, 59, 0.15)',
           }}
         >
-          📋
+          <ModernIcon name="file" size={24} color="#ffffff" />
         </div>
         <div>
           <h2 style={{ margin: 0, fontSize: '1.45rem', fontWeight: 800, color: '#0f172a' }}>
@@ -288,7 +288,8 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
               gap: 8,
             }}
           >
-            <span>👤</span> 1. Reporter Information
+            <ModernIcon name="user" size={18} color="#2563eb" />
+            <span>1. Reporter Information</span>
           </h3>
 
           <div
@@ -381,7 +382,8 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
               gap: 8,
             }}
           >
-            <span>🔧</span> 2. Infrastructure Details
+            <ModernIcon name="tool" size={18} color="#2563eb" />
+            <span>2. Infrastructure Details</span>
           </h3>
 
           <label style={labelStyle}>
@@ -476,7 +478,8 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
               gap: 8,
             }}
           >
-            <span>📄</span> 3. Description of the Issue
+            <ModernIcon name="file" size={18} color="#2563eb" />
+            <span>3. Description of the Issue</span>
           </h3>
 
           <div style={{ marginBottom: 16 }}>
@@ -527,9 +530,9 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
                 required
                 style={inputStyle}
               >
-                <option value="High - May affect public safety">🔴 High - May affect public safety</option>
-                <option value="Medium - Needs attention soon">🟡 Medium - Needs attention soon</option>
-                <option value="Low - Minor inconvenience">🟢 Low - Minor inconvenience</option>
+                <option value="High - May affect public safety">High - May affect public safety</option>
+                <option value="Medium - Needs attention soon">Medium - Needs attention soon</option>
+                <option value="Low - Minor inconvenience">Low - Minor inconvenience</option>
               </select>
             </div>
           </div>
@@ -548,7 +551,8 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
               gap: 8,
             }}
           >
-            <span>🖼️</span> 4. Supporting Evidence
+            <ModernIcon name="image" size={18} color="#2563eb" />
+            <span>4. Supporting Evidence</span>
           </h3>
 
           <div
@@ -573,7 +577,9 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
                   handlePhotoFiles(e.dataTransfer.files);
                 }}
               >
-                <div style={{ fontSize: '1.6rem', color: '#3b82f6', marginBottom: 6 }}>🖼️</div>
+                <div style={{ color: '#3b82f6', marginBottom: 6 }}>
+                  <ModernIcon name="image" size={32} color="#3b82f6" />
+                </div>
                 <div style={{ fontSize: '0.86rem', color: '#1e293b' }}>
                   Click to <span style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}>upload</span> or drag and drop
                 </div>
@@ -618,7 +624,9 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
                   handleDocFiles(e.dataTransfer.files);
                 }}
               >
-                <div style={{ fontSize: '1.6rem', color: '#64748b', marginBottom: 6 }}>📄</div>
+                <div style={{ color: '#64748b', marginBottom: 6 }}>
+                  <ModernIcon name="file" size={32} color="#64748b" />
+                </div>
                 <div style={{ fontSize: '0.86rem', color: '#1e293b' }}>
                   Click to <span style={{ color: '#2563eb', fontWeight: 700, textDecoration: 'underline' }}>upload</span>
                 </div>
@@ -651,8 +659,9 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
                         fontSize: '0.78rem',
                       }}
                     >
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-                        📄 {doc.name} ({doc.size})
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+                        <ModernIcon name="file" size={14} color="#64748b" />
+                        <span>{doc.name} ({doc.size})</span>
                       </span>
                       <button
                         type="button"
@@ -690,8 +699,9 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-                    📹 Video
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b', gap: 4 }}>
+                    <ModernIcon name="video" size={14} color="#64748b" />
+                    <span>Video</span>
                   </div>
                 )}
                 <button
@@ -768,7 +778,8 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
               opacity: loading ? 0.7 : 1,
             }}
           >
-            <span>🚀</span> {loading ? 'Submitting Report…' : 'Submit Report'}
+            <ModernIcon name="send" size={16} color="#ffffff" />
+            <span>{loading ? 'Submitting Report…' : 'Submit Report'}</span>
           </button>
 
           <button

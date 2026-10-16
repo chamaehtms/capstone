@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
 import InfrastructureReportCard from '../components/InfrastructureReportCard.jsx';
+import ModernIcon from '../components/ModernIcons.jsx';
 import { fileComplaint, Session } from '../api.js';
 
 export default function FileComplaint() {
@@ -148,9 +149,14 @@ export default function FileComplaint() {
                 cursor: 'pointer',
                 boxShadow: activeTab === 'complaint' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
               }}
             >
-              ⚖️ Formal Barangay Dispute / Blotter
+              <ModernIcon name="scale" size={16} color={activeTab === 'complaint' ? '#0f172a' : '#64748b'} />
+              <span>Formal Barangay Dispute / Blotter</span>
             </button>
             <button
               type="button"
@@ -170,9 +176,14 @@ export default function FileComplaint() {
                 cursor: 'pointer',
                 boxShadow: activeTab === 'infrastructure' ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
               }}
             >
-              📋 Infrastructure Report Card
+              <ModernIcon name="file" size={16} color={activeTab === 'infrastructure' ? '#0f172a' : '#64748b'} />
+              <span>Infrastructure Report Card</span>
             </button>
           </div>
 
@@ -282,7 +293,10 @@ export default function FileComplaint() {
                   EVIDENCE / ATTACHMENTS (PHOTOS, VIDEOS & DOCUMENTS)
                 </div>
                 <label className="upload-box" htmlFor="evidence" style={{ cursor: 'pointer', display: 'block' }}>
-                  <div className="icon">📷 🎥</div>
+                  <div className="icon" style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 8 }}>
+                    <ModernIcon name="camera" size={24} color="#64748b" />
+                    <ModernIcon name="video" size={24} color="#64748b" />
+                  </div>
                   <strong>{evidenceFile ? evidenceFile.name : 'Upload photo, video recording, or document'}</strong>
                   <small>
                     PNG, JPG, PDF, or MP4/WebM video (Up to 50MB). Files are checked for valid signatures and authenticity.
@@ -300,15 +314,16 @@ export default function FileComplaint() {
                 {evidenceFile && isVideo && evidencePreview && (
                   <div style={{ marginTop: 14, background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8' }}>
-                        🎬 Video Evidence Preview: {evidenceFile.name} ({(evidenceFile.size / (1024 * 1024)).toFixed(1)} MB)
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <ModernIcon name="video" size={14} color="#1d4ed8" />
+                        <span>Video Evidence Preview: {evidenceFile.name} ({(evidenceFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => handleEvidenceFile(null)}
                         style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}
                       >
-                        ✕ Remove
+                        Remove
                       </button>
                     </div>
                     <video
@@ -322,15 +337,16 @@ export default function FileComplaint() {
                 {evidenceFile && !isVideo && evidencePreview && (
                   <div style={{ marginTop: 14, background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#16a34a' }}>
-                        📷 Image Evidence Preview: {evidenceFile.name} ({(evidenceFile.size / 1024).toFixed(1)} KB)
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <ModernIcon name="image" size={14} color="#16a34a" />
+                        <span>Image Evidence Preview: {evidenceFile.name} ({(evidenceFile.size / 1024).toFixed(1)} KB)</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => handleEvidenceFile(null)}
                         style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem' }}
                       >
-                        ✕ Remove
+                        Remove
                       </button>
                     </div>
                     <img
@@ -343,15 +359,16 @@ export default function FileComplaint() {
 
                 {evidenceFile && !evidencePreview && (
                   <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f1f5f9', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem' }}>
-                    <span style={{ color: 'var(--navy)', fontWeight: 600 }}>
-                      📄 Attached file: {evidenceFile.name} ({(evidenceFile.size / 1024).toFixed(1)} KB)
+                    <span style={{ color: 'var(--navy)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <ModernIcon name="file" size={14} color="var(--navy)" />
+                      <span>Attached file: {evidenceFile.name} ({(evidenceFile.size / 1024).toFixed(1)} KB)</span>
                     </span>
                     <button
                       type="button"
                       onClick={() => handleEvidenceFile(null)}
                       style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                     >
-                      ✕ Remove
+                      Remove
                     </button>
                   </div>
                 )}

@@ -204,18 +204,20 @@ export default function Profile() {
                 position: 'absolute', bottom: 0, right: 0, background: 'var(--navy)', color: '#fff',
                 borderRadius: '50%', width: 24, height: 24, display: 'flex', alignItems: 'center',
                 justifyContent: 'center', fontSize: '.7rem'
-              }}>{uploadingPhoto ? '…' : '✎'}</span>
+              }}>
+                {uploadingPhoto ? '…' : <ModernIcon name="camera" size={12} color="#ffffff" />}
+              </span>
             </label>
             <input id="profilePhoto" type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoSelect} disabled={uploadingPhoto} />
             <div className="profile-name">{user.fullName}</div>
             <div style={{ margin: '4px 0 10px' }}>
               {user.status === 'Verified' ? (
-                <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', padding: '2px 10px', borderRadius: 12, fontSize: '0.74rem', fontWeight: 700 }}>
-                  ✓ Verified Resident
+                <span style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', padding: '2px 10px', borderRadius: 12, fontSize: '0.74rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <ModernIcon name="check" size={12} color="#15803d" /> Verified Resident
                 </span>
               ) : (
-                <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '2px 10px', borderRadius: 12, fontSize: '0.74rem', fontWeight: 700 }}>
-                  ⏳ Pending Verification (Limited Access)
+                <span style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', padding: '2px 10px', borderRadius: 12, fontSize: '0.74rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <ModernIcon name="clock" size={12} color="#92400e" /> Pending Verification (Limited Access)
                 </span>
               )}
             </div>
@@ -223,18 +225,23 @@ export default function Profile() {
               Barangay Poblacion, Resident ID: {user.residentId}. Actively contributing to community safety and environmental initiatives.
             </p>
             {mode !== 'edit' && (
-              <button className="btn btn-navy btn-block" style={{ marginBottom: 20 }} onClick={startEdit}>Edit Profile ✎</button>
+              <button className="btn btn-navy btn-block" style={{ marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={startEdit}>
+                <ModernIcon name="edit" size={14} color="#ffffff" /> Edit Profile
+              </button>
             )}
 
             <div className="stat-card dark">
-              <div className="label"><span>🚩</span><span>Complaints Filed</span></div>
+              <div className="label">
+                <span style={{ display: 'flex', alignItems: 'center' }}><ModernIcon name="flag" size={14} color="#38bdf8" /></span>
+                <span>Complaints Filed</span>
+              </div>
               <div className="value">{String(complaintsFiled).padStart(2, '0')}</div>
               <div className="sub">{complaintsFiled ? `${complaintsResolved} successfully resolved` : 'No complaints filed by you'}</div>
             </div>
 
             <div className="stat-card light">
               <div className="label">
-                <span>📈</span>
+                <span style={{ display: 'flex', alignItems: 'center' }}><ModernIcon name="chart" size={14} color="#0284c7" /></span>
                 <span style={{ fontWeight: 700 }}>Resolution Rate</span>
               </div>
               <div className="value">{String(resolutionRate).padStart(2, '0')}%</div>
@@ -355,7 +362,9 @@ export default function Profile() {
             {complaintsAgainstMe > 0 && (
               <div className="card" style={{ marginBottom: 20, border: '1px solid #fecaca', background: '#fffafb' }}>
                 <div className="card-title" style={{ color: '#991b1b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>⚖️ Notice of Complaints Involving You ({complaintsAgainstMe})</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ModernIcon name="scale" size={16} color="#991b1b" /> Notice of Complaints Involving You ({complaintsAgainstMe})
+                  </span>
                   <span style={{ fontSize: '0.72rem', background: '#fee2e2', color: '#991b1b', padding: '3px 8px', borderRadius: 8, fontWeight: 700 }}>
                     OFFICIAL NOTICE
                   </span>
@@ -386,9 +395,11 @@ export default function Profile() {
                       </div>
 
                       <div style={{ fontSize: '0.82rem', color: '#475569', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span>👤 <strong>Complainant:</strong></span>
-                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 6, fontStyle: 'italic', fontSize: '0.78rem' }}>
-                          🔒 Confidential / Anonymous Resident (Protected Identity)
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <ModernIcon name="user" size={13} color="#64748b" /> <strong>Complainant:</strong>
+                        </span>
+                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 6, fontStyle: 'italic', fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <ModernIcon name="lock" size={11} color="#64748b" /> Confidential / Anonymous Resident (Protected Identity)
                         </span>
                       </div>
 
@@ -405,8 +416,8 @@ export default function Profile() {
                       )}
 
                       {c.mediationDate && (
-                        <div style={{ background: '#eff6ff', padding: '6px 10px', borderRadius: 6, fontSize: '0.8rem', color: '#1e40af', marginBottom: 8 }}>
-                          ⚖️ <strong>Mediation Session:</strong> {c.mediationDate} {c.mediationTime || ''} at {c.mediationVenue || 'Barangay Hall'}
+                        <div style={{ background: '#eff6ff', padding: '6px 10px', borderRadius: 6, fontSize: '0.8rem', color: '#1e40af', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <ModernIcon name="scale" size={13} color="#1e40af" /> <strong>Mediation Session:</strong> {c.mediationDate} {c.mediationTime || ''} at {c.mediationVenue || 'Barangay Hall'}
                         </div>
                       )}
 
@@ -423,7 +434,9 @@ export default function Profile() {
 
             {mode === 'password' ? (
               <form className="card" style={{ marginBottom: 20 }} onSubmit={savePassword}>
-                <div className="card-title">🔑 Change Password</div>
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ModernIcon name="key" size={16} color="#0284c7" /> Change Password
+                </div>
                 {formError && <div className="error-msg" style={{ marginBottom: 12 }}>{formError}</div>}
                 <div className="field">
                   <label className="field-label">Current Password</label>
@@ -536,26 +549,53 @@ export default function Profile() {
               </form>
             ) : (
               <div className="card" style={{ marginBottom: 20 }}>
-                <div className="card-title">🛡️ Account Security</div>
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ModernIcon name="shield" size={16} color="#0284c7" /> Account Security
+                </div>
                 <div className="list-row" style={{ cursor: 'pointer' }} onClick={() => { setFormError(''); setMode('password'); }}>
-                  <div className="left"><div className="ic">🔑</div><div><div className="title">Change Password</div><div className="sub">Tap to update your password</div></div></div>
+                  <div className="left">
+                    <div className="ic" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ModernIcon name="key" size={16} color="#0284c7" />
+                    </div>
+                    <div>
+                      <div className="title">Change Password</div>
+                      <div className="sub">Tap to update your password</div>
+                    </div>
+                  </div>
                   <span className="chev">›</span>
                 </div>
               </div>
             )}
 
             <div className="card" style={{ marginBottom: 20 }}>
-              <div className="card-title">🛡️ Preferences</div>
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="shield" size={16} color="#0284c7" /> Preferences
+              </div>
               <div className="list-row">
-                <div className="left"><div className="ic">🔔</div><div className="title">Push Notifications</div></div>
+                <div className="left">
+                  <div className="ic" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ModernIcon name="bell" size={16} color="#0284c7" />
+                  </div>
+                  <div className="title">Push Notifications</div>
+                </div>
                 <button className={`toggle ${user.pushNotifications ? 'on' : ''}`} onClick={togglePush}><div className="knob" /></button>
               </div>
               <div className="list-row">
-                <div className="left"><div className="ic">✉️</div><div className="title">Email Announcements</div></div>
+                <div className="left">
+                  <div className="ic" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ModernIcon name="mail" size={16} color="#0284c7" />
+                  </div>
+                  <div className="title">Email Announcements</div>
+                </div>
                 <button className={`toggle ${user.emailAnnouncements ? 'on' : ''}`} onClick={toggleEmail}><div className="knob" /></button>
               </div>
               <div className="list-row">
-                <div className="left"><div className="ic">🌐</div><div><div className="title">Language</div><div className="sub">{user.language}</div></div></div>
+                <div className="left">
+                  <div className="ic" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ModernIcon name="globe" size={16} color="#0284c7" />
+                  </div>
+                  <div><div className="title">Language</div><div className="sub">{user.language}</div></div>
+                </div>
                 <span className="chev">›</span>
               </div>
             </div>

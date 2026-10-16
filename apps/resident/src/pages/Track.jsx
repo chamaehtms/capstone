@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
 import InfrastructureTimeline from '../components/InfrastructureTimeline.jsx';
+import ModernIcon from '../components/ModernIcons.jsx';
 import { trackComplaint, getMyComplaints, getMyMediations, statusBadgeClass, toAssetUrl } from '../api.js';
 
 function Timeline({ c }) {
@@ -105,7 +106,8 @@ export default function Track() {
 
         <div className="track-search">
           <div className="track-search-row">
-            🔍 <input
+            <ModernIcon name="search" size={18} color="#64748b" />
+            <input
               value={refInput}
               onChange={(e) => setRefInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') doLookup(refInput.trim()); }}
@@ -157,7 +159,10 @@ export default function Track() {
                   <div className="two-col">
                     {/* Work Order & Inspection Card */}
                     <div className="card">
-                      <div className="card-title">🛠️ Inspection & Work Order Details</div>
+                      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ModernIcon name="tool" size={18} color="#0284c7" />
+                        <span>Inspection & Work Order Details</span>
+                      </div>
                       <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #0284c7', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                           <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>
@@ -167,15 +172,30 @@ export default function Track() {
                             WORK ORDER
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
-                          <div>📍 <strong>Specific Location:</strong> {result.nature || result.description}</div>
+                        <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <ModernIcon name="building" size={14} color="#64748b" />
+                            <span><strong>Specific Location:</strong> {result.nature || result.description}</span>
+                          </div>
                           {result.respondentName && (
-                            <div>🏢 <strong>Landmark / Nearby:</strong> {result.respondentName.replace('Nearby: ', '')}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <ModernIcon name="building" size={14} color="#64748b" />
+                              <span><strong>Landmark / Nearby:</strong> {result.respondentName.replace('Nearby: ', '')}</span>
+                            </div>
                           )}
-                          <div>👥 <strong>Assigned Team:</strong> {result.assignedTeam || 'Barangay Maintenance & Engineering Team'}</div>
-                          <div>⚡ <strong>Current Status:</strong> <span style={{ fontWeight: 700, color: '#0284c7' }}>{result.status}</span></div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <ModernIcon name="users" size={14} color="#64748b" />
+                            <span><strong>Assigned Team:</strong> {result.assignedTeam || 'Barangay Maintenance & Engineering Team'}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <ModernIcon name="bell" size={14} color="#0284c7" />
+                            <span><strong>Current Status:</strong> <span style={{ fontWeight: 700, color: '#0284c7' }}>{result.status}</span></span>
+                          </div>
                           {result.reliefSought && (
-                            <div style={{ marginTop: 4 }}>🎯 <strong>Action Requested:</strong> {result.reliefSought}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                              <ModernIcon name="check" size={14} color="#16a34a" />
+                              <span><strong>Action Requested:</strong> {result.reliefSought}</span>
+                            </div>
                           )}
                         </div>
 
@@ -206,7 +226,8 @@ export default function Track() {
                                   rel="noopener noreferrer"
                                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
                                 >
-                                  🎬 Open video in full screen ↗
+                                  <ModernIcon name="video" size={14} color="#2563eb" />
+                                  <span>Open video in full screen ↗</span>
                                 </a>
                               </div>
                             ) : /\.(jpe?g|png|gif|webp)$/i.test(result.attachmentUrl) ? (
@@ -220,9 +241,10 @@ export default function Track() {
                                   href={toAssetUrl(result.attachmentUrl)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  style={{ display: 'block', fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
                                 >
-                                  📷 View full resolution photo ↗
+                                  <ModernIcon name="image" size={14} color="#2563eb" />
+                                  <span>View full resolution photo ↗</span>
                                 </a>
                               </div>
                             ) : (
@@ -232,7 +254,8 @@ export default function Track() {
                                 rel="noopener noreferrer"
                                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#2563eb', textDecoration: 'underline', fontWeight: 600 }}
                               >
-                                📄 View Uploaded Document Evidence ↗
+                                <ModernIcon name="file" size={14} color="#2563eb" />
+                                <span>View Uploaded Document Evidence ↗</span>
                               </a>
                             )}
                           </div>
@@ -284,7 +307,10 @@ export default function Track() {
                   <div className="two-col">
                     {/* Mediation Schedule Card */}
                     <div className="card">
-                      <div className="card-title">⚖️ Mediation Schedule</div>
+                      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <ModernIcon name="scale" size={18} color="#4f46e5" />
+                        <span>Mediation Schedule</span>
+                      </div>
                       {result.mediationDate || caseMediation ? (
                         <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #4f46e5', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
@@ -318,39 +344,63 @@ export default function Track() {
                               </span>
                             </div>
                           </div>
-                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7 }}>
-                            <div>📅 <strong>Date:</strong> {result.mediationDate || caseMediation?.date}</div>
+                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.7, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <ModernIcon name="calendar" size={14} color="#64748b" />
+                              <span><strong>Date:</strong> {result.mediationDate || caseMediation?.date}</span>
+                            </div>
                             {(result.mediationTime || caseMediation?.time) && (
-                              <div>⏰ <strong>Time:</strong> {result.mediationTime || caseMediation?.time}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <ModernIcon name="clock" size={14} color="#64748b" />
+                                <span><strong>Time:</strong> {result.mediationTime || caseMediation?.time}</span>
+                              </div>
                             )}
-                            <div>📍 <strong>Venue:</strong> {result.mediationVenue || caseMediation?.location || 'Barangay Poblacion Mediation Hall'}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <ModernIcon name="building" size={14} color="#64748b" />
+                              <span><strong>Venue:</strong> {result.mediationVenue || caseMediation?.location || 'Barangay Poblacion Mediation Hall'}</span>
+                            </div>
                             {(result.mediator || caseMediation?.mediator) && (
-                              <div>👤 <strong>Presiding Officer:</strong> {result.mediator || caseMediation?.mediator}</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <ModernIcon name="user" size={14} color="#64748b" />
+                                <span><strong>Presiding Officer:</strong> {result.mediator || caseMediation?.mediator}</span>
+                              </div>
                             )}
                           </div>
-                          <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#64748b', background: '#ffffff', padding: '8px 10px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                            ✉️ An official Notice of Hearing has been issued and sent to your registered email. Please bring a valid government ID and arrive 15 minutes before the scheduled time.
+                          <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#64748b', background: '#ffffff', padding: '8px 10px', borderRadius: 6, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <ModernIcon name="mail" size={14} color="#64748b" style={{ flexShrink: 0, marginTop: 2 }} />
+                            <span>An official Notice of Hearing has been issued and sent to your registered email. Please bring a valid government ID and arrive 15 minutes before the scheduled time.</span>
                           </p>
 
                           {(caseMediation?.nextMeetingDate || result.nextMediationDate) && (
                             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                <strong style={{ color: '#6d28d9', fontSize: '0.88rem' }}>
-                                  🗓️ Next Follow-up Hearing Scheduled
+                                <strong style={{ color: '#6d28d9', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <ModernIcon name="calendar" size={14} color="#6d28d9" />
+                                  <span>Next Follow-up Hearing Scheduled</span>
                                 </strong>
                                 <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9' }}>
                                   NEXT SESSION
                                 </span>
                               </div>
-                              <div style={{ fontSize: '0.84rem', color: '#334155', lineHeight: 1.6 }}>
-                                <div>📅 <strong>Date:</strong> {caseMediation?.nextMeetingDate || result.nextMediationDate}</div>
+                              <div style={{ fontSize: '0.84rem', color: '#334155', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <ModernIcon name="calendar" size={14} color="#64748b" />
+                                  <span><strong>Date:</strong> {caseMediation?.nextMeetingDate || result.nextMediationDate}</span>
+                                </div>
                                 {(caseMediation?.nextMeetingTime || result.nextMediationTime) && (
-                                  <div>⏰ <strong>Time:</strong> {caseMediation?.nextMeetingTime || result.nextMediationTime}</div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <ModernIcon name="clock" size={14} color="#64748b" />
+                                    <span><strong>Time:</strong> {caseMediation?.nextMeetingTime || result.nextMediationTime}</span>
+                                  </div>
                                 )}
-                                <div>📍 <strong>Venue:</strong> {caseMediation?.nextMeetingVenue || result.nextMediationVenue || 'Barangay Poblacion Mediation Hall'}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <ModernIcon name="building" size={14} color="#64748b" />
+                                  <span><strong>Venue:</strong> {caseMediation?.nextMeetingVenue || result.nextMediationVenue || 'Barangay Poblacion Mediation Hall'}</span>
+                                </div>
                               </div>
-                              <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: '#6d28d9' }}>
-                                ✉️ An official Notice for this follow-up session has been dispatched to your Gmail. Please ensure compliance with previously agreed commitments.
+                              <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: '#6d28d9', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                                <ModernIcon name="mail" size={14} color="#6d28d9" style={{ flexShrink: 0, marginTop: 2 }} />
+                                <span>An official Notice for this follow-up session has been dispatched to your Gmail. Please ensure compliance with previously agreed commitments.</span>
                               </p>
                             </div>
                           )}
@@ -392,9 +442,10 @@ export default function Track() {
                                 href={toAssetUrl(result.attachmentUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
                               >
-                                🎬 Open video in full screen ↗
+                                <ModernIcon name="video" size={14} color="#2563eb" />
+                                <span>Open video in full screen ↗</span>
                               </a>
                             </div>
                           ) : /\.(jpe?g|png|gif|webp)$/i.test(result.attachmentUrl) ? (
@@ -408,9 +459,10 @@ export default function Track() {
                                 href={toAssetUrl(result.attachmentUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                style={{ display: 'block', fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#2563eb', marginTop: 4, textDecoration: 'underline' }}
                               >
-                                📷 View full resolution photo ↗
+                                <ModernIcon name="image" size={14} color="#2563eb" />
+                                <span>View full resolution photo ↗</span>
                               </a>
                             </div>
                           ) : (
@@ -420,7 +472,8 @@ export default function Track() {
                               rel="noopener noreferrer"
                               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', color: '#2563eb', textDecoration: 'underline', fontWeight: 600 }}
                             >
-                              📄 View Attached Evidence File ↗
+                              <ModernIcon name="file" size={14} color="#2563eb" />
+                              <span>View Attached Evidence File ↗</span>
                             </a>
                           )}
                         </div>

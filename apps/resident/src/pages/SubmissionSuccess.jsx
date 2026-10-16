@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function SubmissionSuccess() {
   const navigate = useNavigate();
@@ -24,7 +25,9 @@ export default function SubmissionSuccess() {
           <label>Case Reference ID</label>
           <div className="ref-row">
             <strong>{complaint ? `#${complaint.caseRef}` : '—'}</strong>
-            <button className="btn btn-outline" onClick={copyRef}>📋 Copy</button>
+            <button className="btn btn-outline" onClick={copyRef} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <ModernIcon name="copy" size={14} /> Copy
+            </button>
           </div>
           <p style={{ fontSize: '.8rem', color: 'var(--muted)', margin: '8px 0 0' }}>
             Please keep this ID for all future correspondence regarding this specific claim.
@@ -42,9 +45,9 @@ export default function SubmissionSuccess() {
             </div>
           </div>
           <div className="next-steps">
-            <div className="step-item"><div className="step-dot done">✓</div>Submitted</div>
-            <div className="step-item"><div className="step-dot">🕐</div>Review</div>
-            <div className="step-item"><div className="step-dot">👤</div>Action</div>
+            <div className="step-item"><div className="step-dot done"><ModernIcon name="check" size={12} color="#ffffff" /></div>Submitted</div>
+            <div className="step-item"><div className="step-dot"><ModernIcon name="clock" size={12} color="#64748b" /></div>Review</div>
+            <div className="step-item"><div className="step-dot"><ModernIcon name="user" size={12} color="#64748b" /></div>Action</div>
           </div>
         </div>
 
@@ -55,9 +58,18 @@ export default function SubmissionSuccess() {
           <button className="btn btn-sky btn-block">Track Status</button>
         </Link>
 
-        <div className="info-line"><span>🛡️</span><div><strong>Secure Logging</strong>Encrypted records stored in the distributed municipal ledger.</div></div>
-        <div className="info-line"><span>🔔</span><div><strong>Auto-Notifications</strong>Email alerts will be triggered once an officer is assigned to your file.</div></div>
-        <div className="info-line"><span>🎧</span><div><strong>Need Support?</strong>Our support desk is available 24/7 for filing-related inquiries.</div></div>
+        <div className="info-line">
+          <span style={{ display: 'flex', alignItems: 'center' }}><ModernIcon name="shield" size={18} color="#2563eb" /></span>
+          <div><strong>Secure Logging</strong>Encrypted records stored in the distributed municipal ledger.</div>
+        </div>
+        <div className="info-line">
+          <span style={{ display: 'flex', alignItems: 'center' }}><ModernIcon name="bell" size={18} color="#2563eb" /></span>
+          <div><strong>Auto-Notifications</strong>Email alerts will be triggered once an officer is assigned to your file.</div>
+        </div>
+        <div className="info-line">
+          <span style={{ display: 'flex', alignItems: 'center' }}><ModernIcon name="phone" size={18} color="#2563eb" /></span>
+          <div><strong>Need Support?</strong>Our support desk is available 24/7 for filing-related inquiries.</div>
+        </div>
       </div>
     </div>
   );

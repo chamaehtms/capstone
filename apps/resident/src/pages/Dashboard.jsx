@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
+import ModernIcon from '../components/ModernIcons.jsx';
 import { getAnnouncements, getMyComplaints, getMyMediations, getProfile, Session, statusBadgeClass, toAssetUrl } from '../api.js';
 
 export default function Dashboard() {
@@ -68,7 +69,9 @@ export default function Dashboard() {
         {complaintsAgainstMe.length > 0 && (
           <div className="card" style={{ borderLeft: '4px solid #ef4444', background: '#fef2f2', marginBottom: 20, padding: '16px 20px', borderRadius: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <strong style={{ color: '#b91c1c', fontSize: '0.95rem' }}>⚠️ Official Notice: Complaint Filed Involving You</strong>
+              <strong style={{ color: '#b91c1c', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="warning" size={16} color="#b91c1c" /> Official Notice: Complaint Filed Involving You
+              </strong>
               <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#fee2e2', color: '#991b1b' }}>
                 NOTICE AS RESPONDENT ({complaintsAgainstMe.length})
               </span>
@@ -90,7 +93,9 @@ export default function Dashboard() {
         {mediations.length > 0 && (
           <div className="card" style={{ borderLeft: '4px solid #6366f1', background: '#f5f3ff', marginBottom: 24, padding: '16px 20px', borderRadius: 10 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-              <strong style={{ color: '#4338ca', fontSize: '0.95rem' }}>⚖️ Official Mediation Hearing Scheduled</strong>
+              <strong style={{ color: '#4338ca', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="scale" size={16} color="#4338ca" /> Official Mediation Hearing Scheduled
+              </strong>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {mediations[0].mediationStatus && (
                   <span style={{
@@ -124,7 +129,9 @@ export default function Dashboard() {
             </p>
             {mediations[0].nextMeetingDate && (
               <div style={{ marginTop: 12, marginBottom: 12, padding: '10px 14px', background: '#ffffff', borderRadius: 8, border: '1px solid #e0e7ff', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ fontSize: '1.25rem' }}>🗓️</span>
+                <span style={{ color: '#4338ca', marginTop: 2 }}>
+                  <ModernIcon name="calendar" size={18} color="#4338ca" />
+                </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <strong style={{ color: '#4338ca', fontSize: '0.88rem' }}>
@@ -134,11 +141,11 @@ export default function Dashboard() {
                       FOLLOW-UP
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 600, marginTop: 3 }}>
-                    📅 {mediations[0].nextMeetingDate} {mediations[0].nextMeetingTime ? `⏰ at ${mediations[0].nextMeetingTime}` : ''}
+                  <div style={{ fontSize: '0.84rem', color: '#1e293b', fontWeight: 600, marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ModernIcon name="calendar" size={14} color="#64748b" /> {mediations[0].nextMeetingDate} {mediations[0].nextMeetingTime ? `at ${mediations[0].nextMeetingTime}` : ''}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 2 }}>
-                    📍 Venue: {mediations[0].nextMeetingVenue || 'Barangay Poblacion Mediation Hall'}
+                  <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ModernIcon name="map-pin" size={13} color="#64748b" /> Venue: {mediations[0].nextMeetingVenue || 'Barangay Poblacion Mediation Hall'}
                   </div>
                 </div>
               </div>
@@ -156,14 +163,18 @@ export default function Dashboard() {
 
         <div className="quick-actions-grid">
           <div className="card quick-action-card" style={{ margin: 0 }}>
-            <div className="icon-badge">📣</div>
+            <div className="icon-badge">
+              <ModernIcon name="megaphone" size={20} color="#0284c7" />
+            </div>
             <h4>File Complaint</h4>
             <p>Report neighborhood issues, safety concerns, or infrastructure damages.</p>
             <Link to="/file-complaint"><button className="btn btn-sky">File Report →</button></Link>
           </div>
 
           <div className="card quick-action-card" style={{ margin: 0 }}>
-            <div className="icon-badge">📈</div>
+            <div className="icon-badge">
+              <ModernIcon name="chart" size={20} color="#1d4ed8" />
+            </div>
             <h4>Track Complaints</h4>
             <p>Monitor real-time progress, hearings, and status of your filed reports.</p>
             <Link to="/track"><button className="btn btn-navy">Track Status →</button></Link>
@@ -191,7 +202,9 @@ export default function Dashboard() {
                 <div className="body">
                   <h4>{a.title}</h4>
                   <p>{a.body}</p>
-                  <div className="date-tag">📅 {a.eventDate || ''}</div>
+                  <div className="date-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <ModernIcon name="calendar" size={13} color="#64748b" /> {a.eventDate || ''}
+                  </div>
                 </div>
               </div>
             ))}
@@ -228,14 +241,20 @@ export default function Dashboard() {
 
       {isVerified && lightboxAnnouncement && (
         <div className="lightbox-overlay" onClick={() => setLightboxAnnouncement(null)}>
-          <button className="lightbox-close" onClick={() => setLightboxAnnouncement(null)} aria-label="Close">✕</button>
+          <button className="lightbox-close" onClick={() => setLightboxAnnouncement(null)} aria-label="Close">
+            <ModernIcon name="close" size={16} />
+          </button>
           <div className="lightbox-card" onClick={(e) => e.stopPropagation()}>
             <img src={toAssetUrl(lightboxAnnouncement.imageUrl)} alt="" className="lightbox-img" />
             <div className="lightbox-info">
               {lightboxAnnouncement.tag && <span className="pill-muted" style={{ marginBottom: 8, display: 'inline-block' }}>{lightboxAnnouncement.tag}</span>}
               <h4>{lightboxAnnouncement.title}</h4>
               {lightboxAnnouncement.body && <p>{lightboxAnnouncement.body}</p>}
-              {lightboxAnnouncement.eventDate && <div className="date-tag">📅 {lightboxAnnouncement.eventDate}</div>}
+              {lightboxAnnouncement.eventDate && (
+                <div className="date-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <ModernIcon name="calendar" size={13} color="#64748b" /> {lightboxAnnouncement.eventDate}
+                </div>
+              )}
             </div>
           </div>
         </div>
