@@ -83,8 +83,11 @@ export default function Track() {
     } else {
       getMyComplaints().then((mine) => {
         if (mine.length) {
-          setRefInput(mine[0].trackingId);
-          doLookup(mine[0].trackingId);
+          const initialRef = mine[0].trackingId || mine[0].id || mine[0].caseRef;
+          if (initialRef) {
+            setRefInput(initialRef);
+            doLookup(initialRef);
+          }
         }
       }).catch(() => {});
     }
