@@ -170,6 +170,43 @@ async function sendVerificationCode(resident) {
   return code;
 }
 
+function extractDateOnly(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(val).trim();
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = new Date(s);
+  if (!Number.isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return '';
+}
+
+function calculateExactAge(birthDate) {
+  const clean = extractDateOnly(birthDate);
+  if (!clean) return null;
+  const [bYear, bMonth, bDay] = clean.split('-').map(Number);
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth() + 1;
+  const tDay = today.getDate();
+
+  let age = tYear - bYear;
+  if (tMonth < bMonth || (tMonth === bMonth && tDay < bDay)) {
+    age -= 1;
+  }
+  return Math.max(0, age);
+}
+
 function normalizeText(str) {
   return String(str || '')
     .toLowerCase()
@@ -208,13 +245,13 @@ async function findRegistryMatch({ firstName, middleName, lastName, fullName, bi
     // 2. Birth date matching
     if (birthDate && row.birth_date) {
       try {
-        const regBirth = new Date(row.birth_date).toISOString().slice(0, 10);
-        const subBirth = String(birthDate).slice(0, 10);
-        if (regBirth === subBirth) {
+        const regBirth = extractDateOnly(row.birth_date);
+        const subBirth = extractDateOnly(birthDate);
+        if (regBirth && subBirth && regBirth === subBirth) {
           score += 30;
-        } else {
-          const regYear = new Date(row.birth_date).getFullYear();
-          const subYear = new Date(birthDate).getFullYear();
+        } else if (regBirth && subBirth) {
+          const regYear = parseInt(regBirth.slice(0, 4), 10);
+          const subYear = parseInt(subBirth.slice(0, 4), 10);
           if (regYear === subYear) {
             score += 15;
           } else {
