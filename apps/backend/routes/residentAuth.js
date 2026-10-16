@@ -401,7 +401,7 @@ router.post('/register', (req, res) => {
 
     try {
       const {
-        firstName, middleName, lastName, birthDate, gender, contact, zone, email, password,
+        firstName, middleName, lastName, birthDate, gender, contact, zone, address, email, password,
       } = req.body;
 
       if (!firstName || !lastName || !email || !password) {
@@ -496,7 +496,8 @@ router.post('/register', (req, res) => {
       const aiIdResult = matchVerification.idScan || { status: 'likely_authentic', score: 0.05, summary: 'Verified ID document.' };
 
       if (registryMatch && !registryMatch.password_hash) {
-        // Link and claim the pre-enrolled registry record
+        // Link and claim the pre-enrolled registry record without wiping out its street address
+        const resolvedAddress = (address && address.trim()) || registryMatch.address || zone || '';
         const { rows: updatedRows } = await pool.query(
           `UPDATE residents SET
             full_name = COALESCE(NULLIF($1, ''), full_name),
@@ -521,7 +522,7 @@ router.post('/register', (req, res) => {
            WHERE id = $15
            RETURNING *`,
           [
-            fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
+            fullName, birthDate || null, age, gender || 'Unspecified', resolvedAddress, zone || '',
             contact || '', normalizedEmail, hashPassword(password), idDocumentUrl, selfieIdUrl,
             aiIdResult.status, aiIdResult.score, aiIdResult.summary,
             registryMatch.id,
@@ -531,6 +532,7 @@ router.post('/register', (req, res) => {
       } else {
         // Insert new resident record
         const id = `res-${uuidv4().slice(0, 8)}`;
+        const initialAddress = (address && address.trim()) || zone || '';
         const { rows: insertedRows } = await pool.query(
           `INSERT INTO residents
             (id, full_name, birth_date, age, gender, address, zone, contact, email, status,
@@ -539,7 +541,7 @@ router.post('/register', (req, res) => {
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,true,false,$16,$17,$18,now())
            RETURNING *`,
           [
-            id, fullName, birthDate || null, age, gender || 'Unspecified', zone || '', zone || '',
+            id, fullName, birthDate || null, age, gender || 'Unspecified', initialAddress, zone || '',
             contact || '', normalizedEmail, residentStatus, JSON.stringify(['Resident']),
             hashPassword(password), idDocumentUrl, selfieIdUrl, selfieIdUrl,
             aiIdResult.status, aiIdResult.score, aiIdResult.summary,
