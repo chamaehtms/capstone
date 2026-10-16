@@ -133,20 +133,27 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Check if the selected date already has a scheduled session / meeting
-    const { rows: conflictRows } = await pool.query(
-      `SELECT id, title, time, meeting_type FROM meetings
-       WHERE date = $1::date
-       LIMIT 1`,
-      [cleanDate]
-    );
+    // Check if the selected date already has a conflicting session at the same venue and time
+    const cleanTime = String(time || '').trim();
+    let conflictRows = [];
+    if (cleanTime) {
+      const { rows } = await pool.query(
+        `SELECT id, title, time, location, meeting_type FROM meetings
+         WHERE date = $1::date
+           AND LOWER(TRIM(location)) = LOWER(TRIM($2))
+           AND LOWER(TRIM(time)) = LOWER(TRIM($3))
+         LIMIT 1`,
+        [cleanDate, venue || location || '', cleanTime]
+      );
+      conflictRows = rows;
+    }
 
     if (conflictRows.length > 0) {
       const conflict = conflictRows[0];
       const conflictType = conflict.meeting_type === 'mediation' ? 'Mediation Session' : 'Meeting';
       const timeInfo = conflict.time ? ` at ${conflict.time}` : '';
       return res.status(409).json({
-        message: `Conflict detected: A ${conflictType} ("${conflict.title}"${timeInfo}) is already scheduled on ${cleanDate}. Please select another date.`,
+        message: `Schedule conflict: A ${conflictType} ("${conflict.title}"${timeInfo}) is already scheduled at ${conflict.location || 'this venue'} on ${cleanDate}. Please select another time or venue.`,
         conflictDate: cleanDate,
       });
     }
@@ -374,22 +381,27 @@ router.put('/:id', async (req, res) => {
     const existing = toMeeting(existingRows[0]);
     const merged = { ...existing, ...req.body };
 
-    // If date changed, check for scheduling conflicts on the target day
+    // Check for scheduling conflicts on the target day, venue, and time
     const cleanDate = String(merged.date || '').trim().slice(0, 10);
-    const existingCleanDate = String(existing.date || '').trim().slice(0, 10);
-    if (cleanDate && cleanDate !== existingCleanDate) {
+    const cleanTime = String(merged.time || '').trim();
+    const cleanVenue = String(merged.location || '').trim();
+
+    if (cleanDate && cleanTime && cleanVenue) {
       const { rows: conflictRows } = await pool.query(
-        `SELECT id, title, time, meeting_type FROM meetings
-         WHERE date = $1::date AND id <> $2
+        `SELECT id, title, time, location, meeting_type FROM meetings
+         WHERE date = $1::date
+           AND LOWER(TRIM(location)) = LOWER(TRIM($2))
+           AND LOWER(TRIM(time)) = LOWER(TRIM($3))
+           AND id <> $4
          LIMIT 1`,
-        [cleanDate, req.params.id]
+        [cleanDate, cleanVenue, cleanTime, req.params.id]
       );
       if (conflictRows.length > 0) {
         const conflict = conflictRows[0];
         const conflictType = conflict.meeting_type === 'mediation' ? 'Mediation Session' : 'Meeting';
         const timeInfo = conflict.time ? ` at ${conflict.time}` : '';
         return res.status(409).json({
-          message: `Conflict detected: A ${conflictType} ("${conflict.title}"${timeInfo}) is already scheduled on ${cleanDate}. Please select another date.`,
+          message: `Schedule conflict: A ${conflictType} ("${conflict.title}"${timeInfo}) is already scheduled at ${conflict.location || 'this venue'} on ${cleanDate}. Please select another time or venue.`,
           conflictDate: cleanDate,
         });
       }

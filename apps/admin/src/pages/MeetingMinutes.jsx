@@ -342,15 +342,19 @@ export default function MeetingMinutes() {
  }
 
  const selectedDate = String(form.date).trim().slice(0, 10);
- const isEditing = modalMode === 'edit' && selected;
+ const cleanTime = String(form.time || '').trim().toLowerCase();
+ const cleanVenue = String(form.location || 'Barangay Poblacion Session Hall').trim().toLowerCase();
+
  const conflictMeeting = meetings.find((m) => {
  const mDate = String(m.date || '').trim().slice(0, 10);
  if (isEditing && m.id === selected?.id) return false;
- return mDate === selectedDate;
+ const mTime = String(m.time || '').trim().toLowerCase();
+ const mVenue = String(m.location || '').trim().toLowerCase();
+ return mDate === selectedDate && mTime && cleanTime && mTime === cleanTime && mVenue && cleanVenue && mVenue === cleanVenue;
  });
 
  if (conflictMeeting) {
- alert(`Date Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled on ${selectedDate}. Please choose a different date.`);
+ alert(`Schedule Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled at ${conflictMeeting.location || 'this venue'} on ${selectedDate}. Please choose a different time or venue.`);
  return;
  }
 
@@ -418,14 +422,19 @@ export default function MeetingMinutes() {
  return;
  }
 
+ const cleanTime = String(mediationForm.time || '').trim().toLowerCase();
+ const cleanVenue = String(mediationForm.location || '').trim().toLowerCase();
+
  const conflictMeeting = meetings.find((m) => {
  const mDate = String(m.date || '').trim().slice(0, 10);
  if (isExistingMediation && m.id === selected?.id) return false;
- return mDate === selectedDate;
+ const mTime = String(m.time || '').trim().toLowerCase();
+ const mVenue = String(m.location || '').trim().toLowerCase();
+ return mDate === selectedDate && mTime && cleanTime && mTime === cleanTime && mVenue && cleanVenue && mVenue === cleanVenue;
  });
 
  if (conflictMeeting) {
- alert(`Date Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled on ${selectedDate}. Please choose a different date.`);
+ alert(`Schedule Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled at ${conflictMeeting.location || 'this venue'} on ${selectedDate}. Please choose a different time or venue.`);
  return;
  }
 
