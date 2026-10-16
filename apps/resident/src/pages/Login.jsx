@@ -20,6 +20,8 @@ export default function Login() {
   const [recaptchaToken, setRecaptchaToken] = useState('');
   const recaptchaRef = useRef(null);
 
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+
   useEffect(() => {
     if (Session.isLoggedIn()) navigate('/dashboard');
   }, [navigate]);
@@ -66,6 +68,7 @@ export default function Login() {
     e.preventDefault();
     if (lockoutSeconds > 0) return;
     setError('');
+    setUnverifiedEmail('');
     setLoading(true);
 
     try {
@@ -84,6 +87,9 @@ export default function Login() {
       if (err.data?.secondsRemaining) {
         setLockoutSeconds(err.data.secondsRemaining);
       }
+      if (err.data?.requiresVerification) {
+        setUnverifiedEmail(err.data.email || identifier.trim());
+      }
       setError(err.message);
       setLoading(false);
     }
@@ -93,6 +99,7 @@ export default function Login() {
     if (lockoutSeconds > 0) return;
     setRecaptchaToken(token);
     setError('');
+    setUnverifiedEmail('');
     setLoading(true);
     try {
       const data = await login(identifier, password, token);
@@ -107,6 +114,9 @@ export default function Login() {
       if (err.data?.secondsRemaining) {
         setLockoutSeconds(err.data.secondsRemaining);
       }
+      if (err.data?.requiresVerification) {
+        setUnverifiedEmail(err.data.email || identifier.trim());
+      }
       setError(err.message);
       setLoading(false);
     }
@@ -120,7 +130,28 @@ export default function Login() {
           Barangay Poblacion
         </h1>
 
-        {error && <div className="error-msg">{error}</div>}
+        {error && (
+          <div className="error-msg" style={{ textAlign: 'left' }}>
+            <div>{error}</div>
+            {unverifiedEmail && (
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(220, 38, 38, 0.2)' }}>
+                <Link
+                  to={`/register?step=verify&email=${encodeURIComponent(unverifiedEmail)}`}
+                  style={{
+                    color: '#991b1b',
+                    fontWeight: 700,
+                    textDecoration: 'underline',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  Verify your email with your 6-digit code now →
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} autoComplete="off">
           <div className="field">

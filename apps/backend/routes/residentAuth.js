@@ -789,7 +789,11 @@ router.post('/login', async (req, res) => {
     residentLoginAttempts.delete(attemptKey);
 
     if (!resident.email_verified) {
-      return res.status(403).json({ message: 'Verify your email using the six-digit code before signing in.' });
+      return res.status(403).json({
+        message: 'Verify your email using the six-digit code before signing in.',
+        requiresVerification: true,
+        email: resident.email,
+      });
     }
 
     if (resident.status === 'Rejected') {

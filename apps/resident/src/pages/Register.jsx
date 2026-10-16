@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { register, checkEmailAvailability, verifyRegistrationEmail, resendRegistrationCode, Session } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function Register() {
+  const [searchParams] = useSearchParams();
+  const initialVerifyEmail = searchParams.get('email') || '';
+  const initialStep = searchParams.get('step') === 'verify' && initialVerifyEmail ? 'verify' : 'form';
+
   const [form, setForm] = useState({
     firstName: '', middleName: '', lastName: '', dateOfBirth: '', sex: '',
-    contactNumber: '', purok: '', email: '', password: ''
+    contactNumber: '', purok: '', email: initialVerifyEmail || '', password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [emailStatus, setEmailStatus] = useState({ checking: false, available: null, valid: null, message: '' });
@@ -23,12 +27,12 @@ export default function Register() {
   const [aiValidatingStep, setAiValidatingStep] = useState('');
 
   // 6-digit email verification state
-  const [step, setStep] = useState('form'); // 'form' | 'verify' | 'completed'
-  const [verifyEmail, setVerifyEmail] = useState('');
+  const [step, setStep] = useState(initialStep); // 'form' | 'verify' | 'completed'
+  const [verifyEmail, setVerifyEmail] = useState(initialVerifyEmail);
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
-  const [otpMessage, setOtpMessage] = useState('');
+  const [otpMessage, setOtpMessage] = useState(initialStep === 'verify' ? 'Please enter the 6-digit verification code sent to your email.' : '');
   const [cooldown, setCooldown] = useState(0);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
