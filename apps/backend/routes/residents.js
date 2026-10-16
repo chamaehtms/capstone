@@ -66,6 +66,43 @@ const residentDocsUpload = docUpload.fields([
   { name: 'selfieWithId', maxCount: 1 },
 ]);
 
+function extractDateOnly(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const y = val.getFullYear();
+    const m = String(val.getMonth() + 1).padStart(2, '0');
+    const d = String(val.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  const s = String(val).trim();
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = new Date(s);
+  if (!Number.isNaN(parsed.getTime())) {
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return '';
+}
+
+function calculateExactAge(birthDate) {
+  const clean = extractDateOnly(birthDate);
+  if (!clean) return null;
+  const [bYear, bMonth, bDay] = clean.split('-').map(Number);
+  const today = new Date();
+  const tYear = today.getFullYear();
+  const tMonth = today.getMonth() + 1;
+  const tDay = today.getDate();
+
+  let age = tYear - bYear;
+  if (tMonth < bMonth || (tMonth === bMonth && tDay < bDay)) {
+    age -= 1;
+  }
+  return Math.max(0, age);
+}
+
 function toResident(r) {
   return {
     id: r.id,
@@ -374,7 +411,7 @@ router.post('/', async (req, res) => {
       }
     }
 
-    const age = birthDate ? Math.max(0, new Date().getFullYear() - new Date(birthDate).getFullYear()) : null;
+    const age = birthDate ? calculateExactAge(birthDate) : null;
     const id = `res-${uuidv4().slice(0, 8)}`;
 
     const { rows } = await pool.query(
@@ -590,10 +627,7 @@ router.put('/:id', async (req, res) => {
       if (birthDateStr > todayStr) {
         return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid birthdate.' });
       }
-      const birth = new Date(birthDateStr);
-      if (!Number.isNaN(birth.getTime())) {
-        age = Math.max(0, new Date().getFullYear() - birth.getFullYear());
-      }
+      age = calculateExactAge(birthDateStr);
     } else if (merged.age !== undefined && merged.age !== null && merged.age !== '') {
       age = parseInt(merged.age, 10);
       if (Number.isNaN(age)) age = null;

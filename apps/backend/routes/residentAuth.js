@@ -472,7 +472,7 @@ router.post('/register', (req, res) => {
       }
 
       const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
-      const age = birthDate ? Math.max(0, new Date().getFullYear() - new Date(birthDate).getFullYear()) : null;
+      const age = birthDate ? calculateExactAge(birthDate) : null;
 
       // Check Resident Registry for a matching resident record
       const { match: registryMatch, score: matchScore } = await findRegistryMatch({
@@ -887,7 +887,7 @@ router.put('/me', requireResidentAuth, async (req, res) => {
     }
 
     const calculatedAge = merged.birthDate
-      ? Math.max(0, new Date().getFullYear() - new Date(merged.birthDate).getFullYear())
+      ? calculateExactAge(merged.birthDate)
       : null;
 
     const { rows } = await pool.query(
