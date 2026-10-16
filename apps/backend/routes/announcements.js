@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
 const { requireAuth, JWT_SECRET } = require('../middleware/auth');
+const { isCloudinaryConfigured, uploadToCloudinary, deleteLocalUpload } = require('../utils/cloudinary');
 
 const router = express.Router();
 // GET is public: announcements are shown on the resident dashboard
@@ -110,7 +111,16 @@ router.post('/', requireAuth, (req, res) => {
       }
 
       const id = `ann-${uuidv4().slice(0, 8)}`;
-      const imageUrl = req.file ? `/uploads/announcements/${req.file.filename}` : null;
+      let imageUrl = null;
+      if (req.file) {
+        if (isCloudinaryConfigured()) {
+          imageUrl = await uploadToCloudinary(req.file, 'barangay/announcements');
+          await deleteLocalUpload(req.file);
+        } else {
+          imageUrl = `/uploads/announcements/${req.file.filename}`;
+        }
+      }
+
       const { rows } = await pool.query(
         `INSERT INTO announcements (id, title, tag, body, event_date, image_url)
          VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
@@ -162,7 +172,13 @@ router.put('/:id', requireAuth, (req, res) => {
       let imageUrl = existing.imageUrl;
       if (req.file) {
         deleteImageFile(existing.imageUrl);
-        imageUrl = `/uploads/announcements/${req.file.filename}`;
+        if (isCloudinaryConfigured()) {
+          const uploadedUrl = await uploadToCloudinary(req.file, 'barangay/announcements');
+          imageUrl = uploadedUrl || `/uploads/announcements/${req.file.filename}`;
+          await deleteLocalUpload(req.file);
+        } else {
+          imageUrl = `/uploads/announcements/${req.file.filename}`;
+        }
       } else if (req.body.removeImage === 'true') {
         deleteImageFile(existing.imageUrl);
         imageUrl = null;

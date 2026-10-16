@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { sendMediationNoticeEmail } = require('../utils/mailer');
+const { isCloudinaryConfigured, uploadToCloudinary, deleteLocalUpload } = require('../utils/cloudinary');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'complaint-evidence');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -234,7 +235,16 @@ router.post('/', (req, res, next) => {
       }
     }
 
-    const attachmentUrl = req.file ? `/uploads/complaint-evidence/${req.file.filename}` : (req.body.attachmentUrl || null);
+    let attachmentUrl = req.body.attachmentUrl || null;
+    if (req.file) {
+      if (isCloudinaryConfigured()) {
+        const cloudUrl = await uploadToCloudinary(req.file, 'barangay/complaints');
+        attachmentUrl = cloudUrl || `/uploads/complaint-evidence/${req.file.filename}`;
+        await deleteLocalUpload(req.file);
+      } else {
+        attachmentUrl = `/uploads/complaint-evidence/${req.file.filename}`;
+      }
+    }
 
     const { rows } = await pool.query(
       `INSERT INTO complaints

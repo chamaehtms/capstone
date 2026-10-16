@@ -4,6 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 const pool = require('../db/pool');
 const { requireResidentAuth } = require('../middleware/auth');
+const { isCloudinaryConfigured, uploadToCloudinary, deleteLocalUpload } = require('../utils/cloudinary');
 
 const router = express.Router();
 router.use(requireResidentAuth);
@@ -200,8 +201,18 @@ router.post('/', (req, res) => {
       const seq = String(countRows[0].count + 1).padStart(prefix === 'BC' ? 5 : 4, '0');
       const id = `${prefix}-${year}-${seq}`;
 
-      const attachmentUrl = req.file ? `/uploads/complaint-evidence/${req.file.filename}` : null;
-      const aiScan = req.file ? await scanWithSightengine(req.file) : { status: 'not_scanned', score: null };
+      let attachmentUrl = null;
+      let aiScan = { status: 'not_scanned', score: null };
+
+      if (req.file) {
+        aiScan = await scanWithSightengine(req.file);
+        if (isCloudinaryConfigured()) {
+          attachmentUrl = await uploadToCloudinary(req.file, 'barangay/complaints');
+          await deleteLocalUpload(req.file);
+        } else {
+          attachmentUrl = `/uploads/complaint-evidence/${req.file.filename}`;
+        }
+      }
 
       const { rows } = await pool.query(
         `INSERT INTO complaints

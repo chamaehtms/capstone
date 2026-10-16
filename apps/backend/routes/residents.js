@@ -7,6 +7,7 @@ const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { sendResidentApprovalEmail } = require('../utils/mailer');
 const { validateIdImage, verifyIdDocumentStep, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
+const { isCloudinaryConfigured, uploadToCloudinary, deleteLocalUpload } = require('../utils/cloudinary');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -415,7 +416,15 @@ router.post('/:id/photo', (req, res) => {
         fs.unlink(oldPath, () => {});
       }
 
-      const photoUrl = `/uploads/residents/${req.file.filename}`;
+      let photoUrl = `/uploads/residents/${req.file.filename}`;
+      if (isCloudinaryConfigured()) {
+        const cloudUrl = await uploadToCloudinary(req.file, 'barangay/resident-photos');
+        if (cloudUrl) {
+          photoUrl = cloudUrl;
+          await deleteLocalUpload(req.file);
+        }
+      }
+
       const { rows } = await pool.query(
         'UPDATE residents SET photo_url = $1 WHERE id = $2 RETURNING *',
         [photoUrl, req.params.id]
@@ -482,13 +491,28 @@ router.post('/:id/documents', (req, res) => {
       let idx = 1;
 
       if (req.files?.photo?.[0]) {
-        const pUrl = `/uploads/resident-ids/${req.files.photo[0].filename}`;
+        const photoFile = req.files.photo[0];
+        let pUrl = `/uploads/resident-ids/${photoFile.filename}`;
+        if (isCloudinaryConfigured()) {
+          const cloudUrl = await uploadToCloudinary(photoFile, 'barangay/resident-photos');
+          if (cloudUrl) {
+            pUrl = cloudUrl;
+            await deleteLocalUpload(photoFile);
+          }
+        }
         updates.push(`photo_url = $${idx++}`);
         values.push(pUrl);
       }
 
       if (idDocFile) {
-        const idDocUrl = `/uploads/resident-ids/${idDocFile.filename}`;
+        let idDocUrl = `/uploads/resident-ids/${idDocFile.filename}`;
+        if (isCloudinaryConfigured()) {
+          const cloudUrl = await uploadToCloudinary(idDocFile, 'barangay/resident-ids');
+          if (cloudUrl) {
+            idDocUrl = cloudUrl;
+            await deleteLocalUpload(idDocFile);
+          }
+        }
         updates.push(`id_document_url = $${idx++}`);
         values.push(idDocUrl);
 
@@ -507,7 +531,14 @@ router.post('/:id/documents', (req, res) => {
       }
 
       if (selfieFile) {
-        const selfieUrl = `/uploads/resident-ids/${selfieFile.filename}`;
+        let selfieUrl = `/uploads/resident-ids/${selfieFile.filename}`;
+        if (isCloudinaryConfigured()) {
+          const cloudUrl = await uploadToCloudinary(selfieFile, 'barangay/resident-selfies');
+          if (cloudUrl) {
+            selfieUrl = cloudUrl;
+            await deleteLocalUpload(selfieFile);
+          }
+        }
         updates.push(`selfie_id_url = $${idx++}`);
         values.push(selfieUrl);
       }

@@ -4,13 +4,17 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { hashPassword, verifyPassword } = require('../utils/password');
 const { JWT_SECRET, requireAuth } = require('../middleware/auth');
 const { isResendConfigured, sendEmail } = require('../utils/mailer');
 const { validateIdImage, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
+const {
+  isCloudinaryConfigured,
+  uploadToCloudinary,
+  deleteLocalUpload,
+} = require('../utils/cloudinary');
 
 const router = express.Router();
 
@@ -65,39 +69,6 @@ const adminRegistrationUpload = adminIdUpload.fields([
   { name: 'idPhoto', maxCount: 1 },
   { name: 'selfiePhoto', maxCount: 1 },
 ]);
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-function isCloudinaryConfigured() {
-  return !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
-}
-
-async function uploadToCloudinary(file, folder) {
-  if (!file || !isCloudinaryConfigured()) return null;
-
-  try {
-    const result = await cloudinary.uploader.upload(file.path, {
-      folder,
-      resource_type: 'auto',
-      use_filename: true,
-      unique_filename: false,
-      overwrite: false,
-    });
-    return result.secure_url;
-  } catch (err) {
-    console.error('[CLOUDINARY] Upload failed:', err.message || err);
-    return null;
-  }
-}
-
-async function deleteLocalUpload(file) {
-  if (!file?.path) return;
-  fs.unlink(file.path, () => {});
-}
 
 function hashVerificationCode(requestId, code) {
   return crypto.createHmac('sha256', JWT_SECRET).update(`${requestId}:${code}`).digest('hex');
