@@ -173,14 +173,14 @@ async function verifyRecaptcha(token, remoteIp) {
   }
 }
 
-// In-memory tracker for admin login attempts: Map<normalizedKey, { attempts: number, lockUntil: number }>
+// In-memory tracker for admin login attempts: Map<normalizedKey, { attempts: number, lockUntil: number, lastAttemptAt: number }>
 const adminLoginAttempts = new Map();
 
-// Periodically clean up expired login attempt records
+// Periodically clean up expired login attempt records (older than 10 minutes or expired lockouts)
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of adminLoginAttempts.entries()) {
-    if (now > val.lockUntil && val.attempts === 0) {
+    if (now > (val.lockUntil || 0) && (!val.lastAttemptAt || now - val.lastAttemptAt > 10 * 60 * 1000)) {
       adminLoginAttempts.delete(key);
     }
   }
@@ -199,7 +199,8 @@ router.post('/login', async (req, res) => {
   const attemptKey = `${loginEmail.toLowerCase()}_${clientIp}`;
   const now = Date.now();
 
-  const attemptRecord = adminLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0 };
+  const attemptRecord = adminLoginAttempts.get(attemptKey) || { attempts: 0, lockUntil: 0, lastAttemptAt: now };
+  attemptRecord.lastAttemptAt = now;
 
   // Check if admin is locked out due to 5 consecutive wrong attempts
   if (now < attemptRecord.lockUntil) {
