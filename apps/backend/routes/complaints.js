@@ -407,7 +407,10 @@ router.post('/:id/schedule-mediation', async (req, res) => {
         );
       }
 
-      // Add in-app notification in portal for the resident
+    }
+
+    // Add in-app notification in portal for the resident if residentId or residentEmail is present
+    if (residentId || resolvedResidentEmail) {
       try {
         await pool.query(
           `INSERT INTO notifications (id, resident_id, resident_email, case_id, title, message, type, link)
@@ -415,7 +418,7 @@ router.post('/:id/schedule-mediation', async (req, res) => {
           [
             `notif-${uuidv4().slice(0, 8)}`,
             residentId,
-            resolvedResidentEmail,
+            resolvedResidentEmail || null,
             complaint.id,
             `⚖️ Mediation Hearing: ${hearingStage || 'Lupon Session'}`,
             `Notice of hearing for Case #${complaint.id}: ${date}${time ? ` at ${time}` : ''} at ${venue}.`,
