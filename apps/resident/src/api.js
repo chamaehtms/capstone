@@ -37,34 +37,13 @@ export const Session = {
   },
   getUser: () => {
     try {
-      const u = JSON.parse(localStorage.getItem('bp_user'));
-      if (
-        u &&
-        (u.email?.toLowerCase().includes('elena') ||
-          u.fullName?.toLowerCase().includes('elena') ||
-          u.firstName?.toLowerCase().includes('elena') ||
-          u.email?.toLowerCase().includes('ytytyt') ||
-          u.fullName?.toLowerCase().includes('ytytyt') ||
-          u.firstName?.toLowerCase().includes('ytytyt'))
-      ) {
-        Session.clear();
-        return null;
-      }
-      return u;
+      return JSON.parse(localStorage.getItem('bp_user'));
     } catch {
       return null;
     }
   },
   setUser: (u) => {
-    if (
-      u &&
-      (u.email?.toLowerCase().includes('elena') ||
-        u.fullName?.toLowerCase().includes('elena') ||
-        u.firstName?.toLowerCase().includes('elena') ||
-        u.email?.toLowerCase().includes('ytytyt') ||
-        u.fullName?.toLowerCase().includes('ytytyt') ||
-        u.firstName?.toLowerCase().includes('ytytyt'))
-    ) {
+    if (!u) {
       Session.clear();
       return;
     }
@@ -76,18 +55,6 @@ export const Session = {
     return !!localStorage.getItem('bp_token');
   },
 };
-
-// Purge any stale Elena or ytytyt session immediately on script load
-if (typeof window !== 'undefined') {
-  try {
-    const raw = localStorage.getItem('bp_user');
-    if (raw && (raw.toLowerCase().includes('elena') || raw.toLowerCase().includes('ytytyt'))) {
-      Session.clear();
-    }
-  } catch {
-    // ignore
-  }
-}
 
 // Low-level fetch helper. `body` may be a plain object (sent as JSON) or a
 // FormData instance (sent as multipart — the admin backend uses multer for

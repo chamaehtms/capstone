@@ -7,18 +7,7 @@ export function AuthProvider({ children }) {
   const [admin, setAdmin] = useState(() => {
     try {
       const stored = localStorage.getItem('admin');
-      const parsed = stored ? JSON.parse(stored) : null;
-      if (
-        parsed &&
-        (parsed.email?.toLowerCase().includes('elena') ||
-          parsed.fullName?.toLowerCase().includes('elena') ||
-          parsed.full_name?.toLowerCase().includes('elena'))
-      ) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('admin');
-        return null;
-      }
-      return parsed;
+      return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }

@@ -41,28 +41,7 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [lockoutSeconds]);
 
-  useEffect(() => {
-    const scrubElena = () => {
-      setIdentifier((prev) => (prev.toLowerCase().includes('elena') ? '' : prev));
-      setPassword((prev) => (prev === 'password123' || prev.toLowerCase().includes('elena') ? '' : prev));
 
-      const emailInput = document.querySelector('input[name="resident_auth_email"]');
-      if (emailInput && emailInput.value && emailInput.value.toLowerCase().includes('elena')) {
-        emailInput.value = '';
-        setIdentifier('');
-      }
-
-      const passInput = document.querySelector('input[name="resident_auth_password"]');
-      if (passInput && (passInput.value === 'password123' || passInput.value.toLowerCase().includes('elena'))) {
-        passInput.value = '';
-        setPassword('');
-      }
-    };
-
-    scrubElena();
-    const timers = [50, 150, 300, 600, 1000, 1500].map((t) => setTimeout(scrubElena, t));
-    return () => timers.forEach(clearTimeout);
-  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -163,10 +142,7 @@ export default function Login() {
                 name="resident_auth_email"
                 autoComplete="new-password"
                 value={identifier}
-                onChange={e => {
-                  const val = e.target.value;
-                  setIdentifier(val.toLowerCase().includes('elena') ? '' : val);
-                }}
+                onChange={e => setIdentifier(e.target.value)}
                 placeholder="Enter your email"
                 required
               />
@@ -184,10 +160,7 @@ export default function Login() {
                 name="resident_auth_password"
                 autoComplete="new-password"
                 value={password}
-                onChange={e => {
-                  const val = e.target.value;
-                  setPassword(val === 'password123' || val.toLowerCase().includes('elena') ? '' : val);
-                }}
+                onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
               />

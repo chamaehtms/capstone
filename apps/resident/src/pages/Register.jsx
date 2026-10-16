@@ -292,59 +292,8 @@ export default function Register() {
       setForm(f => ({ ...f, [field]: digits.slice(0, 10) }));
       return;
     }
-    if (field === 'email') {
-      const lower = String(value || '').toLowerCase();
-      if (lower.includes('elena') || lower.includes('ytytyt')) {
-        setForm(f => ({ ...f, [field]: '' }));
-        return;
-      }
-    }
     setForm(f => ({ ...f, [field]: value }));
   }
-
-  // Prevent browser autofill from inserting Elena's credentials
-  useEffect(() => {
-    const scrub = () => {
-      setForm((prev) => {
-        const emailLower = (prev.email || '').toLowerCase();
-        const passLower = (prev.password || '').toLowerCase();
-        if (
-          emailLower.includes('elena') ||
-          emailLower.includes('ytytyt') ||
-          passLower.includes('elena') ||
-          passLower === 'password123'
-        ) {
-          return {
-            ...prev,
-            email: emailLower.includes('elena') || emailLower.includes('ytytyt') ? '' : prev.email,
-            password: passLower.includes('elena') || passLower === 'password123' ? '' : prev.password,
-          };
-        }
-        return prev;
-      });
-
-      const emailInput = document.querySelector('input[name="resident_reg_email"]');
-      if (
-        emailInput &&
-        emailInput.value &&
-        (emailInput.value.toLowerCase().includes('elena') || emailInput.value.toLowerCase().includes('ytytyt'))
-      ) {
-        emailInput.value = '';
-      }
-
-      const passInput = document.querySelector('input[name="resident_reg_password"]');
-      if (
-        passInput &&
-        (passInput.value === 'password123' || passInput.value.toLowerCase().includes('elena'))
-      ) {
-        passInput.value = '';
-      }
-    };
-
-    scrub();
-    const timers = [50, 150, 300, 600, 1000, 1500].map((t) => setTimeout(scrub, t));
-    return () => timers.forEach(clearTimeout);
-  }, []);
 
   // Real-time email validation and availability verification
   useEffect(() => {
