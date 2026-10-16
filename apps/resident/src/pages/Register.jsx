@@ -965,17 +965,17 @@ export default function Register() {
             <div className="field-row">
               <div className="field">
                 <label className="field-label">First Name</label>
-                <input value={form.firstName} onChange={e => update('firstName', e.target.value)} placeholder="e.g. Alexander" required />
+                <input value={form.firstName} onChange={e => update('firstName', e.target.value)} placeholder="e.g. Juan" required />
               </div>
               <div className="field">
                 <label className="field-label">Middle Name</label>
-                <input value={form.middleName} onChange={e => update('middleName', e.target.value)} placeholder="e.g. Sterling" />
+                <input value={form.middleName} onChange={e => update('middleName', e.target.value)} placeholder="e.g. Santos (Optional)" />
               </div>
             </div>
             <div className="field-row">
               <div className="field">
                 <label className="field-label">Last Name</label>
-                <input value={form.lastName} onChange={e => update('lastName', e.target.value)} placeholder="e.g. Montgomery" required />
+                <input value={form.lastName} onChange={e => update('lastName', e.target.value)} placeholder="e.g. Dela Cruz" required />
               </div>
               <div className="field">
                 <label className="field-label">Date of Birth</label>

@@ -307,7 +307,7 @@ export default function InfrastructureReportCard({ user, onSuccess, onCancel }) 
                 type="text"
                 value={residentName}
                 onChange={(e) => setResidentName(e.target.value)}
-                placeholder="e.g. Charle Mae S. Hatamosa"
+                placeholder="Enter your full name"
                 required
                 style={inputStyle}
               />

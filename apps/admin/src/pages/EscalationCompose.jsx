@@ -5,11 +5,11 @@ import api from '../api';
 export default function EscalationCompose() {
   const [searchParams] = useSearchParams();
   const [form, setForm] = useState({
-    category: searchParams.get('category') || 'Infrastructure Discrepancy',
+    category: searchParams.get('category') || '',
     reason: 'Formal Escalation',
-    toDepartment: 'Department of Urban Infrastructure & Planning',
-    toRecipient: 'Director Sarah Montgomery',
-    subject: 'Formal Escalation - Infrastructure Discrepancy',
+    toDepartment: '',
+    toRecipient: '',
+    subject: searchParams.get('category') ? `Formal Escalation - ${searchParams.get('category')}` : 'Formal Escalation Letter',
     body: '',
     caseRef: searchParams.get('caseRef') || '',
   });
@@ -51,6 +51,7 @@ export default function EscalationCompose() {
             <input
               value={form.toDepartment}
               onChange={update('toDepartment')}
+              placeholder="e.g. City Engineering Office / Municipal Social Welfare"
               className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <input

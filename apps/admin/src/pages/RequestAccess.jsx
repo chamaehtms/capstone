@@ -603,7 +603,7 @@ export default function RequestAccess() {
                 <input
                   value={form.firstName}
                   onChange={update('firstName')}
-                  placeholder="e.g. Julian"
+                  placeholder="e.g. Maria"
                   required
                 />
               </div>
@@ -620,7 +620,7 @@ export default function RequestAccess() {
                 <input
                   value={form.lastName}
                   onChange={update('lastName')}
-                  placeholder="e.g. Montgomery"
+                  placeholder="e.g. Santos"
                   required
                 />
               </div>
