@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 import AdminIcon from '../components/AdminIcons.jsx';
 
 const TAGS = ['General', 'Advisory', 'Event', 'Health', 'Safety', 'Utilities'];
@@ -340,7 +340,7 @@ export default function Announcements() {
               }`}
             >
               {a.imageUrl && (
-                <img src={a.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
+                <img src={toAssetUrl(a.imageUrl)} alt="" className="w-14 h-14 rounded-lg object-cover border border-slate-100 flex-shrink-0" />
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
