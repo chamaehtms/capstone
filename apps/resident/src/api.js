@@ -188,7 +188,7 @@ function toLegacyComplaint(c) {
     inProgressAt: c.inProgressAt,
     resolvedAt: c.resolvedAt,
     closedAt: c.closedAt,
-    assignedTeam: c.assignedTeam || 'Maintenance Team',
+    assignedTeam: c.assignedTeam || '',
     isFiledByMe: c.isFiledByMe !== false && !isAgainstMe,
     isAgainstMe,
     role: c.role || (isAgainstMe ? 'respondent' : 'complainant'),

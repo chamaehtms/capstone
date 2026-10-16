@@ -66,7 +66,7 @@ export default function CaseDetail() {
  date: '',
  time: '10:00 AM',
  venue: 'Barangay Poblacion Mediation Hall / Session Room',
- mediator: 'Hon. Roberto Cruz (Barangay Captain / Lupon Chairman)',
+ mediator: '',
  hearingStage: '1st Mediation Hearing',
  notes: '',
  residentEmail: '',
@@ -178,7 +178,7 @@ export default function CaseDetail() {
  date: complaint?.scheduledMeeting?.date ? String(complaint.scheduledMeeting.date).split('T')[0] : defaultDate,
  time: complaint?.scheduledMeeting?.time || '10:00 AM',
  venue: complaint?.scheduledMeeting?.venue || 'Barangay Poblacion Mediation Hall / Session Room',
- mediator: complaint?.scheduledMeeting?.mediator || 'Hon. Roberto Cruz (Barangay Captain / Lupon Chairman)',
+ mediator: complaint?.scheduledMeeting?.mediator || '',
  hearingStage: complaint?.scheduledMeeting?.hearingStage || '1st Mediation Hearing',
  notes: complaint?.scheduledMeeting?.notes || `Katarungang Pambarangay mediation session for Case ${complaint?.id || id}. Please bring valid government IDs and supporting evidence.`,
  residentEmail: complaint?.residentEmail || '',
@@ -797,7 +797,7 @@ export default function CaseDetail() {
  type="text"
  value={mediationForm.mediator}
  onChange={(e) => setMediationForm({ ...mediationForm, mediator: e.target.value })}
- placeholder="e.g. Hon. Roberto Cruz (Barangay Captain)"
+ placeholder="e.g. Presiding Mediator / Lupon Member"
  className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500"
  />
  </div>

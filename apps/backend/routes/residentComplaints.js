@@ -152,7 +152,7 @@ function toComplaint(c, currentResidentId) {
     inProgressAt: c.in_progress_at,
     resolvedAt: c.resolved_at,
     closedAt: c.closed_at,
-    assignedTeam: c.assigned_team || 'Maintenance Team',
+    assignedTeam: c.assigned_team || '',
     mediationDate: c.mediation_date,
     mediationTime: c.mediation_time,
     mediationVenue: c.mediation_venue,

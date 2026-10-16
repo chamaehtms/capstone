@@ -188,7 +188,7 @@ export default function Track() {
                           )}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <ModernIcon name="users" size={14} color="#475569" />
-                            <span><strong>Assigned Team:</strong> {result.assignedTeam || 'Barangay Maintenance & Engineering Team'}</span>
+                            <span><strong>Assigned Team:</strong> {result.assignedTeam || 'Pending Assignment'}</span>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <ModernIcon name="bell" size={14} color="#0369a1" />

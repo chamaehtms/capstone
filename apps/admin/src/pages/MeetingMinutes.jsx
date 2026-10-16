@@ -77,7 +77,7 @@ export default function MeetingMinutes() {
  residentName: '',
  residentEmail: '',
  respondentName: '',
- mediator: 'Hon. Roberto Cruz (Barangay Captain / Lupon Chairman)',
+ mediator: '',
  hearingStage: '1st Mediation Hearing',
  mainTopics: ['Review of filed complaint and relief sought', 'Exploration of amicable settlement'],
  concernsRaised: '',
@@ -171,7 +171,7 @@ export default function MeetingMinutes() {
  residentName: meeting.residentName || '',
  residentEmail: meeting.residentEmail || '',
  respondentName: meeting.respondentName || '',
- mediator: meeting.mediator || 'Hon. Roberto Cruz (Barangay Captain / Lupon Chairman)',
+ mediator: meeting.mediator || '',
  hearingStage: meeting.hearingStage || '1st Mediation Hearing',
  mainTopics: Array.isArray(meeting.mainTopics) && meeting.mainTopics.length > 0 ? [...meeting.mainTopics] : ['Review of filed complaint and relief sought', 'Exploration of amicable settlement'],
  concernsRaised: meeting.concernsRaised || '',
@@ -219,13 +219,13 @@ export default function MeetingMinutes() {
  date: today,
  time: '02:00 PM - 04:30 PM',
  location: 'Barangay Poblacion Session Hall',
- attendees: ['Hon. Roberto Cruz (Barangay Captain)', 'Sec. Juan Santos (Barangay Secretary)'],
+ attendees: [],
  absentees: [],
- mainTopics: ['Review of Quarterly Barangay Programs', 'Public Safety & Peace and Order Updates'],
+ mainTopics: [],
  concernsRaised: '',
  minutes: '',
- resolutions: [{ id: `R${new Date().getFullYear()}-001`, title: 'Approval of Meeting Agenda', status: 'Approved' }],
- actionItems: [{ id: 'ACT-001', task: 'Follow up on project implementation', responsible: 'Barangay Secretary', deadline: '', status: 'Pending' }],
+ resolutions: [],
+ actionItems: [],
  nextMeetingDate: '',
  nextMeetingTime: '02:00 PM',
  nextMeetingVenue: 'Barangay Poblacion Session Hall',
@@ -252,7 +252,7 @@ export default function MeetingMinutes() {
  residentName: '',
  residentEmail: '',
  respondentName: '',
- mediator: 'Hon. Roberto Cruz (Barangay Captain / Lupon Chairman)',
+ mediator: '',
  hearingStage: '1st Mediation Hearing',
  mainTopics: ['Review of filed complaint and relief sought', 'Exploration of amicable settlement'],
  concernsRaised: '',
@@ -1965,7 +1965,7 @@ export default function MeetingMinutes() {
  type="text"
  value={mediationForm.mediator}
  onChange={(e) => setMediationForm({ ...mediationForm, mediator: e.target.value })}
- placeholder="Hon. Roberto Cruz"
+ placeholder="e.g. Presiding Mediator / Lupon Member"
  className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500"
  />
  </div>
