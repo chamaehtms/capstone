@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
+import AdminIcon from '../components/AdminIcons.jsx';
 
 export default function RequestAccess() {
   const [step, setStep] = useState('form'); // 'form' | 'verify' | 'completed'
@@ -303,566 +304,567 @@ export default function RequestAccess() {
     }
   };
 
-  return (
-    <div className="admin-auth-scene admin-request-scene min-h-screen">
-      <div className="admin-request-header px-8 py-4 text-xs font-semibold tracking-wide text-slate-500 flex items-center gap-3">
-        <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="h-7 w-7 object-contain drop-shadow-xs" />
-        <span>SMART PROFILING AND COMPLAINT MANAGEMENT SYSTEM FOR BARANGAY POBLACION</span>
-      </div>
-      <div
-        className={`admin-request-shell mx-auto px-8 py-10 ${
-          step === 'form'
-            ? 'max-w-6xl grid md:grid-cols-2 gap-10'
-            : 'admin-request-single max-w-xl block my-10'
-        }`}
-      >
-        {/* Left Information Section - only visible in form step */}
-        {step === 'form' && (
-          <div>
-            <span className="inline-block text-[11px] font-semibold tracking-wide bg-orange-100 text-orange-600 px-2 py-1 rounded">
-              ACCESS PROTOCOL
-            </span>
-            <h1 className="text-4xl font-extrabold mt-4 leading-tight text-slate-900">
-              Administrative Authority Enrollment.
-            </h1>
-            <p className="text-slate-500 mt-4 leading-relaxed">
-              Secure the integrity of regional governance. Request access to the Civic Ledger portal to
-              manage institutional records and oversight.
+  if (step === 'verify') {
+    return (
+      <div className="auth-scene auth-register-page">
+        <div className="form-wrap">
+          <div className="card auth-register-panel" style={{ padding: 36, textAlign: 'center', maxWidth: 480, margin: '0 auto' }}>
+            <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" style={{ margin: '0 auto 12px' }} />
+
+            <div style={{
+              width: 54,
+              height: 54,
+              background: '#eff6ff',
+              color: '#2563eb',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 14px',
+              boxShadow: '0 2px 8px rgba(37,99,235,0.15)'
+            }}>
+              <AdminIcon name="mail" size={26} color="#2563eb" />
+            </div>
+
+            <div style={{
+              display: 'inline-block',
+              background: '#dbeafe',
+              color: '#1d4ed8',
+              border: '1px solid #93c5fd',
+              padding: '4px 14px',
+              borderRadius: 9999,
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginBottom: 12
+            }}>
+              Step 2: Email Verification
+            </div>
+
+            <h2 style={{ color: 'var(--navy)', margin: '0 0 8px', fontSize: '1.45rem', fontWeight: 800 }}>
+              Verify Your Email Address
+            </h2>
+            <p style={{ color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.55, fontSize: '0.9rem' }}>
+              We've sent a 6-digit confirmation code to{' '}
+              <strong style={{ color: '#0f172a' }}>{verificationEmail}</strong>.
+              Enter it below to confirm your request.
             </p>
 
-            <div className="mt-8 space-y-6">
-              <div className="flex gap-3">
-                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-800">Identity Verification</p>
-                  <p className="text-sm text-slate-500">
-                    Official ID photo validation and departmental credential checks are required for all
-                    administrative tiers.
-                  </p>
-                </div>
+            {otpError && <div className="error-msg">{otpError}</div>}
+            {otpMessage && <div className="success-msg">{otpMessage}</div>}
+
+            <form onSubmit={handleVerifyOtp} style={{ marginBottom: 20 }}>
+              <label style={{
+                display: 'block',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#64748b',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                marginBottom: 12
+              }}>
+                6-Digit Verification Code
+              </label>
+
+              <div
+                style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 16 }}
+                onPaste={handleOtpPaste}
+              >
+                {otp.map((digit, idx) => (
+                  <input
+                    key={idx}
+                    ref={(el) => (inputRefs.current[idx] = el)}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    value={digit}
+                    onChange={(e) => handleOtpChange(idx, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                    style={{
+                      width: 44,
+                      height: 52,
+                      textAlign: 'center',
+                      fontSize: '1.5rem',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      border: '2px solid #cbd5e1',
+                      borderRadius: 8,
+                      outline: 'none',
+                      background: '#ffffff',
+                      color: '#0f172a',
+                      transition: 'border-color 0.2s, box-shadow 0.2s'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = 'var(--navy, #1e3a8a)';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(30, 58, 138, 0.15)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#cbd5e1';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                    required={idx === 0}
+                  />
+                ))}
               </div>
-              <div className="flex gap-3">
-                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-800">Gmail Verification Code</p>
-                  <p className="text-sm text-slate-500">
-                    A 6-digit verification code is delivered directly to your Gmail inbox to confirm ownership
-                    before board submission.
-                  </p>
-                </div>
+
+              <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '0 0 20px' }}>
+                Code expires in 15 minutes. Check your spam/junk folder if needed.
+              </p>
+
+              <button
+                type="submit"
+                disabled={otpLoading || otp.join('').length !== 6}
+                className="btn btn-navy btn-block"
+                style={{
+                  padding: '12px 20px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  opacity: otpLoading || otp.join('').length !== 6 ? 0.6 : 1,
+                  cursor: otpLoading || otp.join('').length !== 6 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {otpLoading ? 'Verifying Code…' : 'Verify Email & Submit for Approval →'}
+              </button>
+            </form>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+              paddingTop: 16,
+              borderTop: '1px solid #f1f5f9',
+              fontSize: '0.85rem',
+              color: '#64748b'
+            }}>
+              <div>
+                Didn't receive the email?{' '}
+                {cooldown > 0 ? (
+                  <span style={{ color: '#94a3b8', fontWeight: 600 }}>Resend in {cooldown}s</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResendCode}
+                    disabled={resending}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#2563eb',
+                      fontWeight: 700,
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    {resending ? 'Sending code…' : 'Resend Code'}
+                  </button>
+                )}
               </div>
-              <div className="flex gap-3">
-                <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </span>
-                <div>
-                  <p className="font-semibold text-slate-800">Encrypted Ledger</p>
-                  <p className="text-sm text-slate-500">
-                    All institutional interactions are logged on an immutable, AES-256 encrypted framework.
-                  </p>
-                </div>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => setStep('form')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  padding: 0,
+                  fontSize: '0.82rem'
+                }}
+              >
+                ← Back to request form
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {/* Right Form / Verification / Completed Panel */}
-        <div className={`admin-request-panel ${step === 'form' ? 'p-8' : 'p-6 sm:p-8 border-0'}`}>
-          {step === 'form' && (
-            <>
-              <h2 className="font-bold text-xl text-slate-900">Request Admin Credentials</h2>
-              <p className="text-sm text-slate-500 mb-6">Please provide your official institutional details.</p>
+  if (step === 'completed') {
+    return (
+      <div className="auth-scene auth-register-page">
+        <div className="form-wrap">
+          <div className="card auth-register-panel" style={{ padding: 36, textAlign: 'center', maxWidth: 540, margin: '0 auto' }}>
+            <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" style={{ margin: '0 auto 12px' }} />
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Name Breakdown: First, Middle, Last Name */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      FIRST NAME <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.firstName}
-                      onChange={update('firstName')}
-                      placeholder="e.g. Julian"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      MIDDLE NAME
-                    </label>
-                    <input
-                      value={form.middleName}
-                      onChange={update('middleName')}
-                      placeholder="e.g. Cruz (Optional)"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      LAST NAME <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.lastName}
-                      onChange={update('lastName')}
-                      placeholder="e.g. Montgomery"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+              <AdminIcon name="clock" size={48} color="#d97706" />
+            </div>
 
-                {/* Sex & Contact No */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      SEX <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={form.sex}
-                      onChange={update('sex')}
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      <option value="">Select Sex</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      CONTACT NO. <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.contactNo}
-                      onChange={update('contactNo')}
-                      placeholder="e.g. 0917 123 4567"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #fcd34d',
+              padding: '4px 14px',
+              borderRadius: 9999,
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginBottom: 14
+            }}>
+              <AdminIcon name="clock" size={14} color="#92400e" /> Waiting for Approval
+            </div>
 
-                {/* Field 1: Valid ID Card Photo */}
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    1. VALID ID CARD PHOTO <span className="text-red-500">*</span>
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-1.5">
-                    Clear front-facing photo of your Employee ID or Government-issued ID.
-                  </p>
-                  {idPhotoPreview ? (
-                    <div className="flex items-center gap-3 p-3 bg-white/70 backdrop-blur-xs border border-slate-200 rounded-lg">
-                      <img
-                        src={idPhotoPreview}
-                        alt="ID Preview"
-                        className="w-16 h-16 rounded-md object-cover border border-slate-300 shadow-xs"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-800 truncate">{idPhoto?.name}</p>
-                        <p className="text-[11px] text-slate-400">
-                          {(idPhoto?.size / (1024 * 1024)).toFixed(2)} MB • ID Photo Attached
-                        </p>
-                        <div className="mt-1 flex gap-2">
-                          <label className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
-                            Change Photo
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handlePhotoSelect}
-                              className="hidden"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={handleRemovePhoto}
-                            className="text-xs text-red-600 hover:text-red-700 font-medium"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg p-4 bg-white/60 hover:bg-white/80 transition-colors cursor-pointer text-center group">
-                      <span className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h2M15 12h2M7 16h10"/></svg>
-                      </span>
-                      <span className="text-xs font-semibold text-slate-700">
-                        Click to upload your ID card
-                      </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">
-                        JPG, PNG, or WebP up to 5MB (Clear front photo of your ID)
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoSelect}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                  {idPhotoError && (
-                    <div className="mt-1.5 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-start gap-1.5">
-                      <span className="shrink-0 mt-0.5 text-red-600">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      </span>
-                      <div className="flex-1">
-                        <p className="font-semibold">ID Document Error</p>
-                        <p>{idPhotoError}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <h2 style={{ color: 'var(--navy)', margin: '0 0 10px', fontSize: '1.5rem', fontWeight: 800 }}>
+              Request Submitted
+            </h2>
+            <p style={{ color: 'var(--muted)', margin: '0 0 20px', lineHeight: 1.6, fontSize: '0.92rem' }}>
+              Your email (<strong style={{ color: '#0f172a' }}>{verificationEmail || form.email}</strong>) has been verified. Your registration is now pending review by the Barangay Poblacion administration.
+            </p>
 
-                {/* Field 2: Selfie Holding Your Valid ID */}
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 block mb-1">
-                    2. SELFIE HOLDING YOUR VALID ID <span className="text-red-500">*</span>
-                  </label>
-                  <p className="text-[11px] text-slate-400 mb-1.5">
-                    Hold your ID card next to your face so your face and ID details are both clearly visible.
-                  </p>
-                  {selfiePhotoPreview ? (
-                    <div className="flex items-center gap-3 p-3 bg-white/70 backdrop-blur-xs border border-slate-200 rounded-lg">
-                      <img
-                        src={selfiePhotoPreview}
-                        alt="Selfie with ID Preview"
-                        className="w-16 h-16 rounded-md object-cover border border-slate-300 shadow-xs"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-slate-800 truncate">{selfiePhoto?.name}</p>
-                        <p className="text-[11px] text-slate-400">
-                          {(selfiePhoto?.size / (1024 * 1024)).toFixed(2)} MB • Selfie Attached
-                        </p>
-                        <div className="mt-1 flex gap-2">
-                          <label className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer">
-                            Change Photo
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleSelfieSelect}
-                              className="hidden"
-                            />
-                          </label>
-                          <button
-                            type="button"
-                            onClick={handleRemoveSelfie}
-                            className="text-xs text-red-600 hover:text-red-700 font-medium"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-lg p-4 bg-white/60 hover:bg-white/80 transition-colors cursor-pointer text-center group">
-                      <span className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="3"/><circle cx="12" cy="10" r="3"/><path d="M7.5 18a4.5 4.5 0 0 1 9 0"/><circle cx="12" cy="5" r="0.8" fill="currentColor"/></svg>
-                      </span>
-                      <span className="text-xs font-semibold text-slate-700">
-                        Click to upload selfie holding your ID
-                      </span>
-                      <span className="text-[11px] text-slate-400 mt-0.5">
-                        JPG, PNG, or WebP up to 5MB (Clear face + ID card in frame)
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleSelfieSelect}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                  {selfiePhotoError && (
-                    <div className="mt-1.5 p-2 bg-red-50 border border-red-200 rounded-md text-xs text-red-700 flex items-start gap-1.5">
-                      <span className="shrink-0 mt-0.5 text-red-600">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                      </span>
-                      <div className="flex-1">
-                        <p className="font-semibold">Selfie Error</p>
-                        <p>{selfiePhotoError}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 10,
+              padding: '16px 20px',
+              textAlign: 'left',
+              marginBottom: 20,
+              fontSize: '0.86rem'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#64748b' }}>Applicant:</span>
+                <strong style={{ color: '#0f172a' }}>
+                  {[form.firstName, form.middleName, form.lastName].filter(Boolean).join(' ') || 'Administrator'}
+                </strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#64748b' }}>Employee ID:</span>
+                <strong style={{ color: '#0f172a' }}>{form.employeeId || 'CL-8848-00X'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#64748b' }}>Department:</span>
+                <strong style={{ color: '#0f172a' }}>{form.department}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ color: '#64748b' }}>Email Verification:</span>
+                <strong style={{ color: '#16a34a' }}>✓ Verified</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
+                <span style={{ color: '#64748b' }}>Status:</span>
+                <strong style={{ color: '#d97706' }}>● Waiting for Approval</strong>
+              </div>
+            </div>
 
-                {/* Email Address & Employee ID */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      GMAIL / OFFICIAL EMAIL <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={update('email')}
-                      placeholder="you@gmail.com"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      EMPLOYEE ID <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      value={form.employeeId}
-                      onChange={update('employeeId')}
-                      placeholder="CL-8848-00X"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                </div>
+            <div style={{
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              color: '#1e40af',
+              borderRadius: 10,
+              padding: '12px 16px',
+              fontSize: '0.82rem',
+              textAlign: 'left',
+              marginBottom: 24,
+              lineHeight: 1.5
+            }}>
+              Your application details and ID credentials have been forwarded to the <strong>Pending Requests</strong> queue. You will be able to sign in once an active Administrator approves your account.
+            </div>
 
-                {/* Department & Password */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      DEPARTMENT <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={form.department}
-                      onChange={update('department')}
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option>Internal Oversight</option>
-                      <option>Urban Infrastructure & Planning</option>
-                      <option>Community Health</option>
-                      <option>Peace & Order</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600">
-                      PASSWORD <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="password"
-                      value={form.password}
-                      onChange={update('password')}
-                      placeholder="••••••••••••"
-                      className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                      minLength={8}
-                    />
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-400 -mt-2">
-                  Password must be at least 8 characters.
-                </p>
+            <Link to="/login">
+              <button className="btn btn-navy btn-block" style={{ padding: '12px 20px', fontSize: '0.95rem', fontWeight: 700 }}>
+                Return to Sign In →
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3">
-                    {error}
-                  </div>
-                )}
-                {message && (
-                  <div className="bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg p-3">
-                    {message}
-                  </div>
-                )}
+  return (
+    <div className="auth-scene auth-register-page">
+      <div className="form-wrap">
+        <div className="card auth-register-panel" style={{ padding: 36 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+            <img src="/barangay-seal.png" alt="Barangay Poblacion seal" style={{ width: 56, height: 56, objectFit: 'contain', flexShrink: 0 }} />
+            <div>
+              <h2 style={{ color: 'var(--navy)', margin: '0 0 2px', fontSize: '1.4rem', fontWeight: 800 }}>Administrative Access</h2>
+              <span style={{ color: 'var(--muted)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.04em' }}>BARANGAY POBLACION • SYSTEM CREDENTIALS REQUEST</span>
+            </div>
+          </div>
+          <p style={{ color: 'var(--muted)', fontSize: '.9rem', margin: '0 0 24px', lineHeight: 1.6 }}>
+            Please provide your official institutional credentials as verified by the Civil Oversight and Administrative Board.
+          </p>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-navy-900 hover:bg-navy-800 text-white font-medium rounded-lg px-4 py-3 disabled:opacity-60 transition-colors shadow-sm cursor-pointer"
-                >
-                  {loading ? 'Sending Verification Code…' : 'CONTINUE TO EMAIL VERIFICATION →'}
-                </button>
+          {error && <div className="error-msg">{error}</div>}
+          {message && <div className="success-msg">{message}</div>}
 
-                <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="rounded border-slate-300"
+          <form onSubmit={handleSubmit}>
+            <div className="field-row-3">
+              <div className="field">
+                <label className="field-label">First Name *</label>
+                <input
+                  value={form.firstName}
+                  onChange={update('firstName')}
+                  placeholder="e.g. Julian"
+                  required
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Middle Name</label>
+                <input
+                  value={form.middleName}
+                  onChange={update('middleName')}
+                  placeholder="e.g. Cruz (Optional)"
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Last Name *</label>
+                <input
+                  value={form.lastName}
+                  onChange={update('lastName')}
+                  placeholder="e.g. Montgomery"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="field-row">
+              <div className="field">
+                <label className="field-label">Sex *</label>
+                <select value={form.sex} onChange={update('sex')} required>
+                  <option value="">Select Sex</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+              <div className="field">
+                <label className="field-label">Contact Number *</label>
+                <input
+                  value={form.contactNo}
+                  onChange={update('contactNo')}
+                  placeholder="e.g. 0917 123 4567"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Field 1: Valid ID Card Photo */}
+            <div style={{ margin: '20px 0 6px' }}>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>
+                1. Valid Government or Institutional ID *
+              </div>
+              <p style={{ fontSize: '.84rem', color: '#64748b', margin: '4px 0 12px' }}>
+                Clear front-facing photo of your Employee ID or Government-issued valid ID.
+              </p>
+
+              {idPhotoPreview ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                  <img
+                    src={idPhotoPreview}
+                    alt="ID Preview"
+                    style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
                   />
-                  <span>
-                    I agree to the <span className="text-blue-600 underline">Security Protocols</span>
-                  </span>
-                </label>
-
-                <p className="text-xs text-slate-500 text-right">
-                  Already have an account?{' '}
-                  <Link to="/login" className="font-semibold text-slate-800 hover:underline">
-                    Log in
-                  </Link>
-                </p>
-              </form>
-
-              <div className="mt-6 bg-blue-50 text-blue-800 text-xs rounded-lg p-3 flex gap-2 border border-blue-200">
-                <span>ℹ️</span>
-                <p>
-                  A 6-digit confirmation code will be dispatched to your Gmail upon submission. You must
-                  verify this code to queue your request for Institutional Board review.
-                </p>
-              </div>
-            </>
-          )}
-
-          {/* Step 2: 6-Digit Verification Code (OTP) */}
-          {step === 'verify' && (
-            <div className="space-y-6">
-              <div>
-                <span className="inline-block text-[10px] font-bold tracking-wider bg-blue-100 text-blue-700 px-2 py-0.5 rounded uppercase">
-                  Step 2 of 2: Email Verification
-                </span>
-                <h2 className="font-bold text-2xl text-slate-900 mt-2">Enter Verification Code</h2>
-                <p className="text-sm text-slate-600 mt-1 leading-relaxed">
-                  We sent a 6-digit code to{' '}
-                  <strong className="text-slate-900 font-semibold">{verificationEmail}</strong>.
-                  Please check your inbox (and spam folder) and enter it below.
-                </p>
-              </div>
-
-              {otpError && (
-                <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3">
-                  {otpError}
-                </div>
-              )}
-
-              {otpMessage && (
-                <div className="bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg p-3">
-                  {otpMessage}
-                </div>
-              )}
-
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-2 text-center tracking-wide uppercase">
-                    6-Digit Verification Code
-                  </label>
-                  <div className="flex justify-center gap-2 sm:gap-3" onPaste={handleOtpPaste}>
-                    {otp.map((digit, idx) => (
-                      <input
-                        key={idx}
-                        ref={(el) => (inputRefs.current[idx] = el)}
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        maxLength={6}
-                        value={digit}
-                        onChange={(e) => handleOtpChange(idx, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                        className="w-11 h-13 sm:w-12 sm:h-14 text-center text-2xl font-bold font-mono border-2 border-slate-300 rounded-lg focus:border-blue-600 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all"
-                        required={idx === 0}
-                      />
-                    ))}
+                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: '.9rem', color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {idPhoto?.name}
+                    </div>
+                    <div style={{ fontSize: '.8rem', color: 'var(--muted)', marginTop: 2 }}>
+                      {(idPhoto?.size / (1024 * 1024)).toFixed(2)} MB • ID Document Ready
+                    </div>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 14, alignItems: 'center' }}>
+                      <label style={{ fontSize: '.82rem', color: '#2563eb', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
+                        Change Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handlePhotoSelect}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleRemovePhoto}
+                        style={{ background: 'none', border: 'none', padding: 0, fontSize: '.82rem', color: '#dc2626', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 text-center mt-2">
-                    Code expires in 15 minutes.
-                  </p>
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={otpLoading || otp.join('').length !== 6}
-                  className="w-full bg-navy-900 hover:bg-navy-800 text-white font-semibold rounded-lg px-4 py-3 disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
-                >
-                  {otpLoading ? 'Verifying Code…' : 'VERIFY & SUBMIT FOR APPROVAL →'}
-                </button>
-              </form>
-
-              <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-200 gap-2">
-                <div>
-                  Didn't receive the email?{' '}
-                  {cooldown > 0 ? (
-                    <span className="text-slate-400 font-medium">Resend code in {cooldown}s</span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleResendCode}
-                      disabled={resending}
-                      className="text-blue-600 hover:text-blue-700 font-semibold underline cursor-pointer disabled:opacity-60"
-                    >
-                      {resending ? 'Sending…' : 'Resend Code'}
-                    </button>
-                  )}
+              ) : (
+                <label className="upload-box" htmlFor="adminIdInput">
+                  <div className="icon">
+                    <AdminIcon name="id-card" size={24} color="#64748b" />
+                  </div>
+                  <strong>Click to upload your ID card</strong>
+                  <small>JPG, PNG, or WebP up to 5MB (Clear physical photo • Screenshots rejected)</small>
+                  <input
+                    id="adminIdInput"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handlePhotoSelect}
+                  />
+                </label>
+              )}
+              {idPhotoError && (
+                <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: '.84rem' }}>
+                  <strong>ID Document Error: </strong>{idPhotoError}
                 </div>
+              )}
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStep('form')}
-                  className="text-slate-500 hover:text-slate-700 underline cursor-pointer"
-                >
-                  ← Edit details / email
-                </button>
+            {/* Field 2: Selfie Holding ID */}
+            <div style={{ margin: '20px 0 6px' }}>
+              <div style={{ fontWeight: 800, color: '#0f172a', fontSize: '1rem' }}>
+                2. Selfie Holding Your Valid ID *
+              </div>
+              <p style={{ fontSize: '.84rem', color: '#64748b', margin: '4px 0 12px' }}>
+                Hold your ID card next to your face so your face and ID details are clearly visible.
+              </p>
+
+              {selfiePhotoPreview ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: '#fff', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                  <img
+                    src={selfiePhotoPreview}
+                    alt="Selfie Preview"
+                    style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid var(--border)', flexShrink: 0 }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: '.9rem', color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {selfiePhoto?.name}
+                    </div>
+                    <div style={{ fontSize: '.8rem', color: 'var(--muted)', marginTop: 2 }}>
+                      {(selfiePhoto?.size / (1024 * 1024)).toFixed(2)} MB • Selfie Attached
+                    </div>
+                    <div style={{ marginTop: 8, display: 'flex', gap: 14, alignItems: 'center' }}>
+                      <label style={{ fontSize: '.82rem', color: '#2563eb', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>
+                        Change Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handleSelfieSelect}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleRemoveSelfie}
+                        style={{ background: 'none', border: 'none', padding: 0, fontSize: '.82rem', color: '#dc2626', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <label className="upload-box" htmlFor="adminSelfieInput">
+                  <div className="icon">
+                    <AdminIcon name="camera" size={24} color="#64748b" />
+                  </div>
+                  <strong>Click to upload selfie holding your ID</strong>
+                  <small>JPG, PNG, or WebP up to 5MB (Clear face + ID card in frame)</small>
+                  <input
+                    id="adminSelfieInput"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleSelfieSelect}
+                  />
+                </label>
+              )}
+              {selfiePhotoError && (
+                <div style={{ marginTop: 8, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: '.84rem' }}>
+                  <strong>Selfie Error: </strong>{selfiePhotoError}
+                </div>
+              )}
+            </div>
+
+            <div className="field-row" style={{ marginTop: 20 }}>
+              <div className="field">
+                <label className="field-label">Official / Gmail Address *</label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={update('email')}
+                  placeholder="you@gmail.com"
+                  required
+                />
+              </div>
+              <div className="field">
+                <label className="field-label">Employee ID *</label>
+                <input
+                  value={form.employeeId}
+                  onChange={update('employeeId')}
+                  placeholder="CL-8848-00X"
+                  required
+                />
               </div>
             </div>
-          )}
 
-          {/* Step 3: Completed & Queued for Approval */}
-          {step === 'completed' && (
-            <div className="text-center py-6 space-y-5">
-              <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-3xl shadow-xs">
-                ⏳
+            <div className="field-row">
+              <div className="field">
+                <label className="field-label">Department *</label>
+                <select value={form.department} onChange={update('department')}>
+                  <option>Internal Oversight</option>
+                  <option>Urban Infrastructure & Planning</option>
+                  <option>Community Health</option>
+                  <option>Peace & Order</option>
+                </select>
               </div>
+              <div className="field">
+                <label className="field-label">Password *</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={update('password')}
+                  placeholder="••••••••••••"
+                  required
+                  minLength={8}
+                />
+              </div>
+            </div>
 
+            <div className="checkbox-row" style={{ marginTop: 14 }}>
+              <input
+                type="checkbox"
+                id="agreeProtocols"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                style={{ width: 'auto' }}
+              />
+              <label htmlFor="agreeProtocols">
+                I agree to the <span style={{ color: 'var(--blue)', fontWeight: 600 }}>Security Protocols &amp; Institutional Governance</span>
+              </label>
+            </div>
+
+            <div style={{
+              background: '#eaf3fd',
+              border: '1px solid #cfe4f9',
+              borderRadius: 12,
+              padding: '16px 18px',
+              margin: '20px 0 24px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 12
+            }}>
+              <span style={{ marginTop: 2 }}>
+                <AdminIcon name="shield" size={18} color="var(--navy)" />
+              </span>
               <div>
-                <span className="inline-block text-[11px] font-bold tracking-wider bg-amber-100 text-amber-800 border border-amber-300 px-3 py-1 rounded-full uppercase">
-                  ⏳ Waiting for Approval
-                </span>
-                <h2 className="font-extrabold text-2xl text-slate-900 mt-3">
-                  Waiting for Approval
-                </h2>
-                <p className="text-sm text-slate-600 mt-2 leading-relaxed">
-                  Your email (<strong className="text-slate-800">{verificationEmail || form.email}</strong>) has been verified successfully.
-                  Your registration is now <strong className="text-amber-700">Waiting for Approval</strong> by the Barangay Poblacion System administration.
+                <strong style={{ color: 'var(--navy)', fontSize: '.9rem' }}>Secured Administrative Protocol</strong>
+                <p style={{ margin: '4px 0 0', fontSize: '.84rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+                  A 6-digit confirmation code will be dispatched to your email upon submission. All institutional requests are recorded in the encrypted administrative ledger.
                 </p>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-xs text-slate-600 text-left space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-500">Applicant:</span>
-                  <span className="text-slate-900 font-semibold">
-                    {[form.firstName, form.middleName, form.lastName].filter(Boolean).join(' ') || 'Administrator'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-500">Employee ID:</span>
-                  <span className="text-slate-800 font-medium">{form.employeeId || 'CL-8848-00X'}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-500">Department:</span>
-                  <span className="text-slate-800 font-medium">{form.department}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-slate-500">Email Verification:</span>
-                  <span className="text-green-600 font-bold flex items-center gap-1">
-                    <AdminIcon name="check" size={13} /> Verified
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-1 border-t border-slate-200">
-                  <span className="font-semibold text-slate-500">Account Status:</span>
-                  <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 font-bold text-[11px] px-2.5 py-0.5 rounded-full border border-amber-300">
-                    <AdminIcon name="clock" size={11} className="text-amber-700" /> Waiting for Approval
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 text-blue-900 text-xs rounded-lg p-3 text-left flex gap-2.5">
-                <AdminIcon name="clipboard" size={16} className="text-blue-600 shrink-0 mt-0.5" />
-                <p>
-                  Your registration details and ID document have been sent to the <strong>Pending Requests</strong> queue. You will be able to log in once an active Administrator approves your request.
-                </p>
-              </div>
-
-              <div className="pt-2">
-                <Link
-                  to="/login"
-                  className="inline-block w-full bg-navy-900 hover:bg-navy-800 text-white font-semibold rounded-lg px-4 py-3 transition-colors shadow-sm text-center"
-                >
-                  RETURN TO LOGIN
-                </Link>
               </div>
             </div>
-          )}
+
+            <button type="submit" className="btn btn-navy btn-block" disabled={loading}>
+              {loading ? 'Sending Verification Code…' : 'CONTINUE TO EMAIL VERIFICATION →'}
+            </button>
+
+            <p style={{ textAlign: 'center', marginTop: 16, color: 'var(--muted)', fontSize: '.9rem' }}>
+              Already have an account? <Link to="/login" className="link-blue">Sign In</Link>
+            </p>
+          </form>
         </div>
       </div>
     </div>

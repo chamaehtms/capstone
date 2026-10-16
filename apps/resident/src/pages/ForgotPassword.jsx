@@ -40,7 +40,7 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div className="center-page">
+    <div className="center-page auth-scene">
       <div className="auth-card">
         <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="auth-logo" />
         <h1 className="auth-title">{resetComplete ? 'Password Updated' : 'Reset Your Password'}</h1>
@@ -132,7 +132,7 @@ export default function ForgotPassword() {
         )}
 
         <p className="footer-note" style={{ marginTop: 16 }}>
-          <Link to="/" className="link-blue">← Back to Sign In</Link>
+          <Link to="/login" className="link-blue">← Back to Sign In</Link>
         </p>
       </div>
     </div>

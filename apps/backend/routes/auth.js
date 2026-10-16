@@ -769,18 +769,121 @@ router.post('/resend-verification', async (req, res) => {
   }
 });
 
-// POST /api/auth/forgot-password
-router.post('/forgot-password', (req, res) => {
-  const { email } = req.body;
+function hashAdminPasswordResetCode(adminId, code) {
+  return crypto.createHmac('sha256', JWT_SECRET).update(`admin-password-reset:${adminId}:${code}`).digest('hex');
+}
 
-  if (!email) {
-    return res.status(400).json({ message: 'Institutional email is required.' });
+// POST /api/auth/forgot-password
+router.post('/forgot-password', async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: 'Enter a valid email address.' });
   }
 
-  // Always respond generically to avoid leaking which emails exist.
-  res.json({
-    message: 'If an account matches that institutional email, a secure reset link has been sent.',
-  });
+  const genericMessage = 'If an account matches that email, a 6-digit reset code has been sent. It expires in 10 minutes.';
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, full_name, email, password_reset_sent_at
+       FROM admins WHERE LOWER(email) = $1 AND password_hash IS NOT NULL`,
+      [email]
+    );
+    const admin = rows[0];
+    if (!admin) return res.json({ message: genericMessage });
+
+    const lastSentAt = admin.password_reset_sent_at && new Date(admin.password_reset_sent_at).getTime();
+    if (lastSentAt && Date.now() - lastSentAt < 60000) return res.json({ message: genericMessage });
+
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    const codeHash = hashAdminPasswordResetCode(admin.id, code);
+    await pool.query(
+      `UPDATE admins SET password_reset_code_hash = $1,
+       password_reset_expires_at = now() + interval '10 minutes',
+       password_reset_sent_at = now(), password_reset_attempts = 0
+       WHERE id = $2`,
+      [codeHash, admin.id]
+    );
+
+    if (isResendConfigured()) {
+      try {
+        await sendEmail({
+          to: admin.email,
+          subject: 'Your Barangay Poblacion Admin password reset code',
+          text: `Hello ${admin.full_name || 'Administrator'},\n\nYour administrative password reset code is: ${code}\n\nThis code expires in 10 minutes and can only be used once. If you did not request a password reset, you can ignore this email.`,
+        });
+      } catch (mailError) {
+        console.error('[admin-auth] Mail delivery error:', mailError.message);
+      }
+    } else {
+      console.log(`[admin-auth-dev] Password reset code for ${admin.email}: ${code}`);
+    }
+
+    return res.json({ message: genericMessage });
+  } catch (err) {
+    console.error('[admin-auth] Password reset code error:', err.message);
+    return res.json({ message: genericMessage });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post('/reset-password', async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const code = String(req.body.code || '').trim();
+  const newPassword = String(req.body.newPassword || '');
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !/^\d{6}$/.test(code) || !newPassword) {
+    return res.status(400).json({ message: 'Enter your email, the 6-digit code, and a new password.' });
+  }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: 'New password must be at least 8 characters.' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, password_reset_code_hash, password_reset_expires_at, password_reset_attempts
+       FROM admins WHERE LOWER(email) = $1 AND password_hash IS NOT NULL`,
+      [email]
+    );
+    const admin = rows[0];
+    if (!admin || !admin.password_reset_code_hash) {
+      return res.status(400).json({ message: 'The reset code is invalid or expired. Request a new code.' });
+    }
+    if (admin.password_reset_attempts >= 5) {
+      return res.status(429).json({ message: 'Too many incorrect codes. Request a new reset code.' });
+    }
+    if (!admin.password_reset_expires_at || new Date(admin.password_reset_expires_at) <= new Date()) {
+      await pool.query(
+        `UPDATE admins SET password_reset_code_hash = NULL, password_reset_expires_at = NULL,
+         password_reset_attempts = 0 WHERE id = $1`,
+        [admin.id]
+      );
+      return res.status(400).json({ message: 'The reset code has expired. Request a new code.' });
+    }
+
+    const suppliedHash = hashAdminPasswordResetCode(admin.id, code);
+    const expectedHash = admin.password_reset_code_hash;
+    const matches = expectedHash.length === suppliedHash.length && crypto.timingSafeEqual(
+      Buffer.from(expectedHash, 'hex'), Buffer.from(suppliedHash, 'hex')
+    );
+    if (!matches) {
+      await pool.query(
+        'UPDATE admins SET password_reset_attempts = password_reset_attempts + 1 WHERE id = $1',
+        [admin.id]
+      );
+      return res.status(400).json({ message: 'The reset code is incorrect.' });
+    }
+
+    await pool.query(
+      `UPDATE admins SET password_hash = $1, password_reset_code_hash = NULL,
+       password_reset_expires_at = NULL, password_reset_sent_at = NULL,
+       password_reset_attempts = 0 WHERE id = $2`,
+      [hashPassword(newPassword), admin.id]
+    );
+    return res.json({ message: 'Your password has been reset. You can now sign in with your new password.' });
+  } catch (err) {
+    console.error('[admin-auth] Password reset failed:', err.message);
+    return res.status(500).json({ message: 'Unable to reset your password right now. Please try again later.' });
+  }
 });
 
 // ---- Account (requires a logged-in admin) ----
