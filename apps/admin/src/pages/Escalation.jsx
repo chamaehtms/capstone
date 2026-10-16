@@ -48,7 +48,7 @@ export default function Escalation() {
             <h2 className="font-semibold text-slate-800">Complaints Needing Escalation</h2>
             <p className="text-xs text-slate-500 mt-1">Cases marked for escalation from the Complaints Record.</p>
           </div>
-          <span className="text-xs font-semibold bg-red-100 text-red-700 px-2.5 py-1 rounded-full">
+          <span className="text-xs font-semibold bg-red-100 text-red-700 px-2.5 py-1 rounded-md">
             {escalationCandidates.length} flagged
           </span>
         </div>

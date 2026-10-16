@@ -92,7 +92,7 @@ export default function EscalationDetail() {
           <div className="bg-white rounded-xl shadow-sm p-5">
             <h2 className="font-semibold text-slate-800 mb-3 text-sm">Case Summary</h2>
             <div className="space-y-3 text-sm">
-              <div><p className="text-xs text-slate-400">PRIORITY</p><span className={`inline-block mt-1 text-xs font-medium px-2 py-1 rounded-full ${priorityStyles[escalation.priority] || 'bg-slate-100 text-slate-600'}`}>{escalation.priority || 'Medium'}</span></div>
+              <div><p className="text-xs text-slate-400">PRIORITY</p><span className={`inline-block mt-1 text-xs font-medium px-2 py-1 rounded-md ${priorityStyles[escalation.priority] || 'bg-slate-100 text-slate-600'}`}>{escalation.priority || 'Medium'}</span></div>
               <div><p className="text-xs text-slate-400">OVERSEER</p><p className="text-slate-700 mt-1">{escalation.overseer || 'Unassigned'}</p></div>
               <div><p className="text-xs text-slate-400">STATUS</p><p className="text-slate-700 mt-1">{escalation.status}</p></div>
             </div>

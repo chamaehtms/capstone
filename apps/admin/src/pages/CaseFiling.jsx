@@ -181,7 +181,7 @@ export default function CaseFiling() {
           </p>
         </div>
         <div className="hidden sm:flex items-center gap-2">
-          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1.5">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1.5">
             <AdminIcon name="scale" size={14} className="text-blue-600" />
             <span>Katarungang Pambarangay</span>
           </span>
@@ -198,7 +198,7 @@ export default function CaseFiling() {
       )}
 
       {/* Official Lupong Tagapamayapa Form Card */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 relative">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 sm:p-10 relative">
         {/* Header Block: Republic of the Philippines / Lupong Tagapamayapa */}
         <div className="text-center mb-6 space-y-0.5">
           <p className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
@@ -428,7 +428,7 @@ export default function CaseFiling() {
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl p-6 text-center cursor-pointer bg-slate-50/50 hover:bg-blue-50/30 transition"
             >
-              <div className="w-11 h-11 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-2 text-slate-500 shadow-xs">
+              <div className="w-11 h-11 rounded-md bg-white border border-slate-200 flex items-center justify-center mx-auto mb-2 text-slate-500 shadow-xs">
                 <AdminIcon name="camera" size={20} />
               </div>
               <strong className="block text-sm text-slate-800 mb-1">
@@ -470,7 +470,7 @@ export default function CaseFiling() {
               <div className="mt-3 p-3 bg-slate-900 rounded-xl border border-slate-800 shadow-md">
                 <div className="flex items-center justify-between text-xs text-slate-300 mb-2 font-medium">
                   <span className="flex items-center gap-1.5">
-                    <AdminIcon name="camera" size={13} className="text-purple-400" />
+                    <AdminIcon name="camera" size={13} className="text-sky-400" />
                     <span>Video Evidence Recording Preview</span>
                   </span>
                   <button

@@ -11,7 +11,7 @@ const statusStyles = {
   Pending: 'bg-amber-100 text-amber-700',
   'Under Review': 'bg-blue-100 text-blue-700',
   'In Progress': 'bg-amber-100 text-amber-700',
-  Mediation: 'bg-purple-100 text-purple-700',
+  Mediation: 'bg-sky-100 text-sky-800',
   'Resolved/Escalated': 'bg-emerald-100 text-emerald-700',
   'Resolved / Escalated': 'bg-emerald-100 text-emerald-700',
   Resolved: 'bg-emerald-100 text-emerald-700',
@@ -384,11 +384,11 @@ export default function ComplaintsRecord() {
                 </td>
                 <td className="px-5 py-3">
                   {c.needsEscalation ? (
-                    <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
+                    <span className="text-[11px] font-semibold bg-rose-100 text-rose-700 px-2 py-1 rounded-md inline-flex items-center gap-1">
                       <span>↗</span> Escalated Case
                     </span>
                   ) : (c.status === 'Resolved/Escalated' || c.status === 'Resolved' || c.status === 'Closed') ? (
-                    <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full inline-flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md inline-flex items-center gap-1.5">
                       <AdminIcon name="check" size={13} />
                       <span>Resolved (Settled)</span>
                     </span>

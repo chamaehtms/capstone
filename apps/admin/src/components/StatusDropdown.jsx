@@ -5,7 +5,7 @@ const statusPillStyles = {
   Pending: 'bg-amber-100 text-amber-700 hover:bg-amber-200',
   'Under Review': 'bg-blue-100 text-blue-700 hover:bg-blue-200',
   'In Progress': 'bg-amber-100 text-amber-700 hover:bg-amber-200',
-  Mediation: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
+  Mediation: 'bg-sky-100 text-sky-800 hover:bg-sky-200',
   Resolved: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
   Escalated: 'bg-rose-100 text-rose-700 hover:bg-rose-200',
   'Resolved/Escalated': 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200',
@@ -52,7 +52,7 @@ export default function StatusDropdown({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`text-xs font-semibold px-3 py-1 rounded-full border-0 cursor-pointer inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 transition shadow-2xs ${
+        className={`text-xs font-semibold px-3 py-1 rounded-md border-0 cursor-pointer inline-flex items-center gap-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-60 transition shadow-2xs ${
           statusPillStyles[displayLabel] || 'bg-slate-100 text-slate-700'
         }`}
       >
@@ -79,7 +79,7 @@ export default function StatusDropdown({
             onClick={() => setIsOpen(false)}
           />
 
-          <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-xl border border-slate-200 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+          <div className="absolute left-0 mt-1.5 w-60 bg-white rounded-xl shadow-md border border-slate-200 p-2.5 z-50 animate-in fade-in zoom-in-95 duration-100">
             {/* Standard Stages */}
             <div className="space-y-0.5">
               {['Pending', 'Under Review', 'In Progress', 'Mediation'].map((opt) => {

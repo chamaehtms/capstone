@@ -119,7 +119,7 @@ export default function Dashboard() {
                     {mediations[0].mediationStatus}
                   </span>
                 )}
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#e0f2fe', color: '#0369a1' }}>
                   ACTION REQUIRED
                 </span>
               </div>
@@ -128,16 +128,16 @@ export default function Dashboard() {
               You have a scheduled {mediations[0].hearingStage || 'mediation session'} for <strong>Case #{mediations[0].caseId}</strong> on <strong>{mediations[0].date} {mediations[0].time ? `at ${mediations[0].time}` : ''}</strong> at {mediations[0].location || 'Barangay Hall'}. An official notice was also sent to your email.
             </p>
             {mediations[0].nextMeetingDate && (
-              <div style={{ marginTop: 12, marginBottom: 12, padding: '10px 14px', background: '#ffffff', borderRadius: 8, border: '1px solid #e0e7ff', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <span style={{ color: '#4338ca', marginTop: 2 }}>
-                  <ModernIcon name="calendar" size={18} color="#4338ca" />
+              <div style={{ marginTop: 12, marginBottom: 12, padding: '10px 14px', background: '#ffffff', borderRadius: 8, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <span style={{ color: '#0f172a', marginTop: 2 }}>
+                  <ModernIcon name="calendar" size={18} color="#0f172a" />
                 </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ color: '#4338ca', fontSize: '0.88rem' }}>
+                    <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>
                       Next Hearing / Follow-up Session Scheduled
                     </strong>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9' }}>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#e0f2fe', color: '#0369a1' }}>
                       FOLLOW-UP
                     </span>
                   </div>
@@ -193,7 +193,8 @@ export default function Dashboard() {
                   className="cover"
                   onClick={a.imageUrl ? () => setLightboxAnnouncement(a) : undefined}
                   style={a.imageUrl ? {
-                    backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,.55) 100%), url(${toAssetUrl(a.imageUrl)})`,
+                    backgroundColor: '#0f172a',
+                    backgroundImage: `url(${toAssetUrl(a.imageUrl)})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
                     cursor: 'zoom-in',

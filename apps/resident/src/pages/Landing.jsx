@@ -8,7 +8,9 @@ export default function Landing() {
     <div
       className="landing-page"
       style={{
-        backgroundImage: `linear-gradient(rgba(7, 16, 29, 0.64), rgba(7, 16, 29, 0.7)), url(${backgroundImage})`,
+        backgroundColor: 'rgba(7, 16, 29, 0.68)',
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundBlendMode: 'overlay',
         backgroundSize: 'cover',
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',

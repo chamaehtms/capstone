@@ -181,7 +181,7 @@ export default function Announcements() {
               {editingId ? 'Edit Announcement' : 'Post a New Announcement'}
             </h2>
             {editingId && (
-              <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-md">
                 Editing
               </span>
             )}
@@ -344,7 +344,7 @@ export default function Announcements() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">{a.tag || 'General'}</span>
+                  <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">{a.tag || 'General'}</span>
                   <p className="font-medium text-slate-800">{a.title}</p>
                 </div>
                 {a.body && <p className="text-sm text-slate-500 mt-1">{a.body}</p>}

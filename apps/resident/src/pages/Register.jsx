@@ -1289,7 +1289,7 @@ export default function Register() {
                     gap: 10,
                     width: '100%',
                     padding: '16px 20px',
-                    background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%)',
+                    background: '#2563eb',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 12,
@@ -1400,7 +1400,7 @@ export default function Register() {
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 8,
-                      background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                      background: '#0284c7',
                       color: '#fff',
                       border: 'none',
                       padding: '10px 22px',
@@ -1408,7 +1408,7 @@ export default function Register() {
                       fontWeight: 700,
                       fontSize: '.92rem',
                       cursor: 'pointer',
-                      boxShadow: '0 2px 10px rgba(109, 40, 217, 0.4)',
+                      boxShadow: '0 2px 10px rgba(2, 132, 199, 0.35)',
                     }}
                   >
                     <ModernIcon name="camera" size={18} color="#fff" />
@@ -1476,9 +1476,9 @@ export default function Register() {
                     <button
                       type="button"
                       onClick={() => startSelfieCamera()}
-                      style={{ background: 'none', border: 'none', padding: 0, fontSize: '.82rem', color: '#7c3aed', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                      style={{ background: 'none', border: 'none', padding: 0, fontSize: '.82rem', color: '#0284c7', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                     >
-                      <ModernIcon name="camera" size={14} color="#7c3aed" />
+                      <ModernIcon name="camera" size={14} color="#0284c7" />
                       Retake with Camera
                     </button>
                     <label style={{ fontSize: '.82rem', color: '#475569', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
@@ -1513,14 +1513,14 @@ export default function Register() {
                     gap: 10,
                     width: '100%',
                     padding: '16px 20px',
-                    background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                    background: '#0284c7',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 12,
                     fontWeight: 700,
                     fontSize: '1rem',
                     cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(109, 40, 217, 0.25)',
+                    boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
                     transition: 'all 0.2s ease',
                   }}
                 >

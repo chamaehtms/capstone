@@ -12,7 +12,7 @@ export default function Layout() {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="admin-header sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between">
+        <header className="admin-header sticky top-0 z-40 bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"

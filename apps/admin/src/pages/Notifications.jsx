@@ -56,9 +56,9 @@ function getNotificationTypeBadge(type) {
     case 'meeting':
       return {
         iconName: 'scale',
-        bg: 'bg-purple-100',
-        textColor: 'text-purple-700',
-        borderColor: 'border-purple-300',
+        bg: 'bg-sky-100',
+        textColor: 'text-sky-800',
+        borderColor: 'border-sky-300',
         label: 'Mediation Session',
       };
     default:
@@ -149,7 +149,7 @@ export default function Notifications() {
   return (
     <div className="max-w-3xl mx-auto py-4">
       {/* Facebook-style Notifications Feed Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">

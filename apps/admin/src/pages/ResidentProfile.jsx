@@ -227,14 +227,14 @@ export default function ResidentProfile() {
                   <div className="border border-slate-200 rounded-xl p-3 bg-slate-50">
                     <div className="flex items-center justify-between mb-2">
                       <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                        <AdminIcon name="selfie" size={15} className="text-purple-600" />
+                        <AdminIcon name="selfie" size={15} className="text-sky-600" />
                         <span>Selfie Holding Valid ID</span>
                       </span>
                       <a
                         href={toAssetUrl(resident.selfieIdUrl)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-purple-700 hover:underline"
+                        className="text-[11px] text-sky-700 hover:underline"
                       >
                         ↗ Open full
                       </a>

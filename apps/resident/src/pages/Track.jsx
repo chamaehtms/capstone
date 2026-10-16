@@ -339,7 +339,7 @@ export default function Track() {
                                   {result.mediationStatus || caseMediation?.mediationStatus}
                                 </span>
                               )}
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#ede9fe', color: '#6d28d9' }}>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#e0f2fe', color: '#0369a1' }}>
                                 CONFIRMED SESSION
                               </span>
                             </div>
@@ -374,11 +374,11 @@ export default function Track() {
                           {(caseMediation?.nextMeetingDate || result.nextMediationDate) && (
                             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #cbd5e1' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                                <strong style={{ color: '#5b21b6', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                                  <ModernIcon name="calendar" size={14} color="#5b21b6" />
+                                <strong style={{ color: '#0f172a', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <ModernIcon name="calendar" size={14} color="#0f172a" />
                                   <span>Next Follow-up Hearing Scheduled</span>
                                 </strong>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#e0f2fe', color: '#0369a1' }}>
                                   NEXT SESSION
                                 </span>
                               </div>

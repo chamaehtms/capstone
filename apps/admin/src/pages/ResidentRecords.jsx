@@ -142,7 +142,7 @@ export default function ResidentRecords() {
           <div className="flex items-center gap-3">
             <h2 className="font-semibold text-slate-800">Resident Registry</h2>
             {selectedGender !== 'All' && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                 <span>Filter: <strong>{selectedGender}</strong></span>
                 <button
                   type="button"
@@ -213,7 +213,7 @@ export default function ResidentRecords() {
                         className="h-8 w-8 rounded-full object-cover border border-slate-200"
                       />
                     ) : (
-                      <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+                      <div className="h-8 w-8 rounded-md bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
                         {r.fullName ? r.fullName.slice(0, 2).toUpperCase() : '?'}
                       </div>
                     )}
@@ -222,7 +222,7 @@ export default function ResidentRecords() {
                 </td>
                 <td className="px-5 py-3">
                   <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-md ${
                       r.gender === 'Male'
                         ? 'bg-blue-50 text-blue-700 border border-blue-200'
                         : r.gender === 'Female'
@@ -236,7 +236,7 @@ export default function ResidentRecords() {
                 <td className="px-5 py-3 text-slate-500">{r.zone}</td>
                 <td className="px-5 py-3">
                   <span
-                    className={`text-xs font-medium px-2 py-1 rounded-full ${
+                    className={`text-xs font-medium px-2 py-1 rounded-md ${
                       r.status === 'Verified'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-amber-100 text-amber-700'

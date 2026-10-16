@@ -3,18 +3,18 @@ import React, { useState, useImperativeHandle, forwardRef, useEffect, useRef } f
 const PUZZLE_BACKGROUNDS = [
   {
     title: 'Barangay Poblacion Municipal Grounds',
-    gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #93c5fd 100%)',
-    detail: 'radial-gradient(circle at 75% 30%, rgba(255,255,255,0.3) 0%, transparent 60%)',
+    gradient: '#1e3a8a',
+    detail: 'rgba(255, 255, 255, 0.08)',
   },
   {
     title: 'Civic Center & Heritage Plaza',
-    gradient: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 50%, #a7f3d0 100%)',
-    detail: 'radial-gradient(circle at 25% 40%, rgba(255,255,255,0.3) 0%, transparent 60%)',
+    gradient: '#0f766e',
+    detail: 'rgba(255, 255, 255, 0.08)',
   },
   {
     title: 'Coastal Gateway & Port Vista',
-    gradient: 'linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #c7d2fe 100%)',
-    detail: 'radial-gradient(circle at 60% 60%, rgba(255,255,255,0.35) 0%, transparent 60%)',
+    gradient: '#0369a1',
+    detail: 'rgba(255, 255, 255, 0.08)',
   },
 ];
 
@@ -249,7 +249,6 @@ const Recaptcha = forwardRef(function Recaptcha(
             position: 'fixed',
             inset: 0,
             background: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(3px)',
             zIndex: 99999,
             display: 'flex',
             alignItems: 'center',

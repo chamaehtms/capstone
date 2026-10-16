@@ -5,217 +5,217 @@ import api, { toAssetUrl } from '../api';
 import AdminIcon from './AdminIcons.jsx';
 
 const links = [
-  { to: '/', label: 'Overview', icon: 'grid', end: true },
-  { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
-  { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
-  { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
-  { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
-  { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
-  { to: '/notifications', label: 'Notifications', icon: 'bell', badgeKey: 'notifications' },
-  { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
+ { to: '/', label: 'Overview', icon: 'grid', end: true },
+ { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
+ { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
+ { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
+ { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
+ { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
+ { to: '/notifications', label: 'Notifications', icon: 'bell', badgeKey: 'notifications' },
+ { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
 ];
 
 export default function Sidebar({ isOpen = false, onClose = () => {} }) {
-  const { admin, logout } = useAuth();
-  const navigate = useNavigate();
-  const [newCounts, setNewCounts] = useState({});
-  const currentIds = useRef({});
+ const { admin, logout } = useAuth();
+ const navigate = useNavigate();
+ const [newCounts, setNewCounts] = useState({});
+ const currentIds = useRef({});
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+ const handleLogout = () => {
+ logout();
+ navigate('/login');
+ };
 
-  const initials = admin?.fullName ? admin.fullName.slice(0, 2).toUpperCase() : 'AD';
+ const initials = admin?.fullName ? admin.fullName.slice(0, 2).toUpperCase() : 'AD';
 
-  useEffect(() => {
-    let active = true;
+ useEffect(() => {
+ let active = true;
 
-    const readIds = (key) => {
-      try {
-        return JSON.parse(localStorage.getItem(`admin_sidebar_seen_${key}`) || '[]');
-      } catch {
-        return [];
-      }
-    };
+ const readIds = (key) => {
+ try {
+ return JSON.parse(localStorage.getItem(`admin_sidebar_seen_${key}`) || '[]');
+ } catch {
+ return [];
+ }
+ };
 
-    const saveIds = (key, ids) => {
-      localStorage.setItem(`admin_sidebar_seen_${key}`, JSON.stringify(ids));
-    };
+ const saveIds = (key, ids) => {
+ localStorage.setItem(`admin_sidebar_seen_${key}`, JSON.stringify(ids));
+ };
 
-    const updateCount = (key, ids, initialized) => {
-      currentIds.current[key] = ids;
-      const seen = readIds(key);
-      if (!initialized && !localStorage.getItem(`admin_sidebar_seen_${key}`)) {
-        saveIds(key, ids);
-        return 0;
-      }
-      return ids.filter((id) => !seen.includes(id)).length;
-    };
+ const updateCount = (key, ids, initialized) => {
+ currentIds.current[key] = ids;
+ const seen = readIds(key);
+ if (!initialized && !localStorage.getItem(`admin_sidebar_seen_${key}`)) {
+ saveIds(key, ids);
+ return 0;
+ }
+ return ids.filter((id) => !seen.includes(id)).length;
+ };
 
-    const loadCounts = async () => {
-      try {
-        const { data } = await api.get('/dashboard/sidebar-counts');
-        if (!active || !data) return;
+ const loadCounts = async () => {
+ try {
+ const { data } = await api.get('/dashboard/sidebar-counts');
+ if (!active || !data) return;
 
-        const initialized = currentIds.current.initialized === true;
+ const initialized = currentIds.current.initialized === true;
 
-        const counts = {
-          residents: updateCount('residents', data.residents || [], initialized),
-          complaints: updateCount('complaints', data.complaints || [], initialized),
-          meetings: updateCount('meetings', data.meetings || [], initialized),
-          escalations: updateCount('escalations', data.escalations || [], initialized),
-          pendingRequests: updateCount('pendingRequests', data.pendingRequests || [], initialized),
-          notifications: updateCount('notifications', data.notifications || [], initialized),
-        };
-        currentIds.current.initialized = true;
-        setNewCounts(counts);
-      } catch {
-        // Sidebar badges are supplemental and should not block navigation.
-      }
-    };
+ const counts = {
+ residents: updateCount('residents', data.residents || [], initialized),
+ complaints: updateCount('complaints', data.complaints || [], initialized),
+ meetings: updateCount('meetings', data.meetings || [], initialized),
+ escalations: updateCount('escalations', data.escalations || [], initialized),
+ pendingRequests: updateCount('pendingRequests', data.pendingRequests || [], initialized),
+ notifications: updateCount('notifications', data.notifications || [], initialized),
+ };
+ currentIds.current.initialized = true;
+ setNewCounts(counts);
+ } catch {
+ // Sidebar badges are supplemental and should not block navigation.
+ }
+ };
 
-    loadCounts();
-    const intervalId = window.setInterval(loadCounts, 30000);
-    return () => {
-      active = false;
-      window.clearInterval(intervalId);
-    };
-  }, []);
+ loadCounts();
+ const intervalId = window.setInterval(loadCounts, 30000);
+ return () => {
+ active = false;
+ window.clearInterval(intervalId);
+ };
+ }, []);
 
-  const markSectionRead = (key) => {
-    const ids = currentIds.current[key] || [];
-    saveSectionRead(key, ids);
-    setNewCounts((counts) => ({ ...counts, [key]: 0 }));
-  };
+ const markSectionRead = (key) => {
+ const ids = currentIds.current[key] || [];
+ saveSectionRead(key, ids);
+ setNewCounts((counts) => ({ ...counts, [key]: 0 }));
+ };
 
-  const saveSectionRead = (key, ids) => {
-    localStorage.setItem(`admin_sidebar_seen_${key}`, JSON.stringify(ids));
-  };
+ const saveSectionRead = (key, ids) => {
+ localStorage.setItem(`admin_sidebar_seen_${key}`, JSON.stringify(ids));
+ };
 
-  return (
-    <>
-      {/* Mobile backdrop overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden transition-opacity"
-          onClick={onClose}
-          aria-hidden="true"
-        />
-      )}
+ return (
+ <>
+ {/* Mobile backdrop overlay */}
+ {isOpen && (
+ <div
+ className="fixed inset-0 z-40 bg-black/60 lg:hidden transition-opacity"
+ onClick={onClose}
+ aria-hidden="true"
+ />
+ )}
 
-      <aside
-        className={`admin-sidebar fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-navy-950 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
-          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
-        }`}
-      >
-        <div className="px-5 py-5 flex items-center justify-between border-b border-white/10">
-          <div className="flex items-center gap-3 min-w-0">
-            <img
-              src="/barangay-seal.png"
-              alt="Barangay Poblacion seal"
-              className="h-9 w-9 rounded-full object-contain shrink-0 drop-shadow-sm"
-            />
-            <div className="min-w-0">
-              <p className="font-semibold text-white leading-tight truncate text-sm">Barangay Poblacion</p>
-              <p className="text-[10px] text-slate-400 tracking-wider">LOCAL GOVERNMENT UNIT</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
-            aria-label="Close sidebar"
-          >
-            <AdminIcon name="x" size={18} />
-          </button>
-        </div>
+ <aside
+ className={`admin-sidebar fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-navy-950 text-slate-200 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+ isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
+ }`}
+ >
+ <div className="px-5 py-5 flex items-center justify-between border-b border-white/10">
+ <div className="flex items-center gap-3 min-w-0">
+ <img
+ src="/barangay-seal.png"
+ alt="Barangay Poblacion seal"
+ className="h-9 w-9 rounded-full object-contain shrink-0 drop-shadow-sm"
+ />
+ <div className="min-w-0">
+ <p className="font-semibold text-white leading-tight truncate text-sm">Barangay Poblacion</p>
+ <p className="text-[10px] text-slate-400 tracking-wider">LOCAL GOVERNMENT UNIT</p>
+ </div>
+ </div>
+ <button
+ type="button"
+ onClick={onClose}
+ className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+ aria-label="Close sidebar"
+ >
+ <AdminIcon name="x" size={18} />
+ </button>
+ </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
-            Menu
-          </p>
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              onClick={() => {
-                if (link.badgeKey) markSectionRead(link.badgeKey);
-                onClose();
-              }}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                isActive
-                  ? 'bg-blue-600 text-white font-medium shadow-sm shadow-blue-900/40'
-                  : 'text-slate-300 hover:bg-white/5 hover:text-white'
-              }`
-            }
-          >
-            <span aria-hidden className="shrink-0 flex items-center justify-center">
-              <AdminIcon name={link.icon} size={18} />
-            </span>
-            <span>{link.label}</span>
-            {link.badgeKey && newCounts[link.badgeKey] > 0 && (
-              <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {newCounts[link.badgeKey] > 99 ? '99+' : newCounts[link.badgeKey]}
-              </span>
-            )}
-          </NavLink>
-        ))}
-      </nav>
+ <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+ <p className="px-3 pb-2 text-[10px] font-semibold tracking-widest text-slate-500 uppercase">
+ Menu
+ </p>
+ {links.map((link) => (
+ <NavLink
+ key={link.to}
+ to={link.to}
+ end={link.end}
+ onClick={() => {
+ if (link.badgeKey) markSectionRead(link.badgeKey);
+ onClose();
+ }}
+ className={({ isActive }) =>
+ `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+ isActive
+ ? 'bg-blue-600 text-white font-medium shadow-sm shadow-blue-900/40'
+ : 'text-slate-300 hover:bg-white/5 hover:text-white'
+ }`
+ }
+ >
+ <span aria-hidden className="shrink-0 flex items-center justify-center">
+ <AdminIcon name={link.icon} size={18} />
+ </span>
+ <span>{link.label}</span>
+ {link.badgeKey && newCounts[link.badgeKey] > 0 && (
+ <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+ {newCounts[link.badgeKey] > 99 ? '99+' : newCounts[link.badgeKey]}
+ </span>
+ )}
+ </NavLink>
+ ))}
+ </nav>
 
-      <div className="px-3 pb-3 pt-2 border-t border-white/10 space-y-1">
-        <NavLink
-          to="/residents/enroll"
-          onClick={onClose}
-          className="flex items-center justify-center gap-2 text-center bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg px-3 py-2.5 transition-colors shadow-sm shadow-blue-900/40"
-        >
-          <AdminIcon name="plus" size={16} />
-          <span>Enroll Resident</span>
-        </NavLink>
-        <NavLink
-          to="/settings"
-          onClick={onClose}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${
-              isActive ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
-            }`
-          }
-        >
-          <span aria-hidden className="shrink-0 flex items-center justify-center">
-            <AdminIcon name="settings" size={17} />
-          </span>
-          <span>Settings</span>
-        </NavLink>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-white/5 hover:text-white"
-        >
-          <span aria-hidden className="shrink-0 flex items-center justify-center">
-            <AdminIcon name="logout" size={17} />
-          </span>
-          <span>Logout</span>
-        </button>
+ <div className="px-3 pb-3 pt-2 border-t border-white/10 space-y-1">
+ <NavLink
+ to="/residents/enroll"
+ onClick={onClose}
+ className="flex items-center justify-center gap-2 text-center bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg px-3 py-2.5 transition-colors shadow-sm shadow-blue-900/40"
+ >
+ <AdminIcon name="plus" size={16} />
+ <span>Enroll Resident</span>
+ </NavLink>
+ <NavLink
+ to="/settings"
+ onClick={onClose}
+ className={({ isActive }) =>
+ `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm ${
+ isActive ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5 hover:text-white'
+ }`
+ }
+ >
+ <span aria-hidden className="shrink-0 flex items-center justify-center">
+ <AdminIcon name="settings" size={17} />
+ </span>
+ <span>Settings</span>
+ </NavLink>
+ <button
+ onClick={handleLogout}
+ className="w-full flex items-center gap-3 text-left px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-white/5 hover:text-white"
+ >
+ <span aria-hidden className="shrink-0 flex items-center justify-center">
+ <AdminIcon name="logout" size={17} />
+ </span>
+ <span>Logout</span>
+ </button>
 
-        {admin && (
-          <div className="flex items-center gap-2.5 px-3 pt-3 mt-1 border-t border-white/10">
-            {admin.photoUrl ? (
-              <img
-                src={toAssetUrl(admin.photoUrl)}
-                alt={admin.fullName}
-                className="h-7 w-7 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-semibold text-white shrink-0">
-                {initials}
-              </div>
-            )}
-            <p className="text-[11px] text-slate-400 truncate">{admin.fullName}</p>
-          </div>
-        )}
-      </div>
-    </aside>
-    </>
-  );
+ {admin && (
+ <div className="flex items-center gap-2.5 px-3 pt-3 mt-1 border-t border-white/10">
+ {admin.photoUrl ? (
+ <img
+ src={toAssetUrl(admin.photoUrl)}
+ alt={admin.fullName}
+ className="h-7 w-7 rounded-full object-cover shrink-0"
+ />
+ ) : (
+ <div className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center text-[11px] font-semibold text-white shrink-0">
+ {initials}
+ </div>
+ )}
+ <p className="text-[11px] text-slate-400 truncate">{admin.fullName}</p>
+ </div>
+ )}
+ </div>
+ </aside>
+ </>
+ );
 }
