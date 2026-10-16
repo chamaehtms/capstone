@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 import AdminIcon from '../components/AdminIcons';
 
 export default function PendingRequests() {
@@ -322,7 +322,7 @@ export default function PendingRequests() {
  ) : (
  <>
  <img
- src={r.idDocumentUrl}
+ src={toAssetUrl(r.idDocumentUrl)}
  alt="ID"
  onError={() => handleImageError(`res-id-${r.id}`)}
  className="w-full h-full object-cover group-hover:scale-105 transition"
@@ -365,7 +365,7 @@ export default function PendingRequests() {
  ) : (
  <>
  <img
- src={r.selfieIdUrl}
+ src={toAssetUrl(r.selfieIdUrl)}
  alt="Selfie"
  onError={() => handleImageError(`res-selfie-${r.id}`)}
  className="w-full h-full object-cover group-hover:scale-105 transition"
@@ -572,7 +572,7 @@ export default function PendingRequests() {
  <span>Valid ID Card</span>
  </span>
  <a
- href={previewDoc.idUrl}
+ href={toAssetUrl(previewDoc.idUrl)}
  target="_blank"
  rel="noopener noreferrer"
  className="text-[11px] text-blue-600 hover:underline font-medium"
@@ -589,7 +589,7 @@ export default function PendingRequests() {
  </div>
  ) : (
  <img
- src={previewDoc.idUrl}
+ src={toAssetUrl(previewDoc.idUrl)}
  alt="Valid ID Card"
  onError={() => handleImageError(`modal-id-${previewDoc.id}`)}
  className="max-h-[46vh] w-auto object-contain rounded shadow-xs"
@@ -606,7 +606,7 @@ export default function PendingRequests() {
  <span>Selfie Holding ID</span>
  </span>
  <a
- href={previewDoc.selfieUrl}
+ href={toAssetUrl(previewDoc.selfieUrl)}
  target="_blank"
  rel="noopener noreferrer"
  className="text-[11px] text-sky-700 hover:underline font-medium"
@@ -623,7 +623,7 @@ export default function PendingRequests() {
  </div>
  ) : (
  <img
- src={previewDoc.selfieUrl}
+ src={toAssetUrl(previewDoc.selfieUrl)}
  alt="Selfie Holding ID"
  onError={() => handleImageError(`modal-selfie-${previewDoc.id}`)}
  className="max-h-[46vh] w-auto object-contain rounded shadow-xs"
@@ -643,7 +643,7 @@ export default function PendingRequests() {
  </div>
  ) : (
  <img
- src={previewDoc.tab === 'selfie' ? previewDoc.selfieUrl : previewDoc.idUrl}
+ src={toAssetUrl(previewDoc.tab === 'selfie' ? previewDoc.selfieUrl : previewDoc.idUrl)}
  alt="Verification Document"
  onError={() => handleImageError(`modal-single-${previewDoc.id}-${previewDoc.tab}`)}
  className="max-h-[55vh] w-auto object-contain rounded-lg shadow-sm"
