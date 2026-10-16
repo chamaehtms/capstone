@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api';
+import api, { toAssetUrl } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Settings() {
@@ -95,7 +95,7 @@ export default function Settings() {
         <div className="flex items-center gap-5">
           {photoPreview || account?.photoUrl ? (
             <img
-              src={photoPreview || account.photoUrl}
+              src={photoPreview || toAssetUrl(account.photoUrl)}
               alt="Profile"
               className="h-20 w-20 rounded-full object-cover border border-slate-200"
             />
