@@ -350,28 +350,7 @@ export default function Profile() {
               </div>
             )}
 
-            <div className="card" style={{ marginBottom: 20 }}>
-              <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ModernIcon name="home" size={19} color="#1e3a8a" />
-                <span>Household Information</span>
-              </div>
-              <div className="info-grid">
-                <div className="k">Household No.</div>
-                <div className="v">{user.householdInfo?.householdNo || 'HB-001'}</div>
-              </div>
-              <div className="info-grid">
-                <div className="k">Household Head</div>
-                <div className="v">{user.householdInfo?.headName || user.fullName || 'Maria Santos'}</div>
-              </div>
-              <div className="info-grid">
-                <div className="k">Address</div>
-                <div className="v">{user.householdInfo?.address || 'Block 1, House No. 12, Purok 1'}</div>
-              </div>
-              <div className="info-grid">
-                <div className="k">Purok / Zone</div>
-                <div className="v">{user.householdInfo?.purokZone || user.purok || 'Purok 1'}</div>
-              </div>
-            </div>
+
 
             {complaintsAgainstMe > 0 && (
               <div className="card" style={{ marginBottom: 20, border: '1px solid #fecaca', background: '#fffafb' }}>

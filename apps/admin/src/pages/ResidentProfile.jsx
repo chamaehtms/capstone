@@ -254,41 +254,7 @@ export default function ResidentProfile() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-100">
-            <div className="flex items-center gap-2.5 mb-5 pb-3 border-b border-slate-100">
-              <div className="text-slate-700">
-                <AdminIcon name="home" size={20} className="text-slate-700" />
-              </div>
-              <h3 className="font-bold text-slate-800 text-base">Household Information</h3>
-            </div>
 
-            <div className="space-y-4 text-sm">
-              <div className="flex justify-between items-start gap-4">
-                <span className="text-slate-500 font-medium">Household No.</span>
-                <span className="font-semibold text-slate-800 text-right">
-                  {resident.householdInfo?.householdNo || 'HB-001'}
-                </span>
-              </div>
-              <div className="flex justify-between items-start gap-4">
-                <span className="text-slate-500 font-medium">Household Head</span>
-                <span className="font-semibold text-slate-800 text-right">
-                  {resident.householdInfo?.headName || resident.fullName || 'Maria Santos'}
-                </span>
-              </div>
-              <div className="flex justify-between items-start gap-4">
-                <span className="text-slate-500 font-medium">Address</span>
-                <span className="font-medium text-slate-800 text-right max-w-[60%]">
-                  {resident.householdInfo?.address || resident.address || 'Block 1, House No. 12, Purok 1'}
-                </span>
-              </div>
-              <div className="flex justify-between items-start gap-4">
-                <span className="text-slate-500 font-medium">Purok / Zone</span>
-                <span className="font-semibold text-slate-800 text-right">
-                  {resident.householdInfo?.purokZone || resident.zone || 'Purok 1'}
-                </span>
-              </div>
-            </div>
-          </div>
 
           <div className="bg-white rounded-xl shadow-sm p-5 border border-slate-100">
             <p className="text-xs text-slate-400">RESIDENTIAL ZONE</p>
