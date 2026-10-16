@@ -592,13 +592,41 @@ async function verifySelfieHoldingIdStep(selfieFile, idDocFile, idScan) {
     };
   }
 
-  // 2h. Exact same ID cross-match: Confirm the ID held in the selfie matches the uploaded ID card
+  // 2h. ID Card Presence Verification: Ensure the physical ID card is actually visible in the selfie
   const idTokens = extractIdTokens(idScan?.ocrText);
   const selfieOcrText = (selfieScan.ocrText || '').toUpperCase();
+  const hasIdKeywordsInSelfie = SUPPORTED_ID_KEYWORDS.some((kw) => selfieOcrText.includes(kw));
+  const detectedFacesInSelfie = typeof selfieScan.facesCount === 'number' ? selfieScan.facesCount : 1;
 
-  if (idTokens.length >= 3 && selfieOcrText.length >= 15) {
-    const matchingTokens = idTokens.filter((token) => selfieOcrText.includes(token));
-    if (matchingTokens.length === 0) {
+  // An authentic selfie holding an ID typically shows:
+  // (a) Matching text tokens from the ID card
+  // (b) Or recognizable government/ID keywords
+  // (c) Or a secondary face detected (the portrait on the physical ID card)
+  let matchingTokens = [];
+  if (idTokens.length > 0 && selfieOcrText.length > 0) {
+    matchingTokens = idTokens.filter((token) => selfieOcrText.includes(token));
+  }
+
+  const hasCardEvidence =
+    matchingTokens.length > 0 ||
+    hasIdKeywordsInSelfie ||
+    detectedFacesInSelfie >= 2 ||
+    (selfieOcrText.length >= 8 && idTokens.length === 0);
+
+  // If the scanner succeeded, but no card evidence exists (0 text, 0 matching tokens, no card face, no ID keywords):
+  if (!hasCardEvidence && selfieScan.status !== 'provider_unavailable') {
+    return {
+      step: 2,
+      valid: false,
+      rejectedField: 'selfieWithId',
+      selfieScan,
+      reason: 'No ID Card Detected in Selfie: Please take a photo of yourself holding your physical ID card close to your face. Both your face and the ID card must be clearly visible in the same frame.',
+    };
+  }
+
+  // 2i. Exact same ID cross-match: If both the uploaded ID and the held ID contain readable text, confirm match
+  if (idTokens.length >= 3 && selfieOcrText.length >= 12) {
+    if (matchingTokens.length === 0 && !hasIdKeywordsInSelfie) {
       return {
         step: 2,
         valid: false,

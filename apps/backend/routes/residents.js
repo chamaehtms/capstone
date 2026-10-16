@@ -6,7 +6,12 @@ const { v4: uuidv4 } = require('uuid');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
 const { sendResidentApprovalEmail } = require('../utils/mailer');
-const { validateIdImage, verifyIdDocumentStep, verifyIdAndSelfieMatch } = require('../utils/aiIdValidator');
+const {
+  validateIdImage,
+  verifyIdDocumentStep,
+  verifySelfieHoldingIdStep,
+  verifyIdAndSelfieMatch,
+} = require('../utils/aiIdValidator');
 const { isCloudinaryConfigured, uploadToCloudinary, deleteLocalUpload } = require('../utils/cloudinary');
 
 const router = express.Router();
@@ -482,6 +487,15 @@ router.post('/:id/documents', (req, res) => {
           return res.status(400).json({
             message: idCheck.reason || 'Invalid government ID document.',
             rejectedField: idCheck.rejectedField || 'idDocument',
+          });
+        }
+      } else if (selfieFile) {
+        const selfieCheck = await verifySelfieHoldingIdStep(selfieFile, null, null);
+        if (!selfieCheck.valid) {
+          cleanupUploadedFiles();
+          return res.status(400).json({
+            message: selfieCheck.reason || 'Invalid selfie image quality or face verification failed.',
+            rejectedField: selfieCheck.rejectedField || 'selfieWithId',
           });
         }
       }
