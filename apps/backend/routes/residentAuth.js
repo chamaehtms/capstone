@@ -609,8 +609,7 @@ router.post('/verify-email', async (req, res) => {
   }
   try {
     const { rows } = await pool.query(
-      `SELECT id, email_verified, email_verification_code_hash, email_verification_expires_at,
-              email_verification_attempts
+      `SELECT *
        FROM residents WHERE LOWER(email) = $1 AND self_registered = true AND password_hash IS NOT NULL`,
       [email]
     );
