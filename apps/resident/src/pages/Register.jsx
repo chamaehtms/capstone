@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { register, checkEmailAvailability, verifyRegistrationEmail, resendRegistrationCode, Session } from '../api.js';
+import { register, checkEmailAvailability, verifyRegistrationEmail, resendRegistrationCode, Session, api } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
 
 export default function Register() {
@@ -39,8 +39,7 @@ export default function Register() {
   const inputRefs = useRef([]);
 
   useEffect(() => {
-    fetch('/api/puroks')
-      .then(r => r.json())
+    api('/puroks')
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setPurokOptions(data.map(p => p.name));

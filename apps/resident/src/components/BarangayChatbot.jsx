@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Session } from '../api.js';
+import { Session, API_BASE } from '../api.js';
 
 function cleanText(text) {
   if (!text) return '';
@@ -119,7 +119,7 @@ export default function BarangayChatbot() {
       if (!activeToken) return;
 
       try {
-        const res = await fetch('/api/chatbot/messages', {
+        const res = await fetch(`${API_BASE}/chatbot/messages`, {
           headers: { Authorization: `Bearer ${activeToken}` },
         });
         if (!res.ok) return;
@@ -194,7 +194,7 @@ export default function BarangayChatbot() {
         headers['Authorization'] = `Bearer ${activeToken}`;
       }
 
-      const res = await fetch('/api/chatbot/ask', {
+      const res = await fetch(`${API_BASE}/chatbot/ask`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -250,7 +250,7 @@ export default function BarangayChatbot() {
 
     setSendingAdminMsg(true);
     try {
-      const res = await fetch('/api/chatbot/messages', {
+      const res = await fetch(`${API_BASE}/chatbot/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

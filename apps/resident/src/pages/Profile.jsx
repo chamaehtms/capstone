@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar.jsx';
 import {
   getProfile, updatePreferences, updateProfile, changePassword,
-  uploadProfilePhoto, Session, initials, toAssetUrl, statusBadgeClass
+  uploadProfilePhoto, Session, initials, toAssetUrl, statusBadgeClass, api
 } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
 
@@ -55,8 +55,7 @@ export default function Profile() {
       setData(d);
     }).catch(e => setError(e.message));
 
-    fetch('/api/puroks')
-      .then(r => r.json())
+    api('/puroks')
       .then(p => {
         if (Array.isArray(p) && p.length > 0) {
           setPurokOptions(p.map(x => x.name));

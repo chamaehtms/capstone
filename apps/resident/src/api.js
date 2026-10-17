@@ -13,8 +13,8 @@
 // translate in both directions so the pages can keep working with the
 // same field names as before (user.firstName, user.purok, complaint.nature,
 // complaint.caseRef, etc).
-const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
-const API_ORIGIN = API_BASE.startsWith('http') ? API_BASE.replace(/\/api\/?$/, '') : '';
+export const API_BASE = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api');
+export const API_ORIGIN = API_BASE.startsWith('http') ? API_BASE.replace(/\/api\/?$/, '') : '';
 
 // Turn a relative upload path returned by the backend (e.g. photoUrl,
 // attachmentUrl) into an absolute URL this frontend can actually load.
