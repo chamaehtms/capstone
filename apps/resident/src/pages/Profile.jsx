@@ -6,7 +6,6 @@ import {
   uploadProfilePhoto, Session, initials, toAssetUrl, statusBadgeClass
 } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
-import PurokMap from '../components/PurokMap.jsx';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -370,24 +369,6 @@ export default function Profile() {
                 <div className="info-grid"><div className="k">Civil Status</div><div className="v">{user.civilStatus || '—'}</div></div>
               </div>
             )}
-
-            {/* Dynamic Resident Profile Map Based on Assigned Purok/Zone */}
-            <div className="card" style={{ marginBottom: 20 }}>
-              <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <ModernIcon name="map-pin" size={16} color="#0284c7" /> Jurisdictional Profile Map
-                </span>
-                <span style={{ fontSize: '0.74rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  {user.purok || 'Barangay Poblacion'}
-                </span>
-              </div>
-              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 12px', lineHeight: 1.5 }}>
-                Interactive map dynamically centered on your registered Purok / Zone in Poblacion, Cordova. Includes verified municipal boundaries, neighborhood landmarks, and geo-location points.
-              </p>
-              <PurokMap zoneName={user.purok} height="320px" />
-            </div>
-
-
 
             {complaintsAgainstMe > 0 && (
               <div className="card" style={{ marginBottom: 20, border: '1px solid #fecaca', background: '#fffafb' }}>
