@@ -409,6 +409,24 @@ router.post('/register', (req, res) => {
         return res.status(400).json({ message: 'First name, last name, email, and password are required.' });
       }
 
+      const pwd = String(password || '');
+      if (pwd.length < 8) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+      }
+      if (!/[A-Z]/.test(pwd)) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must contain at least one uppercase letter (A-Z).' });
+      }
+      if (!/[a-z]/.test(pwd)) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must contain at least one lowercase letter (a-z).' });
+      }
+      if (!/[0-9]/.test(pwd)) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must contain at least one number (0-9).' });
+      }
+
       const normalizedEmail = String(email).trim().toLowerCase();
       if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(normalizedEmail)) {
         cleanupFiles();

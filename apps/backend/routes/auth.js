@@ -363,7 +363,19 @@ router.post('/request-access', (req, res) => {
       }
       if (!pwd || pwd.length < 8) {
         cleanupFiles();
-        return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+        return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
+      }
+      if (!/[A-Z]/.test(pwd)) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must contain at least one uppercase letter (A-Z).' });
+      }
+      if (!/[a-z]/.test(pwd)) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must contain at least one lowercase letter (a-z).' });
+      }
+      if (!/[0-9]/.test(pwd)) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Password must contain at least one number (0-9).' });
       }
       if (!idPhotoFile) {
         cleanupFiles();

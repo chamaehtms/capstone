@@ -145,6 +145,23 @@ export default function RequestAccess() {
       setError('Please upload a selfie holding your ID to confirm your identity.');
       return;
     }
+    const pwd = form.password || '';
+    if (pwd.length < 8) {
+      setError('Password must be at least 8 characters long.');
+      return;
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      setError('Password must include at least one uppercase letter (A-Z).');
+      return;
+    }
+    if (!/[a-z]/.test(pwd)) {
+      setError('Password must include at least one lowercase letter (a-z).');
+      return;
+    }
+    if (!/[0-9]/.test(pwd)) {
+      setError('Password must include at least one number (0-9).');
+      return;
+    }
     if (!agreed) {
       setError('You must agree to the Security Protocols before submitting.');
       return;
@@ -816,10 +833,64 @@ export default function RequestAccess() {
                   type="password"
                   value={form.password}
                   onChange={update('password')}
-                  placeholder="••••••••••••"
+                  placeholder="Create a strong password"
                   required
                   minLength={8}
                 />
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: '0.74rem' }}>
+                  <span style={{
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    backgroundColor: form.password.length >= 8 ? '#ecfdf5' : '#f1f5f9',
+                    color: form.password.length >= 8 ? '#059669' : '#64748b',
+                    border: `1px solid ${form.password.length >= 8 ? '#a7f3d0' : '#e2e8f0'}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    {form.password.length >= 8 ? '✓' : '•'} At least 8 characters
+                  </span>
+                  <span style={{
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    backgroundColor: /[A-Z]/.test(form.password) ? '#ecfdf5' : '#f1f5f9',
+                    color: /[A-Z]/.test(form.password) ? '#059669' : '#64748b',
+                    border: `1px solid ${/[A-Z]/.test(form.password) ? '#a7f3d0' : '#e2e8f0'}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    {/[A-Z]/.test(form.password) ? '✓' : '•'} 1 uppercase (A-Z)
+                  </span>
+                  <span style={{
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    backgroundColor: /[a-z]/.test(form.password) ? '#ecfdf5' : '#f1f5f9',
+                    color: /[a-z]/.test(form.password) ? '#059669' : '#64748b',
+                    border: `1px solid ${/[a-z]/.test(form.password) ? '#a7f3d0' : '#e2e8f0'}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    {/[a-z]/.test(form.password) ? '✓' : '•'} 1 lowercase (a-z)
+                  </span>
+                  <span style={{
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    fontWeight: 600,
+                    backgroundColor: /[0-9]/.test(form.password) ? '#ecfdf5' : '#f1f5f9',
+                    color: /[0-9]/.test(form.password) ? '#059669' : '#64748b',
+                    border: `1px solid ${/[0-9]/.test(form.password) ? '#a7f3d0' : '#e2e8f0'}`,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    {/[0-9]/.test(form.password) ? '✓' : '•'} 1 number (0-9)
+                  </span>
+                </div>
               </div>
             </div>
 
