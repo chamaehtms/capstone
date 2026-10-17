@@ -41,7 +41,19 @@ export default function EditResident() {
         setImgError(false);
       })
       .catch(() => setLoadError('Resident not found.'));
+
+    api.get('/puroks')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setPurokOptions(res.data.map((p) => p.name));
+        }
+      })
+      .catch(() => {});
   }, [id]);
+
+  const [purokOptions, setPurokOptions] = useState([
+    'Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad'
+  ]);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -238,13 +250,11 @@ export default function EditResident() {
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="">Select Zone / Purok</option>
-                <option value="Camolinas Centro">Camolinas Centro</option>
-                <option value="Atabay">Atabay</option>
-                <option value="Calan">Calan</option>
-                <option value="Housing">Housing</option>
-                <option value="Puso">Puso</option>
-                <option value="Intra">Intra</option>
-                <option value="Crossroad">Crossroad</option>
+                {purokOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
               </select>
             </div>
             <div>

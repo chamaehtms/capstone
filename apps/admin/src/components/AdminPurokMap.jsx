@@ -21,27 +21,20 @@ const FALLBACK_CENTERS = {
   default: [10.25195, 123.94970],
 };
 
-const GOOGLE_TILE_LAYERS = {
-  roadmap: {
-    url: 'https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
-    subdomains: ['0', '1', '2', '3'],
-    name: 'Map',
-    maxZoom: 20,
-    attribution: 'Map data © Google',
+const MAP_TILE_PROVIDERS = {
+  osm: {
+    name: 'OpenStreetMap',
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+    subdomains: ['a', 'b', 'c'],
   },
   satellite: {
-    url: 'https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', // Hybrid satellite + roads/labels
-    subdomains: ['0', '1', '2', '3'],
     name: 'Satellite',
-    maxZoom: 20,
-    attribution: 'Imagery © Google',
-  },
-  terrain: {
-    url: 'https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}',
-    subdomains: ['0', '1', '2', '3'],
-    name: 'Terrain',
-    maxZoom: 20,
-    attribution: 'Map data © Google',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+    maxZoom: 18,
+    subdomains: [],
   },
 };
 
@@ -58,8 +51,10 @@ export default function AdminPurokMap({
   const tileLayerRef = useRef(null);
   const layerGroupRef = useRef(null);
 
-  const [mapType, setMapType] = useState('roadmap');
+  const [activeLayer, setActiveLayer] = useState('osm');
   const [purokData, setPurokData] = useState(null);
+  const [assignedCoords, setAssignedCoords] = useState(FALLBACK_CENTERS.default);
+  const [assignedZoom, setAssignedZoom] = useState(16);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,7 +68,14 @@ export default function AdminPurokMap({
               p.name.toLowerCase().trim() === String(zoneName || '').toLowerCase().trim() ||
               String(zoneName || '').toLowerCase().includes(p.name.toLowerCase())
           );
-          setPurokData(found || null);
+          if (found) {
+            setPurokData(found);
+            setAssignedCoords([found.centerLat, found.centerLng]);
+            setAssignedZoom(found.zoomLevel || 16);
+          } else if (zoneName && FALLBACK_CENTERS[zoneName]) {
+            setAssignedCoords(FALLBACK_CENTERS[zoneName]);
+            setAssignedZoom(16);
+          }
         }
       } catch (err) {
         console.warn('[AdminPurokMap] Could not fetch /api/puroks:', err);
@@ -89,10 +91,9 @@ export default function AdminPurokMap({
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    const defaultCenter = FALLBACK_CENTERS.default;
     const map = L.map(mapContainerRef.current, {
-      center: defaultCenter,
-      zoom: 16,
+      center: assignedCoords,
+      zoom: assignedZoom,
       zoomControl: false,
       dragging: interactive,
       touchZoom: interactive,
@@ -101,11 +102,11 @@ export default function AdminPurokMap({
       attributionControl: true,
     });
 
-    const conf = GOOGLE_TILE_LAYERS[mapType];
+    const conf = MAP_TILE_PROVIDERS[activeLayer];
     const initialTile = L.tileLayer(conf.url, {
-      subdomains: conf.subdomains,
-      maxZoom: conf.maxZoom,
       attribution: conf.attribution,
+      maxZoom: conf.maxZoom,
+      subdomains: conf.subdomains || [],
     }).addTo(map);
 
     tileLayerRef.current = initialTile;
@@ -135,15 +136,15 @@ export default function AdminPurokMap({
       map.removeLayer(tileLayerRef.current);
     }
 
-    const conf = GOOGLE_TILE_LAYERS[mapType];
+    const conf = MAP_TILE_PROVIDERS[activeLayer];
     const newLayer = L.tileLayer(conf.url, {
-      subdomains: conf.subdomains,
-      maxZoom: conf.maxZoom,
       attribution: conf.attribution,
+      maxZoom: conf.maxZoom,
+      subdomains: conf.subdomains || [],
     }).addTo(map);
 
     tileLayerRef.current = newLayer;
-  }, [mapType]);
+  }, [activeLayer]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -152,8 +153,8 @@ export default function AdminPurokMap({
 
     layerGroup.clearLayers();
 
-    let center = FALLBACK_CENTERS.default;
-    let zoom = 16;
+    let center = assignedCoords;
+    let zoom = assignedZoom;
     let displayName = zoneName || 'Barangay Poblacion';
 
     if (purokData) {
@@ -166,26 +167,22 @@ export default function AdminPurokMap({
 
     map.setView(center, zoom, { animate: true });
 
-    // Google Maps Red Pin
-    const googlePinIcon = L.divIcon({
-      className: 'google-admin-pin',
+    // Clean Minimalist SVG Admin Resident Pin (No Emojis)
+    const adminPinIcon = L.divIcon({
+      className: 'admin-resident-pin',
       html: `
-        <div style="position: relative; width: 32px; height: 42px; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.4));">
+        <div style="position: relative; width: 32px; height: 42px; filter: drop-shadow(0 2px 5px rgba(15,23,42,0.35)); cursor: pointer;">
           <svg viewBox="0 0 384 512" width="32" height="42" style="display: block;">
-            <path fill="#EA4335" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
-            <circle cx="192" cy="192" r="72" fill="#7B1113"/>
-            <circle cx="192" cy="192" r="54" fill="#FFFFFF"/>
+            <path fill="#059669" d="M172.268 501.67C26.97 291.031 0 269.413 0 192 0 85.961 85.961 0 192 0s192 85.961 192 192c0 77.413-26.97 99.031-172.268 309.67-9.535 13.774-29.93 13.773-39.464 0z"/>
+            <circle cx="192" cy="192" r="76" fill="#047857"/>
+            <circle cx="192" cy="192" r="60" fill="#ffffff"/>
           </svg>
-          <div style="
-            position: absolute;
-            top: 5px;
-            left: 0;
-            right: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-          ">👤</div>
+          <div style="position: absolute; top: 10px; left: 0; right: 0; display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
         </div>
       `,
       iconSize: [32, 42],
@@ -193,21 +190,14 @@ export default function AdminPurokMap({
       popupAnchor: [0, -42],
     });
 
-    const residentMarker = L.marker(center, { icon: googlePinIcon }).addTo(layerGroup);
+    const residentMarker = L.marker(center, { icon: adminPinIcon }).addTo(layerGroup);
     residentMarker.bindPopup(`
-      <div style="font-family: Roboto, Arial, sans-serif; font-size: 12px; min-width: 170px;">
-        <strong style="color: #202124; font-size: 13px; display: block; margin-bottom: 2px;">${residentName}</strong>
-        <span style="color: #1a73e8; font-weight: 600; font-size: 11px;">Zone: ${displayName}</span>
-        <p style="margin: 4px 0 0; color: #5f6368; font-size: 11px;">Barangay Poblacion, Cordova</p>
-        <div style="margin-top: 6px; padding-top: 4px; border-top: 1px solid #e2e8f0;">
-          <a
-            href="https://www.google.com/maps/search/?api=1&query=${center[0]},${center[1]}"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="color: #1a73e8; text-decoration: none; font-size: 11px; font-weight: 500;"
-          >
-            Open in Google Maps ↗
-          </a>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; min-width: 180px; padding: 2px;">
+        <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 2px;">${residentName}</strong>
+        <span style="color: #059669; font-weight: 600; font-size: 11px;">Jurisdiction: ${displayName}</span>
+        <p style="margin: 4px 0 0; color: #64748b; font-size: 11px;">Barangay Poblacion, Cordova</p>
+        <div style="margin-top: 6px; padding-top: 4px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8;">
+          Verified Coordinates: ${center[0].toFixed(4)}°N, ${center[1].toFixed(4)}°E
         </div>
       </div>
     `).openPopup();
@@ -217,10 +207,10 @@ export default function AdminPurokMap({
       try {
         const geoLayer = L.geoJSON(purokData.boundaryGeojson, {
           style: {
-            color: '#1a73e8',
+            color: '#059669',
             weight: 2,
             opacity: 0.85,
-            fillColor: '#4285f4',
+            fillColor: '#10b981',
             fillOpacity: 0.16,
           },
         }).addTo(layerGroup);
@@ -231,11 +221,11 @@ export default function AdminPurokMap({
     } else {
       L.circle(center, {
         radius: 200,
-        color: '#1a73e8',
-        weight: 2,
+        color: '#059669',
+        weight: 1.8,
         opacity: 0.8,
-        fillColor: '#4285f4',
-        fillOpacity: 0.14,
+        fillColor: '#10b981',
+        fillOpacity: 0.12,
       }).addTo(layerGroup);
     }
 
@@ -244,24 +234,26 @@ export default function AdminPurokMap({
       purokData.landmarks.forEach((lm) => {
         if (lm.lat && lm.lng) {
           const landmarkIcon = L.divIcon({
-            className: 'admin-google-poi',
+            className: 'admin-landmark-badge',
             html: `
               <div style="
                 background: #ffffff;
-                color: #202124;
+                color: #0f172a;
                 padding: 2px 7px;
-                border-radius: 12px;
-                font-family: Roboto, Arial, sans-serif;
+                border-radius: 6px;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 font-size: 9px;
                 font-weight: 600;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-                border: 1px solid #dadce0;
+                box-shadow: 0 1px 3px rgba(15,23,42,0.15);
+                border: 1px solid #cbd5e1;
                 white-space: nowrap;
                 display: inline-flex;
                 align-items: center;
-                gap: 3px;
+                gap: 4px;
               ">
-                <span style="color: #1a73e8;">🏛️</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 21h18M3 10h18M5 10v11M19 10v11M9 10v11M14 10v11M4 10h16l-8-7z"></path>
+                </svg>
                 <span>${lm.name}</span>
               </div>
             `,
@@ -273,72 +265,118 @@ export default function AdminPurokMap({
           L.marker([lm.lat, lm.lng], { icon: landmarkIcon })
             .addTo(layerGroup)
             .bindPopup(`
-              <div style="font-size: 11px; font-family: Roboto, Arial, sans-serif;">
-                <strong style="color: #202124;">${lm.name}</strong>
-                <div style="color: #5f6368; font-size: 10px;">${lm.type || 'Barangay Landmark'}</div>
+              <div style="font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <strong style="color: #0f172a;">${lm.name}</strong>
+                <div style="color: #64748b; font-size: 10px;">${lm.type || 'Barangay Landmark'}</div>
               </div>
             `);
         }
       });
     }
-
-    setTimeout(() => {
-      map.invalidateSize();
-    }, 150);
-  }, [purokData, zoneName, residentName, showLandmarks]);
+  }, [purokData, zoneName, assignedCoords, assignedZoom, residentName, showLandmarks]);
 
   const handleRecenter = () => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    let center = FALLBACK_CENTERS.default;
-    let zoom = 16;
-    if (purokData) {
-      center = [purokData.centerLat, purokData.centerLng];
-      zoom = purokData.zoomLevel || 16;
-    } else if (zoneName && FALLBACK_CENTERS[zoneName]) {
-      center = FALLBACK_CENTERS[zoneName];
-    }
-    map.setView(center, zoom, { animate: true });
+    mapInstanceRef.current?.flyTo(assignedCoords, assignedZoom, { duration: 1 });
+  };
+
+  const handleZoomIn = () => {
+    mapInstanceRef.current?.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    mapInstanceRef.current?.zoomOut();
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs font-sans ${className}`}>
-      {/* Top Left: Google Maps Layer Switcher */}
-      <div className="absolute top-2.5 left-2.5 z-[1000] bg-white rounded shadow-sm border border-slate-300 flex overflow-hidden">
-        {['roadmap', 'satellite', 'terrain'].map((typeKey) => (
+    <div
+      className={`relative w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 ${className}`}
+      style={{ height }}
+    >
+      <div ref={mapContainerRef} className="w-full h-full z-0" />
+
+      {/* Top Bar: Purok Name & Layer Switcher */}
+      <div className="absolute top-2.5 left-2.5 right-2.5 z-[400] flex items-center justify-between pointer-events-none">
+        <div className="pointer-events-auto bg-white/95 backdrop-blur-sm border border-slate-200 shadow-sm rounded-lg px-2.5 py-1 flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+            <circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <div className="text-[11px] font-bold text-slate-800 leading-none">
+            {purokData?.name || zoneName || 'Poblacion'}
+          </div>
+        </div>
+
+        <div className="pointer-events-auto flex items-center bg-white/95 backdrop-blur-sm border border-slate-200 shadow-sm rounded-md p-0.5 text-[10px] font-medium text-slate-600">
           <button
-            key={typeKey}
             type="button"
-            onClick={() => setMapType(typeKey)}
-            className={`px-2.5 py-1 text-[10px] font-bold border-r last:border-r-0 border-slate-200 transition-colors ${
-              mapType === typeKey ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 hover:bg-slate-50'
+            onClick={() => setActiveLayer('osm')}
+            className={`px-2 py-0.5 rounded transition-colors ${
+              activeLayer === 'osm'
+                ? 'bg-emerald-600 text-white font-semibold'
+                : 'hover:text-slate-900'
             }`}
           >
-            {GOOGLE_TILE_LAYERS[typeKey].name}
+            OSM
           </button>
-        ))}
+          <button
+            type="button"
+            onClick={() => setActiveLayer('satellite')}
+            className={`px-2 py-0.5 rounded transition-colors ${
+              activeLayer === 'satellite'
+                ? 'bg-emerald-600 text-white font-semibold'
+                : 'hover:text-slate-900'
+            }`}
+          >
+            Satellite
+          </button>
+        </div>
       </div>
 
-      {/* Top Right: Zone Info Pill */}
-      <div className="absolute top-2.5 right-2.5 z-[1000] bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-md shadow-xs border border-slate-200 flex items-center gap-1.5 text-xs">
-        <span className="w-2 h-2 rounded-full bg-red-500"></span>
-        <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Jurisdiction:</span>
-        <strong className="text-xs font-bold text-slate-800">{zoneName || 'Barangay Poblacion'}</strong>
+      {/* Recenter & Zoom Controls */}
+      <div className="absolute bottom-2.5 right-2.5 z-[400] flex flex-col gap-1">
+        <button
+          type="button"
+          onClick={handleRecenter}
+          title="Recenter on Assigned Zone"
+          aria-label="Recenter on Assigned Zone"
+          className="bg-white/95 backdrop-blur-sm hover:bg-white text-slate-700 hover:text-emerald-600 border border-slate-200 shadow-sm p-1.5 rounded-lg flex items-center gap-1 text-[11px] font-semibold transition-all active:scale-95"
+        >
+          <svg className="w-3.5 h-3.5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="22" y1="12" x2="18" y2="12"></line>
+            <line x1="6" y1="12" x2="2" y2="12"></line>
+            <line x1="12" y1="6" x2="12" y2="2"></line>
+            <line x1="12" y1="22" x2="12" y2="18"></line>
+          </svg>
+          <span className="hidden sm:inline">Recenter</span>
+        </button>
+
+        <div className="flex flex-col bg-white/95 backdrop-blur-sm border border-slate-200 shadow-sm rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={handleZoomIn}
+            title="Zoom In"
+            aria-label="Zoom In"
+            className="p-1.5 text-slate-700 hover:text-emerald-600 hover:bg-slate-50 transition-colors border-b border-slate-100 flex items-center justify-center"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={handleZoomOut}
+            title="Zoom Out"
+            aria-label="Zoom Out"
+            className="p-1.5 text-slate-700 hover:text-emerald-600 hover:bg-slate-50 transition-colors flex items-center justify-center"
+          >
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+          </button>
+        </div>
       </div>
-
-      {/* Recenter Button */}
-      <button
-        type="button"
-        onClick={handleRecenter}
-        title="Recenter to resident's Purok"
-        className="absolute bottom-3 right-3 z-[1000] bg-white text-blue-600 hover:bg-slate-50 border border-slate-300 px-2 py-1 rounded text-[11px] font-bold shadow-md flex items-center gap-1 transition-all"
-      >
-        <span>🎯</span>
-        <span>Recenter</span>
-      </button>
-
-      {/* Map Container */}
-      <div ref={mapContainerRef} style={{ height, width: '100%', zIndex: 1 }} />
     </div>
   );
 }

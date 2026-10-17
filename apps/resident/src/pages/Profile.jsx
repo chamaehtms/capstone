@@ -267,7 +267,9 @@ export default function Profile() {
           <div>
             {mode === 'edit' ? (
               <form className="card" style={{ marginBottom: 20 }} onSubmit={saveEdit}>
-                <div className="card-title">🪪 Edit Personal Information</div>
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ModernIcon name="user" size={16} color="#0284c7" /> Edit Personal Information
+                </div>
                 {formError && <div className="error-msg" style={{ marginBottom: 12 }}>{formError}</div>}
                 <div className="field">
                   <label className="field-label">Full Name</label>
@@ -350,12 +352,14 @@ export default function Profile() {
               </form>
             ) : (
               <div className="card" style={{ marginBottom: 20 }}>
-                <div className="card-title">🪪 Personal Information</div>
+                <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ModernIcon name="user" size={16} color="#0284c7" /> Personal Information
+                </div>
                 <div className="info-grid"><div className="k">Account Status</div><div className="v">
                   {user.status === 'Verified' ? (
-                    <span style={{ color: '#16a34a', fontWeight: 700 }}>● Verified Resident</span>
+                    <span style={{ color: '#16a34a', fontWeight: 700 }}>Verified Resident</span>
                   ) : (
-                    <span style={{ color: '#d97706', fontWeight: 700 }}>⏳ Pending Verification (Limited Access)</span>
+                    <span style={{ color: '#d97706', fontWeight: 700 }}>Pending Verification (Limited Access)</span>
                   )}
                 </div></div>
                 <div className="info-grid"><div className="k">Birthdate</div><div className="v">

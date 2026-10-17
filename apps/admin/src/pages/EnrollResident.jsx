@@ -30,10 +30,23 @@ export default function EnrollResident() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [rejectedField, setRejectedField] = useState(null);
+  const [purokOptions, setPurokOptions] = useState([
+    'Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad'
+  ]);
   
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get('/puroks')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setPurokOptions(res.data.map((p) => p.name));
+        }
+      })
+      .catch((err) => console.warn('Could not load puroks in enroll:', err));
+  }, []);
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
@@ -545,13 +558,11 @@ export default function EnrollResident() {
                 required
               >
                 <option value="">Select Zone / Purok</option>
-                <option value="Camolinas Centro">Camolinas Centro</option>
-                <option value="Atabay">Atabay</option>
-                <option value="Calan">Calan</option>
-                <option value="Housing">Housing</option>
-                <option value="Puso">Puso</option>
-                <option value="Intra">Intra</option>
-                <option value="Crossroad">Crossroad</option>
+                {purokOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
