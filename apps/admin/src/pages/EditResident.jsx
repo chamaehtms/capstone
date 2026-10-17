@@ -41,6 +41,14 @@ export default function EditResident() {
         setImgError(false);
       })
       .catch(() => setLoadError('Resident not found.'));
+
+    api.get('/puroks')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setPurokOptions(res.data.map((p) => p.name));
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   const [purokOptions, setPurokOptions] = useState([

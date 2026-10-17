@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import api, { toAssetUrl } from '../api';
 import AdminIcon from '../components/AdminIcons.jsx';
+import AdminPurokMap from '../components/AdminPurokMap.jsx';
 
 function formatDate(value) {
   if (!value) return null;
@@ -82,6 +83,7 @@ export default function ResidentProfile() {
   const [clearanceExpiry, setClearanceExpiry] = useState('Oct 12, 2025');
 
   // Edit profile form state
+  const [purokOptions, setPurokOptions] = useState([]);
   const [editForm, setEditForm] = useState({
     fullName: '',
     occupation: '',
@@ -102,14 +104,19 @@ export default function ResidentProfile() {
   const load = async () => {
     setLoading(true);
     try {
-      const [resResident, resComplaints] = await Promise.all([
+      const [resResident, resComplaints, resPuroks] = await Promise.all([
         api.get(`/residents/${id}`),
-        api.get('/complaints')
+        api.get('/complaints'),
+        api.get('/puroks').catch(() => ({ data: [] }))
       ]);
 
       const r = resResident.data;
       setResident(r);
       setImgError(false);
+
+      if (Array.isArray(resPuroks.data) && resPuroks.data.length > 0) {
+        setPurokOptions(resPuroks.data.map(p => p.name));
+      }
 
       setEditForm({
         fullName: r.fullName || '',
@@ -562,6 +569,24 @@ export default function ResidentProfile() {
             {/* Right 5 Columns: Map + Zone + Compliance Card */}
             <div className="lg:col-span-5 space-y-6">
               
+              {/* Interactive Dynamic OpenStreetMap / Leaflet of Poblacion Cordova */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span>Resident Purok / Zone Map</span>
+                  </h3>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    Poblacion, Cordova
+                  </span>
+                </div>
+                <AdminPurokMap
+                  zoneName={resident.zone}
+                  residentName={resident.fullName}
+                  height="260px"
+                />
+              </div>
+
               {/* Residential Zone Card */}
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
@@ -772,10 +797,16 @@ export default function ResidentProfile() {
                   className="w-full mt-1 p-2 bg-slate-50 border border-slate-300 rounded font-semibold text-slate-800"
                 >
                   <option value="">Select Official Purok/Zone</option>
-                  {['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad'].map((pName) => (
+                  {(purokOptions.length > 0
+                    ? purokOptions
+                    : ['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad']
+                  ).map((pName) => (
                     <option key={pName} value={pName}>{pName}</option>
                   ))}
                 </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Updating the Purok will automatically relocate the resident's dynamic profile map to the newly assigned area.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">

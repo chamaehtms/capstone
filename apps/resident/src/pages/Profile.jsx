@@ -6,11 +6,13 @@ import {
   uploadProfilePhoto, Session, initials, toAssetUrl, statusBadgeClass
 } from '../api.js';
 import ModernIcon from '../components/ModernIcons.jsx';
+import PurokMap from '../components/PurokMap.jsx';
 
 export default function Profile() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [purokOptions, setPurokOptions] = useState([]);
   const [mode, setMode] = useState('view'); // 'view' | 'edit' | 'password'
   const [editForm, setEditForm] = useState(null);
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -24,6 +26,15 @@ export default function Profile() {
       Session.setUser(d.user);
       setData(d);
     }).catch(e => setError(e.message));
+
+    fetch('/api/puroks')
+      .then(r => r.json())
+      .then(p => {
+        if (Array.isArray(p) && p.length > 0) {
+          setPurokOptions(p.map(x => x.name));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   function startEdit() {
@@ -326,7 +337,10 @@ export default function Profile() {
                   <label className="field-label">Purok / Zone</label>
                   <select value={editForm.purok} onChange={e => setEditForm(f => ({ ...f, purok: e.target.value }))}>
                     <option value="">Select location</option>
-                    {['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad'].map((pName) => (
+                    {(purokOptions.length > 0
+                      ? purokOptions
+                      : ['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad']
+                    ).map((pName) => (
                       <option key={pName} value={pName}>{pName}</option>
                     ))}
                   </select>
@@ -356,6 +370,24 @@ export default function Profile() {
                 <div className="info-grid"><div className="k">Civil Status</div><div className="v">{user.civilStatus || '—'}</div></div>
               </div>
             )}
+
+            {/* Dynamic Resident Profile Map Based on Assigned Purok/Zone */}
+            <div className="card" style={{ marginBottom: 20 }}>
+              <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ModernIcon name="map-pin" size={16} color="#0284c7" /> Jurisdictional Profile Map
+                </span>
+                <span style={{ fontSize: '0.74rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                  {user.purok || 'Barangay Poblacion'}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '4px 0 12px', lineHeight: 1.5 }}>
+                Interactive map dynamically centered on your registered Purok / Zone in Poblacion, Cordova. Includes verified municipal boundaries, neighborhood landmarks, and geo-location points.
+              </p>
+              <PurokMap zoneName={user.purok} height="320px" />
+            </div>
+
+
 
             {complaintsAgainstMe > 0 && (
               <div className="card" style={{ marginBottom: 20, border: '1px solid #fecaca', background: '#fffafb' }}>

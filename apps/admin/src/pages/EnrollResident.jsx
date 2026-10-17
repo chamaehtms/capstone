@@ -38,6 +38,16 @@ export default function EnrollResident() {
   const streamRef = useRef(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    api.get('/puroks')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setPurokOptions(res.data.map((p) => p.name));
+        }
+      })
+      .catch((err) => console.warn('Could not load puroks in enroll:', err));
+  }, []);
+
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
 
   const handleContactChange = (e) => {

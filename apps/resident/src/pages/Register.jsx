@@ -33,9 +33,21 @@ export default function Register() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [otpMessage, setOtpMessage] = useState(initialStep === 'verify' ? 'Please enter the 6-digit verification code sent to your email.' : '');
+  const [purokOptions, setPurokOptions] = useState([]);
   const [cooldown, setCooldown] = useState(0);
   const [resending, setResending] = useState(false);
   const inputRefs = useRef([]);
+
+  useEffect(() => {
+    fetch('/api/puroks')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPurokOptions(data.map(p => p.name));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     let timer;
@@ -995,7 +1007,10 @@ export default function Register() {
               <label className="field-label">Purok / Zone</label>
               <select value={form.purok} onChange={e => update('purok', e.target.value)} required>
                 <option value="">Select location</option>
-                {['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad'].map((pName) => (
+                {(purokOptions.length > 0
+                  ? purokOptions
+                  : ['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad']
+                ).map((pName) => (
                   <option key={pName} value={pName}>{pName}</option>
                 ))}
               </select>
