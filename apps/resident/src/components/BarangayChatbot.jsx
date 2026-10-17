@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Session } from '../api.js';
 
+function cleanText(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/(\*{1,3}|_{1,3})(.*?)\1/g, '$2')
+    .replace(/`{1,3}(.*?)`{1,3}/gs, '$1')
+    .replace(/^\s*>\s+/gm, '')
+    .replace(/^(\s*[-*_]){3,}\s*$/gm, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/^\s*\*\s+/gm, '• ')
+    .replace(/^\s*-\s+/gm, '• ')
+    .replace(/\*+/g, '')
+    .trim();
+}
+
 export default function BarangayChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [chatMode, setChatMode] = useState('ai'); // 'ai' | 'admin'
@@ -599,7 +615,7 @@ export default function BarangayChatbot() {
                           boxShadow: isResident ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)',
                         }}
                       >
-                        {m.text}
+                        {cleanText(m.text)}
 
                         {/* Verified Complaint Card If Retrieved */}
                         {m.complaints && m.complaints.length > 0 && (
@@ -922,7 +938,7 @@ export default function BarangayChatbot() {
                             boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
                           }}
                         >
-                          {m.text}
+                          {cleanText(m.text)}
                           {m.caseId && (
                             <div style={{ marginTop: 4, fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
                               Ref: #{m.caseId}

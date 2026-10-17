@@ -16,6 +16,36 @@ const STRICT_OUT_OF_DOMAIN_REPLY =
   "I'm the Barangay AI Assistant. I can only assist with barangay services, complaints, announcements, and other barangay-related concerns. How can I help you with your barangay concern?";
 
 /**
+ * Strips markdown symbols (bold **, italics *, headers #, backticks `, blockquotes >, links [x](y), bullets)
+ * to output clean, professional plain text for the chatbot.
+ */
+function stripMarkdown(text) {
+  if (!text) return '';
+  return String(text)
+    // Remove headers (# Title)
+    .replace(/^#{1,6}\s+/gm, '')
+    // Remove bold and italic markers (***text***, **text**, *text*, __text__, _text_)
+    .replace(/(\*{1,3}|_{1,3})(.*?)\1/g, '$2')
+    // Remove inline code and code blocks (`code`, ```code```)
+    .replace(/`{1,3}(.*?)`{1,3}/gs, '$1')
+    // Remove blockquotes (> text)
+    .replace(/^\s*>\s+/gm, '')
+    // Remove horizontal rules (---, ***, ___)
+    .replace(/^(\s*[-*_]){3,}\s*$/gm, '')
+    // Remove markdown links [text](url) -> text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove markdown images ![alt](url) -> alt
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    // Replace bullet asterisks (* item) with standard dot bullet (• item)
+    .replace(/^\s*\*\s+/gm, '• ')
+    // Replace hyphen bullets (- item) with standard dot bullet (• item)
+    .replace(/^\s*-\s+/gm, '• ')
+    // Remove any leftover lone asterisks or hashes
+    .replace(/\*+/g, '')
+    .trim();
+}
+
+/**
  * 1. RETRIEVAL STEP:
  * Searches chatbot_knowledge, announcements, puroks_zones, and confidential resident complaints.
  */
@@ -276,6 +306,8 @@ STRICT BARANGAY DOMAIN RULES:
 5. Never disclose private records of other residents.
 6. ${langPrompt}
 
+7. STRICT FORMATTING: Do NOT use any Markdown formatting in your response. Do NOT use asterisks (no **bold**, no *italics*), do NOT use hashtags (# headers), do NOT use backticks (\`), and do NOT use HTML. Provide clean, professional, plain text only. Use standard round bullets (•) if listing items.
+
 === VERIFIED BARANGAY POBLACION CONTEXT ===
 ${contextBlock}
 ==========================================`;
@@ -317,7 +349,7 @@ ${contextBlock}
 
       const puterData = await puterRes.json();
       if (puterData.success && puterData.result?.message?.content) {
-        const generatedContent = puterData.result.message.content.trim();
+        const generatedContent = stripMarkdown(puterData.result.message.content.trim());
         return {
           reply: generatedContent,
           complaints: complaintsFound.length > 0 ? complaintsFound : null,
@@ -334,7 +366,7 @@ ${contextBlock}
   // If LLM was unavailable or no context was found:
   if (fallbackText) {
     return {
-      reply: fallbackText,
+      reply: stripMarkdown(fallbackText),
       complaints: complaintsFound.length > 0 ? complaintsFound : null,
       canMessageAdmin: true,
       caseId: complaintsFound.length > 0 ? complaintsFound[0].id : null,
@@ -363,7 +395,7 @@ ${contextBlock}
       : "I don't have verified records regarding that specific inquiry in our barangay database. For official guidance, you may message the barangay admin directly here or visit the Barangay Poblacion Hall (Mon-Fri 8:00 AM - 5:00 PM).";
 
   return {
-    reply: fallbackUnanswered,
+    reply: stripMarkdown(fallbackUnanswered),
     canMessageAdmin: true,
     source: 'unanswered_fallback',
   };
