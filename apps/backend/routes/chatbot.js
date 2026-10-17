@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/pool');
 const { requireAuth } = require('../middleware/auth');
+const { generateRAGAnswer } = require('../utils/ragEngine');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'its-secret-lang';
@@ -22,23 +23,10 @@ function getOptionalResident(req) {
   }
 }
 
-// Strict Out-of-Domain Filter
-const OUT_OF_DOMAIN_PATTERNS = [
-  /\b(write|generate|debug|code|program|python|javascript|java|c\+\+|html|css|sql|script)\b/i,
-  /\b(homework|assignment|algebra|solve this equation|math problem|calculus)\b/i,
-  /\b(movie|celebrity|hollywood|netflix|actor|actress|singer|song|album|rap|nba|football|premier league|gaming|fortnite|minecraft)\b/i,
-  /\b(joke|riddle|poem|story|fairy tale|weather in (new york|paris|london|tokyo)|capital of)\b/i,
-  /\b(crypto|bitcoin|forex|stock market|trading|ethereum)\b/i,
-  /\b(who is the president of (the united states|america|france|russia|china))\b/i,
-];
-
-const STRICT_OUT_OF_DOMAIN_REPLY =
-  "I'm the Barangay AI Assistant. I can only assist with barangay services, complaints, announcements, and other barangay-related concerns. How can I help you with your barangay concern?";
-
-// POST /api/chatbot/ask - Main interactive AI assistant endpoint
+// POST /api/chatbot/ask - RAG-powered interactive AI assistant endpoint
 router.post('/ask', async (req, res) => {
   try {
-    const { query, language = 'en', caseId } = req.body;
+    const { query, language = 'en', conversationHistory = [] } = req.body;
     const cleanQuery = String(query || '').trim();
 
     if (!cleanQuery) {
@@ -47,215 +35,20 @@ router.post('/ask', async (req, res) => {
 
     const resident = getOptionalResident(req);
 
-    // 1. Strict Out-of-Domain Check
-    const isOutOfDomain = OUT_OF_DOMAIN_PATTERNS.some((pattern) => pattern.test(cleanQuery));
-    if (isOutOfDomain) {
-      return res.json({
-        reply: STRICT_OUT_OF_DOMAIN_REPLY,
-        isBarangayDomain: false,
-        source: 'guardrail',
-      });
-    }
-
-    const lowerQuery = cleanQuery.toLowerCase();
-
-    // 2. Complaint Tracking Check
-    const isComplaintTrackingQuery =
-      lowerQuery.includes('complaint') ||
-      lowerQuery.includes('reklamo') ||
-      lowerQuery.includes('case') ||
-      lowerQuery.includes('status') ||
-      lowerQuery.includes('blotter') ||
-      lowerQuery.includes('hearing') ||
-      lowerQuery.includes('mediation') ||
-      caseId;
-
-    if (isComplaintTrackingQuery && (lowerQuery.includes('my') || lowerQuery.includes('status') || lowerQuery.includes('how is') || caseId)) {
-      if (!resident) {
-        return res.json({
-          reply:
-            language === 'fil'
-              ? 'Maaari kitang tulungang suriin ang estado ng iyong reklamo. Mangyaring mag-sign in muna sa iyong account upang ligtas at opisyal kong makuha ang pinakabagong update.'
-              : language === 'ceb'
-              ? 'Makatabang ko nimo sa pagsusi sa kahimtang sa imong reklamo. Palihog pag-sign in una sa imong account aron opisyal nako makuha ang pinakabag-ong update.'
-              : 'I can help you check your complaint status. Please sign in to your account and select your complaint so I can retrieve its latest status.',
-          requireAuth: true,
-          source: 'complaint_tracking',
-        });
-      }
-
-      // Authenticated resident: retrieve REAL complaint records only
-      let complaintsQuery = `
-        SELECT id, category, status, filing_date, description, narrative,
-               hearing_stage, mediation_date, mediation_time, mediation_venue,
-               under_review_at, in_progress_at, resolved_at, created_at
-        FROM complaints
-        WHERE filed_by_resident_id = $1 OR LOWER(resident) = LOWER($2)
-      `;
-      const queryParams = [resident.id, resident.fullName || resident.name || ''];
-
-      // If specific case number was provided or extracted
-      const caseMatch = cleanQuery.match(/(CASE-[0-9]{4}-[0-9]{3}|#?[0-9]{3,6})/i);
-      const targetCaseId = caseId || (caseMatch ? caseMatch[0].replace('#', '') : null);
-
-      if (targetCaseId) {
-        complaintsQuery += ` AND (LOWER(id) = LOWER($3) OR id LIKE '%' || $3 || '%')`;
-        queryParams.push(targetCaseId);
-      }
-
-      complaintsQuery += ` ORDER BY created_at DESC LIMIT 3`;
-
-      const { rows: complaints } = await pool.query(complaintsQuery, queryParams);
-
-      if (complaints.length > 0) {
-        const primary = complaints[0];
-        const updateDate = primary.resolved_at || primary.in_progress_at || primary.under_review_at || primary.created_at || primary.filing_date;
-        const formattedDate = updateDate ? new Date(updateDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'recently';
-
-        let replyText = `Your complaint #${primary.id} (${primary.category || 'General Concern'}) is currently ${primary.status}. The last status update was on ${formattedDate}.`;
-        
-        if (primary.mediation_date) {
-          replyText += ` A mediation hearing is scheduled on ${primary.mediation_date} at ${primary.mediation_venue || 'Barangay Poblacion Session Hall'}.`;
-        }
-
-        replyText += ` For additional information or follow-up questions, you can message the barangay admin directly here.`;
-
-        if (language === 'fil') {
-          replyText = `Ang iyong reklamo #${primary.id} (${primary.category || 'Pangkalahatang Reklamo'}) ay kasalukuyang ${primary.status}. Ang huling update ay noong ${formattedDate}. Para sa karagdagang impormasyon o follow-up, maaari kang mag-iwan ng mensahe sa barangay admin dito.`;
-        } else if (language === 'ceb') {
-          replyText = `Ang imong reklamo #${primary.id} (${primary.category || 'Reklamo'}) anaa karon sa estado nga ${primary.status}. Ang pinakabag-ong update natala niadtong ${formattedDate}. Alang sa dugang impormasyon, pwede ka magpadala og mensahe sa barangay admin dinhi.`;
-        }
-
-        return res.json({
-          reply: replyText,
-          complaints: complaints.map((c) => ({
-            id: c.id,
-            category: c.category,
-            status: c.status,
-            filingDate: c.filing_date,
-            hearingStage: c.hearing_stage,
-            mediationDate: c.mediation_date,
-            mediationVenue: c.mediation_venue,
-          })),
-          canMessageAdmin: true,
-          caseId: primary.id,
-          source: 'complaint_tracking',
-        });
-      } else {
-        const notFoundText = targetCaseId
-          ? `I could not locate complaint #${targetCaseId} under your verified resident records. Please check the reference number or message the barangay admin for assistance.`
-          : `I could not find an active complaint registered under your account. If you believe this is an error or recently filed in person at the Barangay Hall, you may message the barangay admin here.`;
-
-        return res.json({
-          reply: notFoundText,
-          canMessageAdmin: true,
-          source: 'complaint_tracking',
-        });
-      }
-    }
-
-    // 3. Live Community Announcements Query
-    if (lowerQuery.includes('announcement') || lowerQuery.includes('event') || lowerQuery.includes('clean-up') || lowerQuery.includes('activity')) {
-      const { rows: announcements } = await pool.query(
-        `SELECT id, title, tag, body, event_date, created_at
-         FROM announcements
-         ORDER BY created_at DESC
-         LIMIT 3`
-      );
-
-      if (announcements.length > 0) {
-        const latest = announcements[0];
-        let reply = `Here is the latest official announcement from Barangay Poblacion:
-• ${latest.title} [${latest.tag || 'Community'}]: ${latest.body}`;
-        if (latest.event_date) {
-          reply += ` (Scheduled Date: ${latest.event_date})`;
-        }
-        return res.json({
-          reply,
-          announcements,
-          source: 'announcements',
-        });
-      }
-    }
-
-    // 4. Knowledge Base Match
-    const { rows: knowledgeList } = await pool.query(
-      `SELECT id, category, title, keywords, answer_en, answer_fil, answer_ceb
-       FROM chatbot_knowledge
-       WHERE is_active = true`
-    );
-
-    let bestMatch = null;
-    let highestScore = 0;
-
-    for (const kb of knowledgeList) {
-      let score = 0;
-      const kwArray = Array.isArray(kb.keywords)
-        ? kb.keywords
-        : typeof kb.keywords === 'string'
-        ? JSON.parse(kb.keywords || '[]')
-        : [];
-
-      for (const kw of kwArray) {
-        if (lowerQuery.includes(String(kw).toLowerCase())) {
-          score += 3;
-        }
-      }
-
-      if (lowerQuery.includes(kb.category.toLowerCase())) {
-        score += 2;
-      }
-
-      if (score > highestScore) {
-        highestScore = score;
-        bestMatch = kb;
-      }
-    }
-
-    if (bestMatch && highestScore >= 3) {
-      let chosenAnswer = bestMatch.answer_en;
-      if (language === 'fil' && bestMatch.answer_fil) chosenAnswer = bestMatch.answer_fil;
-      if (language === 'ceb' && bestMatch.answer_ceb) chosenAnswer = bestMatch.answer_ceb;
-
-      return res.json({
-        reply: chosenAnswer,
-        category: bestMatch.category,
-        title: bestMatch.title,
-        source: 'knowledge_base',
-      });
-    }
-
-    // 5. Fallback & Log Unanswered Question
-    await pool.query(
-      `INSERT INTO chatbot_unanswered_logs (id, resident_id, resident_name, query, language, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, 'pending_review', now())`,
-      [
-        `unans-${Date.now()}`,
-        resident ? resident.id : null,
-        resident ? (resident.fullName || resident.name) : 'Guest Resident',
-        cleanQuery,
-        language,
-      ]
-    );
-
-    const fallbackReply =
-      language === 'fil'
-        ? 'Paumanhin, wala pa akong beripikadong impormasyon sa rekord ng barangay ukol sa partikular na katanungang ito. Maaari kang magpadala ng direktang mensahe sa Barangay Admin dito o bumisita sa Barangay Poblacion Hall (Lunes hanggang Biyernes, 8:00 AM - 5:00 PM).'
-        : language === 'ceb'
-        ? 'Pasayloa, wala pa koy opisyal nga rekord sa barangay mahitungod niini nga pangutana. Pwede ka magbilin og direktang mensahe sa Barangay Admin dinhi o mobisita sa Barangay Poblacion Hall (Lunes hangtod Biyernes, 8:00 AM - 5:00 PM).'
-        : "I don't have verified records regarding that specific inquiry in our barangay database. For official guidance, you may message the barangay admin directly here or visit the Barangay Poblacion Hall (Mon-Fri 8:00 AM - 5:00 PM).";
-
-    return res.json({
-      reply: fallbackReply,
-      canMessageAdmin: true,
-      source: 'unanswered_fallback',
+    // Run Retrieval-Augmented Generation
+    const ragResult = await generateRAGAnswer({
+      query: cleanQuery,
+      language,
+      resident,
+      conversationHistory,
     });
+
+    res.json(ragResult);
   } catch (err) {
-    console.error('[chatbot] Error handling ask request:', err);
+    console.error('[chatbot] Error handling RAG ask request:', err);
     res.status(500).json({ message: 'Internal chatbot server error.' });
   }
 });
-
 // Resident-to-Admin Messaging Endpoints:
 
 // GET /api/chatbot/messages - Get message history

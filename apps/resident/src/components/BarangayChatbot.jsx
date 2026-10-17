@@ -106,7 +106,14 @@ export default function BarangayChatbot() {
       const res = await fetch('/api/chatbot/ask', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ query: text, language }),
+        body: JSON.stringify({
+          query: text,
+          language,
+          conversationHistory: messages.slice(-6).map((m) => ({
+            sender: m.sender,
+            text: m.text,
+          })),
+        }),
       });
 
       const data = await res.json();
@@ -303,7 +310,7 @@ export default function BarangayChatbot() {
                   Barangay Poblacion Assistant
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginTop: 2 }}>
-                  Official Citizen AI • Poblacion, Cordova
+                  Verified RAG Assistant • Poblacion, Cordova
                 </div>
               </div>
             </div>
