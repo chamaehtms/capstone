@@ -38,20 +38,59 @@ export default function BarangayChatbot() {
   const user = Session.getUser();
   const token = Session.getToken();
 
-  // Initial welcome greeting
-  useEffect(() => {
-    const greetingText =
-      'Good day. I am the official Barangay AI Assistant for Poblacion, Cordova. I can assist you with barangay clearances, complaint tracking, community announcements, and official office procedures. How may I help you today?';
+  const DEFAULT_GREETING = {
+    id: 'welcome-1',
+    sender: 'ai',
+    text: 'Good day. I am the official Barangay AI Assistant for Poblacion, Cordova. I can assist you with barangay clearances, complaint tracking, community announcements, and official office procedures. How may I help you today?',
+    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  };
 
-    setAiMessages([
-      {
-        id: 'welcome-1',
-        sender: 'ai',
-        text: greetingText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+  // Initial welcome greeting & persistence load
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('bp_chatbot_ai_messages');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAiMessages(parsed);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[BarangayChatbot] Error reading saved chat session:', e);
+    }
+    setAiMessages([DEFAULT_GREETING]);
   }, []);
+
+  // Save AI messages to localStorage when updated
+  useEffect(() => {
+    if (aiMessages && aiMessages.length > 0) {
+      try {
+        localStorage.setItem('bp_chatbot_ai_messages', JSON.stringify(aiMessages));
+      } catch (e) {
+        console.warn('[BarangayChatbot] Error persisting chat session:', e);
+      }
+    }
+  }, [aiMessages]);
+
+  // Explicitly end/reset current chat session
+  const handleEndChat = () => {
+    if (window.confirm('Are you sure you want to end this conversation and start a new session?')) {
+      try {
+        localStorage.removeItem('bp_chatbot_ai_messages');
+      } catch (e) {
+        // ignore
+      }
+      setAiMessages([
+        {
+          ...DEFAULT_GREETING,
+          id: `welcome-${Date.now()}`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+      setInput('');
+    }
+  };
 
   // Load message thread from admin if resident is authenticated with periodic polling (every 4 seconds)
   useEffect(() => {
@@ -365,7 +404,46 @@ export default function BarangayChatbot() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {/* End Chat Button (AI mode) */}
+              {chatMode === 'ai' && aiMessages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={handleEndChat}
+                  title="End conversation and start new session"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    color: '#ffffff',
+                    borderRadius: 6,
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                    padding: '4px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.85)';
+                    e.currentTarget.style.borderColor = '#ef4444';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                  }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                    <path d="M21 3v5h-5"></path>
+                    <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                    <path d="M3 21v-5h5"></path>
+                  </svg>
+                  <span>End Chat</span>
+                </button>
+              )}
+
               {/* Close Button */}
               <button
                 type="button"
