@@ -41,7 +41,7 @@ export default function Landing() {
           <h1>Civic resolution & resident services, direct to your barangay.</h1>
           <p className="landing-subtext">
             Submit formal disputes under Katarungang Pambarangay, track case hearings in real-time,
-            and access official community certifications with transparent local governance.
+            and stay informed on community announcements with transparent local governance.
           </p>
 
           <div className="landing-actions">
@@ -97,17 +97,6 @@ export default function Landing() {
               <div className="tile-text">
                 <strong>Track Case Status</strong>
                 <p>Verify hearing dates, mediation minutes, and resolution notices.</p>
-              </div>
-              <span className="tile-arrow">→</span>
-            </Link>
-
-            <Link to="/login" className="quick-service-tile">
-              <div className="tile-icon-svg">
-                <ModernIcon name="document" size={20} color="#93c5fd" />
-              </div>
-              <div className="tile-text">
-                <strong>Barangay Certificates</strong>
-                <p>Request proof of residency, indigency, and official community certifications.</p>
               </div>
               <span className="tile-arrow">→</span>
             </Link>
