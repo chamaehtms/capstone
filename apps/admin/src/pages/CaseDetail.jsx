@@ -308,17 +308,6 @@ export default function CaseDetail() {
  >
  Reject Complaint
  </button>
-
- {!isInfrastructure && (
- <button
- type="button"
- onClick={openMediationModal}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition shadow-xs"
- >
- <AdminIcon name="scale" size={14} />
- <span>{complaint.scheduledMeeting ? 'Edit Mediation' : 'Schedule Mediation'}</span>
- </button>
- )}
  </div>
  </div>
 
