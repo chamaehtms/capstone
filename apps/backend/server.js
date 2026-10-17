@@ -45,7 +45,6 @@ const residentAuthRoutes = safeRoute('./routes/residentAuth', 'residentAuth');
 const residentComplaintsRoutes = safeRoute('./routes/residentComplaints', 'residentComplaints');
 const announcementsRoutes = safeRoute('./routes/announcements', 'announcements');
 const householdsRoutes = safeRoute('./routes/households', 'households');
-const puroksRoutes = safeRoute('./routes/puroks', 'puroks');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -150,7 +149,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/resident-auth', residentAuthRoutes);
 app.use('/api/resident/complaints', residentComplaintsRoutes);
 app.use('/api/announcements', announcementsRoutes);
-app.use('/api/puroks', puroksRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found.' });

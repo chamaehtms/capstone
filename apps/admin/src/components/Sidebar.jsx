@@ -12,7 +12,6 @@ const links = [
   { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
   { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
   { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
-  { to: '/puroks', label: 'Purok & Zones', icon: 'pin' },
 ];
 
 export default function Sidebar({ isOpen = false, onClose = () => {} }) {
