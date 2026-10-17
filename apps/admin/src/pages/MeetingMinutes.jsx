@@ -1,2798 +1,1230 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  Video,
+  Paperclip,
+  Upload,
+  UserCheck,
+  UserPlus,
+  MinusCircle,
+  FileText,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Bell,
+  Search,
+  Info,
+  CheckCircle2,
+  Edit3,
+  Trash2,
+  Printer,
+  Share2,
+  ShieldCheck,
+  AlertTriangle,
+  PenTool,
+  Download,
+  Users,
+  Building2,
+  X,
+  Plus,
+  ArrowLeft,
+  Scale
+} from 'lucide-react';
 import api from '../api';
-import AdminIcon from '../components/AdminIcons.jsx';
 
-function formatMeetingDate(dateStr) {
- if (!dateStr) return 'Date not specified';
- const cleanStr = String(dateStr).split('T')[0];
- const parts = cleanStr.split('-');
- if (parts.length === 3) {
- const year = Number(parts[0]);
- const month = Number(parts[1]) - 1;
- const day = Number(parts[2]);
- const d = new Date(year, month, day);
- if (!isNaN(d.getTime())) {
- return d.toLocaleDateString('en-US', {
- weekday: 'long',
- year: 'numeric',
- month: 'long',
- day: 'numeric',
- });
- }
- }
- return dateStr;
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  const cleanStr = String(dateStr).split('T')[0];
+  const parts = cleanStr.split('-');
+  if (parts.length === 3) {
+    const year = Number(parts[0]);
+    const month = Number(parts[1]) - 1;
+    const day = Number(parts[2]);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  }
+  return dateStr;
 }
 
 export default function MeetingMinutes() {
- const [meetings, setMeetings] = useState([]);
- const [selected, setSelected] = useState(null);
- const [loading, setLoading] = useState(true);
- const [error, setError] = useState('');
- const [message, setMessage] = useState('');
- const [filterType, setFilterType] = useState('all'); // 'all' | 'council' | 'mediation'
- const [searchQuery, setSearchQuery] = useState('');
-
- // Complaints list for mediation link dropdown
- const [complaints, setComplaints] = useState([]);
- const [loadingComplaints, setLoadingComplaints] = useState(false);
-
- // Registered residents list for mediation autofill (e.g. auto-populating email by resident name)
- const [registeredResidents, setRegisteredResidents] = useState([]);
-
- // Edit / Council Modal state
- const [isCouncilModalOpen, setIsCouncilModalOpen] = useState(false);
- const [modalMode, setModalMode] = useState('edit'); // 'edit' | 'create'
- const [saving, setSaving] = useState(false);
- const [resendingNotice, setResendingNotice] = useState(false);
-
- // Council meeting form
- const [form, setForm] = useState({
- title: '',
- date: '',
- time: '',
- location: '',
- attendees: [],
- absentees: [],
- mainTopics: [],
- concernsRaised: '',
- minutes: '',
- resolutions: [],
- actionItems: [],
- nextMeetingDate: '',
- nextMeetingTime: '',
- nextMeetingVenue: '',
- meetingType: 'council',
- });
-
- // Mediation meeting modal state
- const [isMediationModalOpen, setIsMediationModalOpen] = useState(false);
- const [mediationModalMode, setMediationModalMode] = useState('create'); // 'create' | 'edit'
- const [mediationForm, setMediationForm] = useState({
- title: '',
- date: '',
- time: '10:00 AM',
- location: 'Barangay Poblacion Mediation Hall / Session Room',
- caseId: '',
- residentName: '',
- residentEmail: '',
- respondentName: '',
- mediator: '',
- hearingStage: '1st Mediation Hearing',
- mainTopics: ['Review of filed complaint and relief sought', 'Exploration of amicable settlement'],
- concernsRaised: '',
- resolutions: [],
- actionItems: [],
- nextMeetingDate: '',
- nextMeetingTime: '10:00 AM',
- nextMeetingVenue: 'Barangay Poblacion Mediation Hall',
- mediationStatus: 'Scheduled',
- sendNotification: true,
- });
-
- const loadMeetings = async (selectId = null) => {
- try {
- setLoading(true);
- const res = await api.get('/meetings');
- setMeetings(res.data);
- if (selectId) {
- const found = res.data.find((m) => m.id === selectId);
- setSelected(found || null);
- } else {
- setSelected((prev) => (prev ? res.data.find((m) => m.id === prev.id) || null : null));
- }
- } catch (err) {
- console.error(err);
- setError('Unable to load meeting minutes.');
- } finally {
- setLoading(false);
- }
- };
-
- const loadComplaints = async () => {
- try {
- setLoadingComplaints(true);
- const res = await api.get('/complaints');
- setComplaints(res.data.complaints || []);
- } catch (err) {
- console.error('Failed to load complaints for mediation selector:', err);
- } finally {
- setLoadingComplaints(false);
- }
- };
-
- const loadResidents = async () => {
- try {
- const res = await api.get('/residents/all-directory');
- setRegisteredResidents(Array.isArray(res.data) ? res.data : []);
- } catch (err) {
- console.error('Failed to load residents for mediation autofill:', err);
- }
- };
-
- useEffect(() => {
- loadMeetings();
- loadComplaints();
- loadResidents();
- }, []);
-
- const councilCount = meetings.filter((m) => (m.meetingType || 'council') === 'council').length;
- const mediationCount = meetings.filter((m) => m.meetingType === 'mediation').length;
-
- const filteredMeetings = meetings.filter((m) => {
- if (filterType === 'council' && (m.meetingType || 'council') !== 'council') return false;
- if (filterType === 'mediation' && m.meetingType !== 'mediation') return false;
- if (searchQuery.trim()) {
- const q = searchQuery.toLowerCase();
- const matchTitle = (m.title || '').toLowerCase().includes(q);
- const matchCase = (m.caseId || '').toLowerCase().includes(q);
- const matchResident = (m.residentName || '').toLowerCase().includes(q);
- const matchRespondent = (m.respondentName || '').toLowerCase().includes(q);
- const matchLocation = (m.location || '').toLowerCase().includes(q);
- const matchDate = (m.date || '').toLowerCase().includes(q);
- const matchStatus = (m.mediationStatus || '').toLowerCase().includes(q);
- return matchTitle || matchCase || matchResident || matchRespondent || matchLocation || matchDate || matchStatus;
- }
- return true;
- });
-
- // Open Edit modal for existing record
- const openEditModal = (meeting) => {
- if (meeting.meetingType === 'mediation') {
- loadComplaints();
- loadResidents();
- setMediationModalMode('edit');
- setMediationForm({
- title: meeting.title || '',
- date: meeting.date ? String(meeting.date).split('T')[0] : '',
- time: meeting.time || '10:00 AM',
- location: meeting.location || 'Barangay Poblacion Mediation Hall',
- caseId: meeting.caseId || '',
- residentName: meeting.residentName || '',
- residentEmail: meeting.residentEmail || '',
- respondentName: meeting.respondentName || '',
- mediator: meeting.mediator || '',
- hearingStage: meeting.hearingStage || '1st Mediation Hearing',
- mainTopics: Array.isArray(meeting.mainTopics) && meeting.mainTopics.length > 0 ? [...meeting.mainTopics] : ['Review of filed complaint and relief sought', 'Exploration of amicable settlement'],
- concernsRaised: meeting.concernsRaised || '',
- resolutions: Array.isArray(meeting.resolutions) ? meeting.resolutions.map((r) => ({ ...r })) : [],
- actionItems: Array.isArray(meeting.actionItems) ? meeting.actionItems.map((a) => ({ ...a })) : [],
- nextMeetingDate: meeting.nextMeetingDate ? String(meeting.nextMeetingDate).split('T')[0] : '',
- nextMeetingTime: meeting.nextMeetingTime || '',
- nextMeetingVenue: meeting.nextMeetingVenue || '',
- mediationStatus: meeting.mediationStatus || 'Scheduled',
- sendNotification: false,
- });
- setIsMediationModalOpen(true);
- return;
- }
-
- setModalMode('edit');
- setForm({
- title: meeting.title || '',
- date: meeting.date ? String(meeting.date).split('T')[0] : '',
- time: meeting.time || '',
- location: meeting.location || '',
- attendees: Array.isArray(meeting.attendees) ? [...meeting.attendees] : [],
- absentees: Array.isArray(meeting.absentees) ? [...meeting.absentees] : [],
- mainTopics: Array.isArray(meeting.mainTopics) && meeting.mainTopics.length > 0
- ? [...meeting.mainTopics]
- : (Array.isArray(meeting.agenda) ? [...meeting.agenda] : []),
- concernsRaised: meeting.concernsRaised || '',
- minutes: meeting.minutes || '',
- resolutions: Array.isArray(meeting.resolutions) ? meeting.resolutions.map((r) => ({ ...r })) : [],
- actionItems: Array.isArray(meeting.actionItems) ? meeting.actionItems.map((a) => ({ ...a })) : [],
- nextMeetingDate: meeting.nextMeetingDate ? String(meeting.nextMeetingDate).split('T')[0] : '',
- nextMeetingTime: meeting.nextMeetingTime || '',
- nextMeetingVenue: meeting.nextMeetingVenue || '',
- meetingType: 'council',
- });
- setIsCouncilModalOpen(true);
- };
-
- // Open Create Council Session modal
- const openCreateCouncilModal = () => {
- setModalMode('create');
- const today = new Date().toISOString().split('T')[0];
- setForm({
- title: 'Barangay Poblacion Council Regular Session',
- date: today,
- time: '02:00 PM - 04:30 PM',
- location: 'Barangay Poblacion Session Hall',
- attendees: [],
- absentees: [],
- mainTopics: [],
- concernsRaised: '',
- minutes: '',
- resolutions: [],
- actionItems: [],
- nextMeetingDate: '',
- nextMeetingTime: '02:00 PM',
- nextMeetingVenue: 'Barangay Poblacion Session Hall',
- meetingType: 'council',
- });
- setIsCouncilModalOpen(true);
- };
-
- // Open Create Mediation Meeting modal
- const openScheduleMediationModal = () => {
- loadComplaints();
- loadResidents();
- setMediationModalMode('create');
- const today = new Date();
- today.setDate(today.getDate() + 2); // Default to 2 days ahead
- const defaultDate = today.toISOString().split('T')[0];
-
- setMediationForm({
- title: 'Lupong Tagapamayapa Mediation Hearing',
- date: defaultDate,
- time: '10:00 AM',
- location: 'Barangay Poblacion Mediation Hall / Session Room',
- caseId: '',
- residentName: '',
- residentEmail: '',
- respondentName: '',
- mediator: '',
- hearingStage: '1st Mediation Hearing',
- mainTopics: ['Review of filed complaint and relief sought', 'Exploration of amicable settlement'],
- concernsRaised: '',
- resolutions: [],
- actionItems: [],
- nextMeetingDate: '',
- nextMeetingTime: '10:00 AM',
- nextMeetingVenue: 'Barangay Poblacion Mediation Hall',
- mediationStatus: 'Scheduled',
- sendNotification: true,
- });
- setIsMediationModalOpen(true);
- };
-
- // When a complaint is chosen from dropdown in mediation modal
- const handleSelectComplaint = (caseId) => {
- if (!caseId) {
- setMediationForm((prev) => ({
- ...prev,
- caseId: '',
- }));
- return;
- }
- const found = complaints.find((c) => c.id === caseId);
- if (found) {
- // Find registered email from complaint, or matching registered resident (e.g. Kent)
- let email = found.residentEmail || '';
- if (!email && registeredResidents.length > 0) {
- const cResident = (found.resident || '').trim().toLowerCase();
- const matched = registeredResidents.find((r) => {
- const rName = (r.fullName || '').trim().toLowerCase();
- return (
- (found.filedByResidentId && r.id === found.filedByResidentId) ||
- rName === cResident ||
- rName.startsWith(cResident) ||
- rName.includes(cResident) ||
- cResident.includes(rName)
- );
- });
- if (matched && matched.email) email = matched.email;
- }
-
- setMediationForm((prev) => ({
- ...prev,
- caseId: found.id,
- title: `Mediation Hearing: ${found.category || 'Dispute'} (${found.id})`,
- residentName: found.resident || '',
- residentEmail: email || prev.residentEmail || '',
- respondentName: found.respondent || '',
- concernsRaised: found.description || found.narrative || '',
- mainTopics: [
- `Discussion of ${found.category || 'complaint'} filed by ${found.resident || 'complainant'}`,
- `Relief sought: ${found.reliefSought || 'Amicable settlement under KP law'}`,
- ],
- }));
- }
- };
-
- // When resident name is typed or selected directly in the mediation modal
- const handleResidentNameChange = (name) => {
- setMediationForm((prev) => {
- let email = prev.residentEmail;
- const cleanName = name.trim().toLowerCase();
- if (cleanName && registeredResidents.length > 0) {
- const matched = registeredResidents.find((r) => {
- const rName = (r.fullName || '').trim().toLowerCase();
- return rName === cleanName || rName.startsWith(cleanName) || rName.includes(cleanName) || cleanName.includes(rName);
- });
- if (matched && matched.email) {
- email = matched.email;
- }
- }
- return {
- ...prev,
- residentName: name,
- residentEmail: email,
- };
- });
- };
-
- // Save Council Session
- const handleSaveCouncil = async (e) => {
- e.preventDefault();
- if (!form.title.trim() || !form.date) {
- alert('Title and Date are required.');
- return;
- }
-
- const selectedDate = String(form.date).trim().slice(0, 10);
- const cleanTime = String(form.time || '').trim().toLowerCase();
- const cleanVenue = String(form.location || 'Barangay Poblacion Session Hall').trim().toLowerCase();
-
- const conflictMeeting = meetings.find((m) => {
- const mDate = String(m.date || '').trim().slice(0, 10);
- if (isEditing && m.id === selected?.id) return false;
- const mTime = String(m.time || '').trim().toLowerCase();
- const mVenue = String(m.location || '').trim().toLowerCase();
- return mDate === selectedDate && mTime && cleanTime && mTime === cleanTime && mVenue && cleanVenue && mVenue === cleanVenue;
- });
-
- if (conflictMeeting) {
- alert(`Schedule Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled at ${conflictMeeting.location || 'this venue'} on ${selectedDate}. Please choose a different time or venue.`);
- return;
- }
-
- setSaving(true);
- setError('');
- setMessage('');
-
- const payload = {
- title: form.title.trim(),
- date: form.date,
- time: form.time.trim(),
- location: form.location.trim() || 'Barangay Poblacion Session Hall',
- attendees: form.attendees.filter(Boolean),
- absentees: form.absentees.filter(Boolean),
- mainTopics: form.mainTopics.filter(Boolean),
- concernsRaised: form.concernsRaised.trim(),
- minutes: form.minutes.trim(),
- resolutions: form.resolutions.filter((r) => r.title.trim()),
- actionItems: form.actionItems.filter((a) => a.task.trim()),
- nextMeetingDate: form.nextMeetingDate || '',
- nextMeetingTime: form.nextMeetingTime.trim() || '',
- nextMeetingVenue: form.nextMeetingVenue.trim() || '',
- meetingType: 'council',
- };
-
- try {
- if (modalMode === 'edit' && selected) {
- const { data } = await api.put(`/meetings/${selected.id}`, payload);
- setMessage('Meeting minutes updated successfully.');
- setIsCouncilModalOpen(false);
- await loadMeetings(data.id);
- } else {
- const { data } = await api.post('/meetings', payload);
- setMessage('New council meeting record created successfully.');
- setIsCouncilModalOpen(false);
- await loadMeetings(data.id);
- }
- } catch (err) {
- console.error(err);
- alert(err.response?.data?.message || 'Unable to save meeting minutes.');
- } finally {
- setSaving(false);
- }
- };
-
- // Save Mediation Meeting
- const handleSaveMediation = async (e) => {
- e.preventDefault();
- if (!mediationForm.title.trim() || !mediationForm.date) {
- alert('Title and Hearing Date are required.');
- return;
- }
-
- const selectedDate = String(mediationForm.date).trim().slice(0, 10);
- const todayStr = new Date().toISOString().slice(0, 10);
- const isExistingMediation = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
-
- if (!isExistingMediation && selectedDate < todayStr) {
- alert('Invalid hearing date: Mediation hearings cannot be scheduled on past dates. Please choose today or a future date.');
- return;
- }
-
- if (mediationForm.nextMeetingDate && String(mediationForm.nextMeetingDate).trim().slice(0, 10) < todayStr) {
- alert('Invalid next hearing date: Next follow-up session cannot be scheduled on past dates. Please choose today or a future date.');
- return;
- }
-
- const cleanTime = String(mediationForm.time || '').trim().toLowerCase();
- const cleanVenue = String(mediationForm.location || '').trim().toLowerCase();
-
- const conflictMeeting = meetings.find((m) => {
- const mDate = String(m.date || '').trim().slice(0, 10);
- if (isExistingMediation && m.id === selected?.id) return false;
- const mTime = String(m.time || '').trim().toLowerCase();
- const mVenue = String(m.location || '').trim().toLowerCase();
- return mDate === selectedDate && mTime && cleanTime && mTime === cleanTime && mVenue && cleanVenue && mVenue === cleanVenue;
- });
-
- if (conflictMeeting) {
- alert(`Schedule Conflict: A ${conflictMeeting.meetingType === 'mediation' ? 'mediation hearing' : 'session'} ("${conflictMeeting.title}"${conflictMeeting.time ? ` at ${conflictMeeting.time}` : ''}) is already scheduled at ${conflictMeeting.location || 'this venue'} on ${selectedDate}. Please choose a different time or venue.`);
- return;
- }
-
- setSaving(true);
- setError('');
- setMessage('');
-
- const attendees = [
- mediationForm.residentName ? `${mediationForm.residentName} (Complainant)` : '',
- mediationForm.respondentName ? `${mediationForm.respondentName} (Respondent)` : '',
- mediationForm.mediator ? `${mediationForm.mediator} (Presiding Officer)` : '',
- ].filter(Boolean);
-
- const payload = {
- title: mediationForm.title.trim(),
- date: mediationForm.date,
- time: mediationForm.time.trim(),
- location: mediationForm.location.trim() || 'Barangay Poblacion Mediation Hall',
- attendees,
- absentees: [],
- mainTopics: mediationForm.mainTopics.filter(Boolean),
- concernsRaised: mediationForm.concernsRaised.trim(),
- minutes: '',
- resolutions: mediationForm.resolutions.filter((r) => r.title.trim()),
- actionItems: mediationForm.actionItems.filter((a) => a.task.trim()),
- nextMeetingDate: mediationForm.nextMeetingDate || '',
- nextMeetingTime: mediationForm.nextMeetingTime.trim() || '',
- nextMeetingVenue: mediationForm.nextMeetingVenue.trim() || '',
- meetingType: 'mediation',
- caseId: mediationForm.caseId || null,
- residentName: mediationForm.residentName || '',
- residentEmail: mediationForm.residentEmail.trim(),
- respondentName: mediationForm.respondentName || '',
- mediator: mediationForm.mediator || '',
- hearingStage: mediationForm.hearingStage || '1st Mediation Hearing',
- mediationStatus: mediationForm.mediationStatus || 'Scheduled',
- sendNotification: mediationForm.sendNotification,
- };
-
- try {
- const isExistingMediation = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
- if (isExistingMediation) {
- const { data } = await api.put(`/meetings/${selected.id}`, payload);
- let msg = 'Mediation proceedings and record updated successfully.';
- if (data.nextEmailSent) {
- msg += ` Official Notice of Next Session sent to ${mediationForm.residentEmail || 'resident'} and user account notified.`;
- } else if (payload.nextMeetingDate && data.nextEmailError) {
- msg += ` (Next session notice: ${data.nextEmailError})`;
- }
- setMessage(msg);
- setIsMediationModalOpen(false);
- await loadMeetings(data.id);
- } else {
- const { data } = await api.post('/meetings', payload);
- let noticeMsg = 'Mediation meeting recorded successfully.';
- if (data.emailSent) {
- noticeMsg = `Mediation meeting scheduled and official notification email sent to ${mediationForm.residentEmail}!`;
- }
- if (data.nextEmailSent) {
- noticeMsg += ` Official Notice of Next Hearing also sent to Gmail & resident portal notified!`;
- }
- setMessage(noticeMsg);
- setIsMediationModalOpen(false);
- await loadMeetings(data.id);
- }
- } catch (err) {
- console.error(err);
- alert(err.response?.data?.message || 'Unable to save mediation meeting.');
- } finally {
- setSaving(false);
- }
- };
-
- // Resend notice email
- const handleResendNotice = async (meetingId) => {
- setResendingNotice(true);
- setError('');
- setMessage('');
- try {
- const { data } = await api.post(`/meetings/${meetingId}/resend-notification`);
- setMessage(data.message || 'Notification notice resent to resident.');
- await loadMeetings(meetingId);
- } catch (err) {
- setError(err.response?.data?.message || 'Failed to resend notice email.');
- } finally {
- setResendingNotice(false);
- }
- };
-
- // Resend next session notice email
- const handleResendNextNotice = async (meetingId) => {
- setResendingNotice(true);
- setError('');
- setMessage('');
- try {
- const { data } = await api.post(`/meetings/${meetingId}/resend-notification`, { type: 'next' });
- setMessage(data.message || 'Next session notification dispatched to resident.');
- await loadMeetings(meetingId);
- } catch (err) {
- setError(err.response?.data?.message || 'Failed to dispatch next session notice email.');
- } finally {
- setResendingNotice(false);
- }
- };
-
- // Quick update for mediation status directly from Section 1 or dropdown
- const handleQuickMediationStatusChange = async (meetingId, newStatus) => {
- if (!meetingId || !newStatus) return;
- try {
- const { data } = await api.put(`/meetings/${meetingId}`, { mediationStatus: newStatus });
- setMessage(`Mediation status updated to "${newStatus}".`);
- await loadMeetings(meetingId);
- } catch (err) {
- console.error('Failed to update mediation status:', err);
- setError(err.response?.data?.message || 'Failed to update mediation status.');
- }
- };
-
- // Helpers for council form
- const addAttendee = () => setForm((f) => ({ ...f, attendees: [...f.attendees, ''] }));
- const updateAttendee = (idx, val) =>
- setForm((f) => {
- const arr = [...f.attendees];
- arr[idx] = val;
- return { ...f, attendees: arr };
- });
- const removeAttendee = (idx) =>
- setForm((f) => ({ ...f, attendees: f.attendees.filter((_, i) => i !== idx) }));
-
- const addAbsentee = () => setForm((f) => ({ ...f, absentees: [...f.absentees, ''] }));
- const updateAbsentee = (idx, val) =>
- setForm((f) => {
- const arr = [...f.absentees];
- arr[idx] = val;
- return { ...f, absentees: arr };
- });
- const removeAbsentee = (idx) =>
- setForm((f) => ({ ...f, absentees: f.absentees.filter((_, i) => i !== idx) }));
-
- const addTopic = () => setForm((f) => ({ ...f, mainTopics: [...f.mainTopics, ''] }));
- const updateTopic = (idx, val) =>
- setForm((f) => {
- const arr = [...f.mainTopics];
- arr[idx] = val;
- return { ...f, mainTopics: arr };
- });
- const removeTopic = (idx) =>
- setForm((f) => ({ ...f, mainTopics: f.mainTopics.filter((_, i) => i !== idx) }));
-
- const addResolution = () =>
- setForm((f) => ({
- ...f,
- resolutions: [
- ...f.resolutions,
- { id: `R${new Date().getFullYear()}-${String(f.resolutions.length + 1).padStart(3, '0')}`, title: '', status: 'Approved' },
- ],
- }));
- const updateResolution = (idx, field, val) =>
- setForm((f) => {
- const arr = [...f.resolutions];
- arr[idx] = { ...arr[idx], [field]: val };
- return { ...f, resolutions: arr };
- });
- const removeResolution = (idx) =>
- setForm((f) => ({ ...f, resolutions: f.resolutions.filter((_, i) => i !== idx) }));
-
- const addActionItem = () =>
- setForm((f) => ({
- ...f,
- actionItems: [
- ...f.actionItems,
- { id: `ACT-${String(f.actionItems.length + 1).padStart(3, '0')}`, task: '', responsible: '', deadline: '', status: 'In Progress' },
- ],
- }));
- const updateActionItem = (idx, field, val) =>
- setForm((f) => {
- const arr = [...f.actionItems];
- arr[idx] = { ...arr[idx], [field]: val };
- return { ...f, actionItems: arr };
- });
- const removeActionItem = (idx) =>
- setForm((f) => ({ ...f, actionItems: f.actionItems.filter((_, i) => i !== idx) }));
-
- // Helpers for mediation form
- const addMediationTopic = () => setMediationForm((f) => ({ ...f, mainTopics: [...f.mainTopics, ''] }));
- const updateMediationTopic = (idx, val) =>
- setMediationForm((f) => {
- const arr = [...f.mainTopics];
- arr[idx] = val;
- return { ...f, mainTopics: arr };
- });
- const removeMediationTopic = (idx) =>
- setMediationForm((f) => ({ ...f, mainTopics: f.mainTopics.filter((_, i) => i !== idx) }));
-
- const addMediationResolution = () =>
- setMediationForm((f) => ({
- ...f,
- resolutions: [
- ...f.resolutions,
- { id: `KP-${new Date().getFullYear()}-${String(f.resolutions.length + 1).padStart(3, '0')}`, title: '', status: 'Agreed' },
- ],
- }));
- const updateMediationResolution = (idx, field, val) =>
- setMediationForm((f) => {
- const arr = [...f.resolutions];
- arr[idx] = { ...arr[idx], [field]: val };
- return { ...f, resolutions: arr };
- });
- const removeMediationResolution = (idx) =>
- setMediationForm((f) => ({ ...f, resolutions: f.resolutions.filter((_, i) => i !== idx) }));
-
- const addMediationActionItem = () =>
- setMediationForm((f) => ({
- ...f,
- actionItems: [
- ...f.actionItems,
- { id: `ACT-${String(f.actionItems.length + 1).padStart(3, '0')}`, task: '', responsible: '', deadline: '', status: 'In Progress' },
- ],
- }));
- const updateMediationActionItem = (idx, field, val) =>
- setMediationForm((f) => {
- const arr = [...f.actionItems];
- arr[idx] = { ...arr[idx], [field]: val };
- return { ...f, actionItems: arr };
- });
- const removeMediationActionItem = (idx) =>
- setMediationForm((f) => ({ ...f, actionItems: f.actionItems.filter((_, i) => i !== idx) }));
-
- if (loading && meetings.length === 0) {
- return <p className="text-slate-500 py-8 text-center">Loading meeting records…</p>;
- }
-
- const isSelectedMediation = selected?.meetingType === 'mediation';
-
- return (
- <div className="space-y-6">
- {/* TOP HEADER */}
- <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 print-hidden">
- <div>
- {selected ? (
- <div className="flex items-center gap-3">
- <button
- type="button"
- onClick={() => setSelected(null)}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
- title="Back to all meetings list"
- >
- <span>←</span>
- <span>All Meetings</span>
- </button>
- <div>
- <h1 className="text-xl font-bold text-slate-900 line-clamp-1">{selected.title}</h1>
- <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1.5">
- <AdminIcon name={selected.meetingType === 'mediation' ? 'scale' : 'building'} size={13} className={selected.meetingType === 'mediation' ? 'text-sky-600' : 'text-blue-600'} />
- <span>{selected.meetingType === 'mediation' ? 'Mediation Hearing Record' : 'Council Session Minutes'} · {formatMeetingDate(selected.date)}</span>
- </p>
- </div>
- </div>
- ) : (
- <div>
- <div className="flex items-center gap-2">
- <h1 className="text-2xl font-bold text-slate-900">Mediation</h1>
- <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
- Official Session Records
- </span>
- </div>
- <p className="text-sm text-slate-500 mt-0.5">Barangay Poblacion Municipal System</p>
- </div>
- )}
- </div>
-
- <div className="flex flex-wrap items-center gap-2.5">
- {selected && meetings.length > 1 && (
- <select
- value={selected.id}
- onChange={(e) => {
- const found = meetings.find((m) => m.id === e.target.value);
- if (found) setSelected(found);
- }}
- className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[220px] truncate"
- title="Switch to another meeting"
- >
- {meetings.map((m) => (
- <option key={m.id} value={m.id}>
- {m.meetingType === 'mediation' ? '[Mediation] ' : '[Council] '}
- {m.title} ({String(m.date).split('T')[0]})
- </option>
- ))}
- </select>
- )}
-
- {selected && (
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-xs"
- >
- <AdminIcon name="edit" size={14} />
- <span>Edit Record</span>
- </button>
- )}
-
- <button
- type="button"
- onClick={openScheduleMediationModal}
- className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-xs"
- title="Schedule a Katarungang Pambarangay mediation hearing and notify resident via email"
- >
- <AdminIcon name="scale" size={14} />
- <span>Schedule Mediation Meeting</span>
- </button>
-
- <button
- type="button"
- onClick={openCreateCouncilModal}
- className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-slate-900 hover:bg-slate-800 text-white rounded-lg transition-colors shadow-xs"
- >
- <AdminIcon name="plus" size={14} />
- <span>Record Council Session</span>
- </button>
- </div>
- </div>
-
- {message && (
- <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold flex items-center justify-between print-hidden">
- <span>{message}</span>
- <button type="button" onClick={() => setMessage('')} className="text-emerald-600 hover:text-emerald-900 p-1">
- <AdminIcon name="close" size={14} />
- </button>
- </div>
- )}
- {error && (
- <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 font-semibold flex items-center justify-between print-hidden">
- <span>{error}</span>
- <button type="button" onClick={() => setError('')} className="text-red-600 hover:text-red-900 p-1">
- <AdminIcon name="close" size={14} />
- </button>
- </div>
- )}
-
- {/* WHEN NO MEETING IS CLICKED: DISPLAY DIRECTORY REPOSITORY */}
- {!selected ? (
- <div className="space-y-6">
- {/* STATS SUMMARY */}
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
- <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
- <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold border border-blue-100">
- <AdminIcon name="clipboard" size={22} />
- </div>
- <div>
- <div className="text-2xl font-bold text-slate-900">{meetings.length}</div>
- <div className="text-xs text-slate-500 font-medium">Total Meeting Records</div>
- </div>
- </div>
-
- <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
- <div className="w-11 h-11 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold border border-slate-200">
- <AdminIcon name="scale" size={22} />
- </div>
- <div>
- <div className="text-2xl font-bold text-slate-900">{mediationCount}</div>
- <div className="text-xs text-slate-500 font-medium">Mediation Hearings (KP)</div>
- </div>
- </div>
-
- <div className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-3.5">
- <div className="w-11 h-11 rounded-xl bg-slate-50 text-slate-700 flex items-center justify-center font-bold border border-slate-200">
- <AdminIcon name="building" size={22} />
- </div>
- <div>
- <div className="text-2xl font-bold text-slate-900">{councilCount}</div>
- <div className="text-xs text-slate-500 font-medium">Council Regular Sessions</div>
- </div>
- </div>
- </div>
-
- {/* FILTER TABS & SEARCH */}
- <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
- <div className="flex flex-wrap items-center gap-2">
- <button
- type="button"
- onClick={() => setFilterType('all')}
- className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
- filterType === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
- }`}
- >
- All Records ({meetings.length})
- </button>
- <button
- type="button"
- onClick={() => setFilterType('council')}
- className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
- filterType === 'council' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
- }`}
- >
- <AdminIcon name="building" size={13} />
- <span>Council Sessions ({councilCount})</span>
- </button>
- <button
- type="button"
- onClick={() => setFilterType('mediation')}
- className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
- filterType === 'mediation' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
- }`}
- >
- <AdminIcon name="scale" size={13} />
- <span>Mediation Hearings ({mediationCount})</span>
- </button>
- </div>
-
- <div className="relative">
- <input
- type="text"
- value={searchQuery}
- onChange={(e) => setSearchQuery(e.target.value)}
- placeholder="Search meeting, case #, resident..."
- className="w-full sm:w-72 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-lg pl-8 pr-7 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 transition shadow-2xs"
- />
- <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400">
- <AdminIcon name="search" size={13} />
- </span>
- {searchQuery && (
- <button
- type="button"
- onClick={() => setSearchQuery('')}
- className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
- >
- <AdminIcon name="close" size={12} />
- </button>
- )}
- </div>
- </div>
-
- {/* SESSIONS & HEARINGS DIRECTORY TABLE */}
- {filteredMeetings.length === 0 ? (
- <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
- <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
- <AdminIcon name="clipboard" size={26} />
- </div>
- <h2 className="text-lg font-bold text-slate-800">
- {meetings.length === 0 ? 'No meeting records found' : 'No records match your filter / search'}
- </h2>
- <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
- {meetings.length === 0
- ? 'Record council sessions or schedule mediation hearings with automatic email notices to parties.'
- : 'Try adjusting your search terms or clearing the filter.'}
- </p>
- <div className="flex items-center justify-center gap-3 mt-4">
- {meetings.length === 0 ? (
- <>
- <button
- type="button"
- onClick={openScheduleMediationModal}
- className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition shadow-xs"
- >
- <AdminIcon name="scale" size={14} />
- <span>Schedule Mediation Meeting</span>
- </button>
- <button
- type="button"
- onClick={openCreateCouncilModal}
- className="px-4 py-2 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-xs"
- >
- Record Council Session
- </button>
- </>
- ) : (
- <button
- type="button"
- onClick={() => { setFilterType('all'); setSearchQuery(''); }}
- className="px-4 py-2 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition"
- >
- Clear Filter & Search
- </button>
- )}
- </div>
- </div>
- ) : (
- <div className="bg-white rounded-xl shadow-sm border border-slate-400 overflow-hidden">
- <div className="px-5 py-4 border-b border-slate-300 flex items-center justify-between bg-slate-50/70">
- <h3 className="font-bold text-sm text-slate-800 uppercase tracking-wider flex items-center gap-2">
- <AdminIcon name="folder" size={16} className="text-blue-600" />
- <span>Session & Hearing Directory ({filteredMeetings.length})</span>
- </h3>
- <span className="text-xs text-slate-600 hidden sm:inline">
- Click any row to open the complete minutes & sections (1 to 7)
- </span>
- </div>
-
- <div className="overflow-x-auto">
- <table className="w-full text-left text-sm border-collapse">
- <thead>
- <tr className="border-b-2 border-slate-300 bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-xs">
- <th className="py-3.5 px-4 border-r border-slate-300">Date & Time</th>
- <th className="py-3.5 px-4 border-r border-slate-300">Title / Purpose</th>
- <th className="py-3.5 px-4 border-r border-slate-300">Type & Stage</th>
- <th className="py-3.5 px-4 border-r border-slate-300">Parties / Attendees</th>
- <th className="py-3.5 px-4 border-r border-slate-300">Agreements / Actions</th>
- <th className="py-3.5 px-4 text-right">Action</th>
- </tr>
- </thead>
- <tbody className="divide-y divide-slate-300">
- {filteredMeetings.map((m) => {
- const isMed = m.meetingType === 'mediation';
- const agreementCount = Array.isArray(m.resolutions) ? m.resolutions.length : 0;
- const actionCount = Array.isArray(m.actionItems) ? m.actionItems.length : 0;
- return (
- <tr
- key={m.id}
- onClick={() => setSelected(m)}
- className="hover:bg-slate-50 cursor-pointer transition group"
- >
- <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
- <div className="font-bold text-sm text-slate-900">{formatMeetingDate(m.date)}</div>
- <div className="text-xs text-slate-600 mt-1 flex items-center gap-1.5 font-medium">
- <AdminIcon name="clock" size={13} className="text-slate-500" />
- <span>{m.time || '10:00 AM'}</span>
- </div>
- </td>
- <td className="py-4 px-4 border-r border-slate-300">
- <div className="font-bold text-sm text-slate-900 group-hover:text-sky-700 transition">
- {m.title}
- </div>
- <div className="text-xs text-slate-600 mt-1 flex flex-wrap items-center gap-2">
- <span className="inline-flex items-center gap-1">
- <AdminIcon name="pin" size={12} className="text-slate-500" />
- <span>{m.location || 'Barangay Session Hall'}</span>
- </span>
- {m.caseId && (
- <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-300">
- Case #{m.caseId}
- </span>
- )}
- </div>
- </td>
- <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
- <div className="flex flex-col gap-1.5 items-start">
- <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md font-semibold text-xs border ${
- isMed
- ? 'bg-sky-50 text-sky-700 border-slate-200'
- : 'bg-blue-50 text-blue-700 border-blue-200'
- }`}>
- <AdminIcon name={isMed ? 'scale' : 'building'} size={13} />
- <span>{isMed ? (m.hearingStage || 'Mediation Hearing') : 'Council Session'}</span>
- </span>
-
- {isMed && (
- <div
- className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border"
- style={{
- backgroundColor:
- m.mediationStatus === 'Settled' ? '#f0fdf4' :
- m.mediationStatus === 'Cancelled' ? '#fef2f2' :
- m.mediationStatus === 'Ongoing' ? '#fffbeb' :
- m.mediationStatus === 'Rescheduled' ? '#fff7ed' :
- m.mediationStatus === 'Unsettled' ? '#f8fafc' : '#faf5ff',
- borderColor:
- m.mediationStatus === 'Settled' ? '#bbf7d0' :
- m.mediationStatus === 'Cancelled' ? '#fecaca' :
- m.mediationStatus === 'Ongoing' ? '#fde68a' :
- m.mediationStatus === 'Rescheduled' ? '#fed7aa' :
- m.mediationStatus === 'Unsettled' ? '#e2e8f0' : '#e9d5ff',
- color:
- m.mediationStatus === 'Settled' ? '#166534' :
- m.mediationStatus === 'Cancelled' ? '#991b1b' :
- m.mediationStatus === 'Ongoing' ? '#92400e' :
- m.mediationStatus === 'Rescheduled' ? '#9a3412' :
- m.mediationStatus === 'Unsettled' ? '#475569' : '#6b21a8',
- }}
- onClick={(e) => e.stopPropagation()}
- title="Click to update mediation status"
- >
- <span className="text-[10px] uppercase font-bold opacity-75">Status:</span>
- <select
- value={m.mediationStatus || 'Scheduled'}
- onChange={(e) => handleQuickMediationStatusChange(m.id, e.target.value)}
- className="bg-transparent font-bold text-[11px] border-0 outline-none cursor-pointer"
- >
- <option value="Pending">Pending</option>
- <option value="Scheduled">Scheduled</option>
- <option value="Ongoing">Ongoing</option>
- <option value="Rescheduled">Rescheduled</option>
- <option value="Settled">Settled</option>
- <option value="Unsettled">Unsettled</option>
- <option value="Cancelled">Cancelled</option>
- </select>
- </div>
- )}
- </div>
- </td>
- <td className="py-4 px-4 border-r border-slate-300">
- {isMed ? (
- <div className="text-xs space-y-1">
- <div className="font-medium text-slate-800">
- <span className="text-slate-400">Complainant:</span> {m.residentName || 'Complainant'}
- </div>
- <div className="font-medium text-slate-800">
- <span className="text-slate-400">Respondent:</span> {m.respondentName || 'Respondent'}
- </div>
- </div>
- ) : (
- <div className="text-xs text-slate-700">
- <span className="font-semibold text-slate-800">{m.attendees?.length || 0} attendees</span>
- {m.attendees?.[0] && <div className="text-slate-500 truncate max-w-[200px] mt-1">{m.attendees[0]}</div>}
- </div>
- )}
- </td>
- <td className="py-4 px-4 whitespace-nowrap border-r border-slate-300">
- <div className="flex flex-col gap-1.5 text-xs">
- <span className={`inline-flex items-center gap-1.5 font-semibold ${agreementCount > 0 ? 'text-sky-700' : 'text-slate-400'}`}>
- <AdminIcon name="scale" size={13} />
- <span>{agreementCount} {isMed ? 'Agreements (KP-16)' : 'Resolutions'}</span>
- </span>
- <span className={`inline-flex items-center gap-1.5 font-semibold ${actionCount > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
- <AdminIcon name="check-circle" size={13} />
- <span>{actionCount} {isMed ? 'Undertakings' : 'Action Items'}</span>
- </span>
- </div>
- </td>
- <td className="py-4 px-4 text-right whitespace-nowrap">
- <div className="inline-flex items-center gap-2">
- <button
- type="button"
- onClick={(e) => {
- e.stopPropagation();
- openEditModal(m);
- }}
- className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition shadow-2xs"
- title="Edit this record"
- >
- <AdminIcon name="edit" size={14} />
- <span>Edit</span>
- </button>
- <button
- type="button"
- onClick={(e) => {
- e.stopPropagation();
- setSelected(m);
- }}
- className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-sky-100 hover:bg-sky-200 text-sky-900 border border-slate-200 transition shadow-2xs"
- >
- <AdminIcon name="eye" size={14} />
- <span>View (1–6)</span>
- </button>
- </div>
- </td>
- </tr>
- );
- })}
- </tbody>
- </table>
- </div>
- </div>
- )}
- </div>
- ) : (
- /* WHEN A MEETING IS CLICKED: DISPLAY PROCEEDINGS & MINUTES (SECTIONS 1 TO 7) */
- <div className="space-y-6 printable-document">
- {/* Official Letterhead for Print/File Output */}
- <div className="print-only-header">
- <div className="flex items-center justify-center gap-3">
- <img src="/barangay-seal.png" alt="Barangay Poblacion Seal" className="w-14 h-14 object-contain inline-block" />
- <div>
- <p className="text-xs uppercase tracking-widest text-slate-600 font-semibold">Republic of the Philippines · Province of Cavite</p>
- <h1 className="text-xl font-bold text-slate-900 tracking-wide">BARANGAY POBLACION</h1>
- <p className="text-xs text-slate-700 font-semibold tracking-wider">OFFICE OF THE LUPONG TAGAPAMAYAPA / SANGGUNIANG BARANGAY</p>
- </div>
- </div>
- <div className="mt-3 pt-2 border-t border-slate-300">
- <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">
- {isSelectedMediation ? 'OFFICIAL MEDIATION PROCEEDINGS & MINUTES RECORD' : 'OFFICIAL SANGGUNIANG BARANGAY SESSION MINUTES'}
- </h2>
- {selected.caseId && (
- <p className="text-xs font-semibold text-slate-700 mt-0.5">KP Case Reference Number: #{selected.caseId}</p>
- )}
- </div>
- </div>
-
- {/* Detail Back Navigation Bar */}
- <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs print-hidden">
- <div className="flex items-center gap-3">
- <button
- type="button"
- onClick={() => setSelected(null)}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
- >
- <span>←</span>
- <span>Back to All Meetings</span>
- </button>
- <div className="h-4 w-px bg-slate-200 hidden sm:block"></div>
- <span className="text-xs text-slate-500 font-medium hidden sm:inline">
- Viewing official record · Sections 1 to 7
- </span>
- </div>
-
- <div className="flex items-center gap-2 self-end sm:self-auto">
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition shadow-2xs"
- >
- <AdminIcon name="edit" size={14} />
- <span>Edit Record</span>
- </button>
- </div>
- </div>
-
- {/* NOTIFICATION STATUS BANNER (for Mediation Meetings) */}
- {isSelectedMediation && (
- <div className={`rounded-xl p-4 border flex flex-col sm:flex-row sm:items-center justify-between gap-3 print-hidden ${
- selected.notificationSent
- ? 'bg-slate-50 border-slate-200 text-slate-900'
- : 'bg-amber-50 border-amber-200 text-amber-900'
- }`}>
- <div className="flex items-center gap-3">
- <span className="p-2 rounded-lg bg-white/60 shrink-0">
- <AdminIcon name={selected.notificationSent ? 'mail' : 'warning'} size={24} className={selected.notificationSent ? 'text-sky-700' : 'text-amber-600'} />
- </span>
- <div>
- <h4 className="text-xs font-bold uppercase tracking-wider">
- {selected.notificationSent ? 'Official Hearing Notice Dispatched' : 'Hearing Notice Pending'}
- </h4>
- <p className="text-xs mt-0.5">
- {selected.notificationSent
- ? `An official email summons notification was sent to ${selected.residentEmail || 'the complainant'}.`
- : `Email notification has not been sent yet. (${selected.residentEmail ? `Recipient: ${selected.residentEmail}` : 'No email address registered for complainant'})`}
- </p>
- </div>
- </div>
-
- {selected.residentEmail && (
- <button
- type="button"
- onClick={() => handleResendNotice(selected.id)}
- disabled={resendingNotice}
- className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-xs whitespace-nowrap self-start sm:self-auto disabled:opacity-50"
- >
- {resendingNotice ? 'Sending…' : (selected.notificationSent ? 'Resend Notice Email' : 'Send Notice Email Now')}
- </button>
- )}
- </div>
- )}
-
- {/* SECTION 1: Date, Time & Venue Bar */}
- <div className={`bg-white rounded-xl shadow-sm p-6 border-l-4 ${isSelectedMediation ? 'border-slate-900' : 'border-blue-600'}`}>
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
- <div>
- <div className="flex items-center gap-2 flex-wrap">
- <h2 className="text-xl font-bold text-slate-900">{selected.title}</h2>
- <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase px-2.5 py-0.5 rounded ${
- isSelectedMediation ? 'bg-sky-100 text-sky-900' : 'bg-blue-100 text-blue-800'
- }`}>
- <AdminIcon name={isSelectedMediation ? 'scale' : 'building'} size={13} />
- <span>{isSelectedMediation ? (selected.hearingStage || 'Mediation Hearing') : 'Official Council Session'}</span>
- </span>
- {selected.caseId && (
- <Link
- to={`/complaints/${selected.caseId}`}
- className="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-slate-100 text-blue-700 hover:underline"
- >
- Case #{selected.caseId}
- </Link>
- )}
- </div>
-
- {/* 1. Date, Time and Venue */}
- <div className="flex flex-wrap items-center gap-y-2 gap-x-6 mt-3 text-sm text-slate-600">
- <div className="flex items-center gap-1.5">
- <AdminIcon name="calendar" size={16} className="text-blue-600" />
- <span className="font-semibold text-slate-800">Date:</span>
- <span>{formatMeetingDate(selected.date)}</span>
- </div>
- <div className="flex items-center gap-1.5">
- <AdminIcon name="clock" size={16} className="text-blue-600" />
- <span className="font-semibold text-slate-800">Time:</span>
- <span>{selected.time || 'Not specified'}</span>
- </div>
- <div className="flex items-center gap-1.5">
- <AdminIcon name="pin" size={16} className="text-blue-600" />
- <span className="font-semibold text-slate-800">Venue:</span>
- <span className="font-medium text-slate-900">{selected.location || 'Barangay Session Hall'}</span>
- </div>
- {isSelectedMediation && selected.mediator && (
- <div className="flex items-center gap-1.5">
- <AdminIcon name="user" size={16} className="text-sky-600" />
- <span className="font-semibold text-slate-800">Mediator:</span>
- <span className="font-medium text-slate-900">{selected.mediator}</span>
- </div>
- )}
- </div>
- </div>
-
- <div className="shrink-0 flex items-center gap-2.5 flex-wrap">
- {isSelectedMediation && (
- <div className="inline-flex items-center gap-1.5 bg-sky-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs">
- <span className="text-[11px] text-sky-700 font-semibold">Status:</span>
- <select
- value={selected.mediationStatus || 'Scheduled'}
- onChange={(e) => handleQuickMediationStatusChange(selected.id, e.target.value)}
- className="bg-transparent text-slate-900 font-bold text-xs border-0 outline-none cursor-pointer focus:ring-1 focus:ring-sky-500 rounded"
- >
- <option value="Pending">Pending</option>
- <option value="Scheduled">Scheduled</option>
- <option value="Ongoing">Ongoing</option>
- <option value="Rescheduled">Rescheduled</option>
- <option value="Settled">Settled</option>
- <option value="Unsettled">Unsettled</option>
- <option value="Cancelled">Cancelled</option>
- </select>
- </div>
- )}
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
- >
- Edit Record
- </button>
- </div>
- </div>
- </div>
-
- {/* SECTION 2: Attendees & Parties Involved */}
- <div className="bg-white rounded-xl shadow-sm p-6">
- <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
- <AdminIcon name="users" size={16} className="text-blue-600" />
- <span>2. {isSelectedMediation ? 'Parties to the Dispute & Lupon Attendance' : 'Council Attendance'}</span>
- </h3>
-
- {isSelectedMediation ? (
- <div className="grid md:grid-cols-2 gap-6">
- {/* Complainant Card */}
- <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
- <div className="flex items-center justify-between mb-3">
- <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
- <span className="w-2 h-2 rounded-md bg-blue-600 inline-block"></span>
- Complainant (Filing Party)
- </span>
- <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
- Notified
- </span>
- </div>
- <div className="space-y-1.5 text-xs">
- <p className="font-bold text-slate-900 text-sm">{selected.residentName || 'Complainant'}</p>
- {selected.residentEmail && (
- <p className="text-slate-600 flex items-center gap-1.5">
- <AdminIcon name="mail" size={13} className="text-slate-500" />
- <span>{selected.residentEmail}</span>
- </p>
- )}
- {selected.caseId && (
- <p className="text-slate-500">
- Reference: <Link to={`/complaints/${selected.caseId}`} className="text-blue-600 hover:underline font-mono">{selected.caseId}</Link>
- </p>
- )}
- </div>
- </div>
-
- {/* Respondent Card */}
- <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
- <div className="flex items-center justify-between mb-3">
- <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
- <span className="w-2 h-2 rounded-md bg-sky-600 inline-block"></span>
- Respondent (Summoned Party)
- </span>
- <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-sky-100 text-sky-900">
- Summons Issued
- </span>
- </div>
- <div className="space-y-1.5 text-xs">
- <p className="font-bold text-slate-900 text-sm">{selected.respondentName || 'Respondent not named'}</p>
- <p className="text-slate-500 italic">
- Notice of hearing dispatched for attendance under Katarungang Pambarangay rules.
- </p>
- </div>
- </div>
- </div>
- ) : (
- <div className="grid md:grid-cols-2 gap-6">
- {/* Attendees Present */}
- <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
- <div className="flex items-center justify-between mb-3">
- <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
- <span className="w-2 h-2 rounded-md bg-emerald-500 inline-block"></span>
- Attendees Present ({selected.attendees?.length || 0})
- </span>
- <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
- Quorum Established
- </span>
- </div>
- {selected.attendees && selected.attendees.length > 0 ? (
- <div className="flex flex-wrap gap-2">
- {selected.attendees.map((name, idx) => (
- <span
- key={idx}
- className="inline-flex items-center gap-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs"
- >
- <AdminIcon name="user" size={13} className="text-slate-400" />
- <span>{name}</span>
- </span>
- ))}
- </div>
- ) : (
- <p className="text-xs text-slate-400 italic">No attendees recorded.</p>
- )}
- </div>
-
- {/* Absentees / Excused */}
- <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4">
- <div className="flex items-center justify-between mb-3">
- <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
- <span className="w-2 h-2 rounded-md bg-amber-500 inline-block"></span>
- Absentees / Excused ({selected.absentees?.length || 0})
- </span>
- {(!selected.absentees || selected.absentees.length === 0) && (
- <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
- 100% Attendance
- </span>
- )}
- </div>
- {selected.absentees && selected.absentees.length > 0 ? (
- <div className="flex flex-wrap gap-2">
- {selected.absentees.map((name, idx) => (
- <span
- key={idx}
- className="inline-flex items-center gap-1.5 text-xs font-medium bg-white text-amber-900 border border-amber-200 px-3 py-1.5 rounded-lg shadow-2xs"
- >
- <AdminIcon name="warning" size={13} className="text-amber-500" />
- <span>{name}</span>
- </span>
- ))}
- </div>
- ) : (
- <p className="text-xs text-slate-500 bg-white border border-slate-200 rounded-lg p-2.5 text-center">
- All expected council members and officers were present.
- </p>
- )}
- </div>
- </div>
- )}
- </div>
-
- {/* SECTION 3 & 4: Main Topics Discussed & Important Points Raised */}
- <div className="grid lg:grid-cols-2 gap-6">
- {/* SECTION 3: Main Topics Discussed */}
- <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
- <div className="flex items-center justify-between mb-3">
- <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
- <AdminIcon name="pin" size={15} className="text-blue-600" />
- <span>3. {isSelectedMediation ? 'Dispute Topics & Matter for Conciliation' : 'Main Topics Discussed'}</span>
- </h3>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
- >
- <AdminIcon name="edit" size={12} />
- <span>Edit</span>
- </button>
- </div>
- <div className="flex-1 bg-slate-50 border border-slate-100 rounded-xl p-4">
- {selected.mainTopics && selected.mainTopics.length > 0 ? (
- <ol className="space-y-2.5 text-sm text-slate-700">
- {selected.mainTopics.map((item, idx) => (
- <li key={idx} className="flex items-start gap-2.5">
- <span className="shrink-0 w-5 h-5 rounded-md bg-blue-600 text-white text-[11px] font-bold flex items-center justify-center mt-0.5">
- {idx + 1}
- </span>
- <span className="font-medium leading-relaxed">{item}</span>
- </li>
- ))}
- </ol>
- ) : (
- <div className="text-center py-4">
- <p className="text-xs text-slate-400 italic">No topics recorded.</p>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="mt-1 text-xs font-semibold text-blue-600 hover:underline inline-flex items-center gap-1"
- >
- + Add Topics
- </button>
- </div>
- )}
- </div>
-
- {selected.minutes && (
- <div className="mt-4 pt-3 border-t border-slate-100">
- <span className="text-xs font-semibold text-slate-500 uppercase block mb-1">
- Summary Notes / Remarks:
- </span>
- <p className="text-xs text-slate-600 leading-relaxed bg-white border border-slate-200 rounded-lg p-3">
- {selected.minutes}
- </p>
- </div>
- )}
- </div>
-
- {/* SECTION 4: Important Points or Concerns Raised */}
- <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col">
- <div className="flex items-center justify-between mb-3">
- <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
- <AdminIcon name="chat" size={15} className="text-amber-600" />
- <span>4. {isSelectedMediation ? 'Salient Points & Parties Statements' : 'Important Points & Concerns Raised'}</span>
- </h3>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 hover:underline"
- >
- <AdminIcon name="edit" size={12} />
- <span>Edit</span>
- </button>
- </div>
- <div className="flex-1 bg-amber-50/50 border border-amber-200/80 rounded-xl p-4 flex flex-col">
- {selected.concernsRaised ? (
- <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line font-medium">
- {selected.concernsRaised}
- </p>
- ) : (
- <div className="text-center my-auto py-6">
- <div className="w-10 h-10 rounded-md bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-2">
- <AdminIcon name="lightbulb" size={20} />
- </div>
- <p className="text-xs text-slate-500">
- {isSelectedMediation ? 'No special statements or concerns recorded yet.' : 'No citizen petitions or critical concerns were raised during this session.'}
- </p>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="mt-2 text-xs font-semibold text-amber-700 hover:underline"
- >
- + Add Important Points / Statements
- </button>
- </div>
- )}
- </div>
- </div>
- </div>
-
- {/* SECTION 5: Decisions / Resolutions Made */}
- <div className="bg-white rounded-xl shadow-sm p-6">
- <div className="flex items-center justify-between mb-4">
- <div>
- <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
- <AdminIcon name="scale" size={16} className="text-sky-600" />
- <span>5. {isSelectedMediation ? 'Amicable Settlement Terms & Formal Agreements (KP Form 16)' : 'Decisions & Resolutions Made'}</span>
- </h3>
- <p className="text-xs text-slate-500 mt-0.5">
- {isSelectedMediation
- ? 'Agreed terms signed by complainant and respondent under the auspices of the Lupong Tagapamayapa.'
- : 'Official council acts, policies approved, and formal resolutions adopted during the session.'}
- </p>
- </div>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-sky-700 bg-sky-50 hover:bg-sky-100 border border-slate-200 transition"
- >
- <AdminIcon name="edit" size={13} />
- <span>{isSelectedMediation ? 'Edit / Add Agreements' : 'Edit Resolutions'}</span>
- </button>
- </div>
-
- <div className="overflow-x-auto">
- <table className="w-full text-sm">
- <thead>
- <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/50">
- <th className="py-2.5 px-3 font-semibold w-36">{isSelectedMediation ? 'AGREEMENT #' : 'RESOLUTION ID'}</th>
- <th className="py-2.5 px-3 font-semibold">TITLE / DESCRIPTION</th>
- <th className="py-2.5 px-3 font-semibold w-28 text-center">STATUS</th>
- </tr>
- </thead>
- <tbody>
- {selected.resolutions && selected.resolutions.length > 0 ? (
- selected.resolutions.map((r, idx) => (
- <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/60 transition">
- <td className="py-3 px-3 font-mono text-xs font-bold text-sky-700">
- {r.id || `KP-${new Date().getFullYear()}-${String(idx + 1).padStart(3, '0')}`}
- </td>
- <td className="py-3 px-3 text-slate-800 font-medium">
- {r.title || r.description}
- </td>
- <td className="py-3 px-3 text-center">
- <span
- className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
- r.status === 'Approved' || r.status === 'Adopted' || r.status === 'Agreed'
- ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
- : r.status === 'Pending' || r.status === 'Under Review'
- ? 'bg-amber-100 text-amber-800 border border-amber-200'
- : 'bg-slate-100 text-slate-700 border border-slate-200'
- }`}
- >
- {r.status || 'Agreed'}
- </span>
- </td>
- </tr>
- ))
- ) : (
- <tr>
- <td colSpan={3} className="py-6 text-center text-xs text-slate-400 italic">
- <p>{isSelectedMediation ? 'No amicable settlement terms recorded yet.' : 'No formal resolutions recorded for this session.'}</p>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="mt-2 text-xs font-semibold text-sky-700 hover:underline inline-flex items-center gap-1"
- >
- <span>+</span>
- <span>{isSelectedMediation ? 'Record Amicable Settlement Terms (KP Form 16)' : 'Add Resolutions'}</span>
- </button>
- </td>
- </tr>
- )}
- </tbody>
- </table>
- </div>
- </div>
-
- {/* SECTION 6: Action Items — Who is Responsible and the Deadline */}
- <div className="bg-white rounded-xl shadow-sm p-6">
- <div className="flex items-center justify-between mb-4">
- <div>
- <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
- <AdminIcon name="check-circle" size={16} className="text-emerald-600" />
- <span>6. {isSelectedMediation ? 'Party Undertakings & Compliance Deadlines' : 'Action Items & Follow-ups'}</span>
- </h3>
- <p className="text-xs text-slate-500 mt-0.5">
- {isSelectedMediation
- ? 'Assigned commitments, designated responsible persons, deadlines, and tracking status.'
- : 'Assigned action items, responsible persons, deadlines, and tracking status.'}
- </p>
- </div>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition"
- >
- <AdminIcon name="edit" size={13} />
- <span>{isSelectedMediation ? 'Edit / Add Commitments' : 'Edit Action Items'}</span>
- </button>
- </div>
-
- <div className="overflow-x-auto">
- <table className="w-full text-sm">
- <thead>
- <tr className="text-left text-xs text-slate-400 border-b border-slate-100 bg-slate-50/50">
- <th className="py-2.5 px-3 font-semibold w-24">ITEM #</th>
- <th className="py-2.5 px-3 font-semibold">ACTION ITEM / COMMITMENT</th>
- <th className="py-2.5 px-3 font-semibold">RESPONSIBLE PERSON</th>
- <th className="py-2.5 px-3 font-semibold w-36">DEADLINE</th>
- <th className="py-2.5 px-3 font-semibold w-28 text-center">STATUS</th>
- </tr>
- </thead>
- <tbody>
- {selected.actionItems && selected.actionItems.length > 0 ? (
- selected.actionItems.map((item, idx) => (
- <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/60 transition">
- <td className="py-3 px-3 font-mono text-xs font-semibold text-slate-500">
- {item.id || `ACT-${String(idx + 1).padStart(3, '0')}`}
- </td>
- <td className="py-3 px-3 text-slate-800 font-medium">{item.task}</td>
- <td className="py-3 px-3">
- <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-100">
- <AdminIcon name="user" size={13} className="text-blue-600" />
- <span>{item.responsible || 'Unassigned'}</span>
- </span>
- </td>
- <td className="py-3 px-3 text-xs font-medium text-slate-600">
- {item.deadline ? (
- <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
- <AdminIcon name="calendar" size={13} className="text-slate-500" />
- <span>{formatMeetingDate(item.deadline)}</span>
- </span>
- ) : (
- <span className="text-slate-400 italic">No deadline</span>
- )}
- </td>
- <td className="py-3 px-3 text-center">
- <span
- className={`text-xs font-semibold px-2.5 py-1 rounded-md ${
- item.status === 'Completed'
- ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
- : item.status === 'In Progress'
- ? 'bg-blue-100 text-blue-800 border border-blue-200'
- : 'bg-amber-100 text-amber-800 border border-amber-200'
- }`}
- >
- {item.status || 'Pending'}
- </span>
- </td>
- </tr>
- ))
- ) : (
- <tr>
- <td colSpan={5} className="py-6 text-center text-xs text-slate-400 italic">
- <p>{isSelectedMediation ? 'No party undertakings or compliance commitments recorded yet.' : 'No action items or commitments recorded for this meeting.'}</p>
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="mt-2 text-xs font-semibold text-emerald-600 hover:underline inline-flex items-center gap-1"
- >
- <span>+</span>
- <span>{isSelectedMediation ? 'Record Party Undertakings & Deadlines' : 'Add Action Items'}</span>
- </button>
- </td>
- </tr>
- )}
- </tbody>
- </table>
- </div>
- </div>
-
- {/* SECTION 7: Next Meeting Date, If Already Scheduled */}
- <div className={`text-white rounded-xl shadow-md p-6 ${
- isSelectedMediation
- ? 'bg-slate-900 border border-slate-800'
- : 'bg-slate-900 border border-slate-800'
- }`}>
- <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
- <div>
- <span className="text-xs font-bold text-sky-300 uppercase tracking-wider flex items-center gap-2">
- <AdminIcon name="calendar" size={15} className="text-sky-300" />
- <span>7. {isSelectedMediation ? 'Next Mediation / Conciliation Session' : 'Next Council Meeting Schedule'}</span>
- </span>
-
- {selected.nextMeetingDate ? (
- <div className="mt-2 space-y-1">
- <div className="flex flex-wrap items-center gap-2">
- <h4 className="text-lg font-bold text-white">
- Next Session: {formatMeetingDate(selected.nextMeetingDate)}
- </h4>
- {selected.nextNotificationSent ? (
- <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/25 text-emerald-300 border border-emerald-400/40">
- <AdminIcon name="check" size={12} />
- <span>Notice Sent to Gmail & User Account</span>
- </span>
- ) : (
- <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-sky-500/25 text-slate-300 border border-sky-800">
- <AdminIcon name="mail" size={12} />
- <span>Alerts Enabled</span>
- </span>
- )}
- </div>
- <p className="text-xs text-blue-200 flex flex-wrap items-center gap-x-4 gap-y-1">
- {selected.nextMeetingTime && (
- <span className="inline-flex items-center gap-1">
- <AdminIcon name="clock" size={12} className="text-blue-300" />
- <span>{selected.nextMeetingTime}</span>
- </span>
- )}
- {selected.nextMeetingVenue && (
- <span className="inline-flex items-center gap-1">
- <AdminIcon name="pin" size={12} className="text-blue-300" />
- <span>{selected.nextMeetingVenue}</span>
- </span>
- )}
- {selected.residentEmail && (
- <span className="inline-flex items-center gap-1">
- <AdminIcon name="mail" size={12} className="text-blue-300" />
- <span>{selected.residentEmail}</span>
- </span>
- )}
- </p>
- </div>
- ) : (
- <p className="text-sm text-blue-200 mt-1 italic">
- {isSelectedMediation
- ? 'No follow-up hearing scheduled (matter resolved or pending amicable settlement).'
- : 'The schedule for the next council meeting has not yet been designated.'}
- </p>
- )}
- </div>
-
- <div className="flex flex-wrap items-center gap-2">
- {selected.nextMeetingDate && selected.residentEmail && (
- <button
- type="button"
- disabled={resendingNotice}
- onClick={() => handleResendNextNotice(selected.id)}
- className="px-3.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-lg transition disabled:opacity-50 flex items-center gap-1.5"
- title="Resend Next Hearing Notice to Resident's Gmail"
- >
- <AdminIcon name="mail" size={13} />
- <span>{resendingNotice ? 'Dispatching…' : 'Resend Next Notice'}</span>
- </button>
- )}
- <button
- type="button"
- onClick={() => openEditModal(selected)}
- className="px-4 py-2 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition"
- >
- {selected.nextMeetingDate ? 'Update Next Schedule' : '+ Schedule Next Session'}
- </button>
- </div>
- </div>
- </div>
-
- {/* OFFICIAL SIGNATURE / ATTESTATION BLOCK (For Print & Official Records) */}
- <div className="print-only-signatures pt-6">
- <p className="text-xs font-semibold text-slate-600 mb-8">
- I hereby certify that the above proceedings, undertakings, and recorded minutes are true and correct:
- </p>
- <div className="grid grid-cols-2 gap-12 text-center text-xs">
- <div>
- <div className="border-b border-slate-900 pb-1 font-bold text-slate-900">
- {selected.mediator || 'HON. ROBERTO CRUZ'}
- </div>
- <div className="text-[11px] text-slate-600 mt-1 uppercase font-semibold">
- {isSelectedMediation ? 'Punong Barangay / Lupon Chairman' : 'Presiding Officer'}
- </div>
- </div>
- <div>
- <div className="border-b border-slate-900 pb-1 font-bold text-slate-900">
- MARIA SANTOS
- </div>
- <div className="text-[11px] text-slate-600 mt-1 uppercase font-semibold">
- {isSelectedMediation ? 'Lupon Secretary / Attesting Officer' : 'Barangay Secretary'}
- </div>
- </div>
- </div>
- <div className="text-center text-[10px] text-slate-400 mt-8">
- Official Document Generated on {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} · Barangay Poblacion LGU
- </div>
- </div>
-
- {/* BOTTOM BACK BUTTON */}
- <div className="pt-2 flex items-center justify-between print-hidden">
- <button
- type="button"
- onClick={() => setSelected(null)}
- className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition shadow-2xs"
- >
- <span>←</span>
- <span>Back to Meeting Records Directory</span>
- </button>
- <button
- type="button"
- onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
- className="text-xs font-semibold text-slate-500 hover:text-slate-800"
- >
- ↑ Back to Top
- </button>
- </div>
- </div>
- )}
-
- {/* SCHEDULE / EDIT MEDIATION MODAL */}
- {isMediationModalOpen && (
- <div
- className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto"
- onClick={() => setIsMediationModalOpen(false)}
- >
- <div
- className="bg-white rounded-xl shadow-lg w-full max-w-4xl my-8 overflow-hidden"
- onClick={(e) => e.stopPropagation()}
- >
- <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
- <div>
- <h3 className="font-bold text-base flex items-center gap-2">
- <AdminIcon name="scale" size={18} />
- <span>{mediationModalMode === 'edit' ? 'Edit Mediation Hearing & Settlement Terms' : 'Schedule Katarungang Pambarangay Mediation Meeting'}</span>
- </h3>
- <p className="text-xs text-slate-300 mt-0.5">
- {mediationModalMode === 'edit'
- ? 'Record amicable settlement terms (KP Form 16), party undertakings, and hearing proceedings.'
- : 'Sends an automated Notice of Hearing email and in-app notification to the complainant.'}
- </p>
- </div>
- <button
- type="button"
- onClick={() => setIsMediationModalOpen(false)}
- className="text-sky-300 hover:text-white p-1 rounded-md transition"
- >
- <AdminIcon name="close" size={18} />
- </button>
- </div>
-
- <form onSubmit={handleSaveMediation} className="p-6 space-y-5 text-xs max-h-[82vh] overflow-y-auto">
- {/* Link to Complaint */}
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Link to Filed Complaint / Case Reference (Optional)
- </label>
- <select
- value={mediationForm.caseId}
- onChange={(e) => handleSelectComplaint(e.target.value)}
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-medium focus:ring-2 focus:ring-sky-500"
- >
- <option value="">-- Select from Active Complaints (Auto-fills info & email) --</option>
- {complaints.map((c) => {
- const matchedResident = registeredResidents.find((r) =>
- (c.filedByResidentId && r.id === c.filedByResidentId) ||
- r.fullName.toLowerCase().trim() === (c.resident || '').toLowerCase().trim()
- );
- const email = c.residentEmail || matchedResident?.email || '';
- return (
- <option key={c.id} value={c.id}>
- {c.id} · {c.resident} vs {c.respondent || 'Respondent'} ({c.category}){email ? ` — [${email}]` : ''}
- </option>
- );
- })}
- </select>
- <p className="text-[11px] text-slate-400 mt-1">
- Selecting a case automatically sets the title, complainant, email, and respondent info.
- </p>
- </div>
-
- {/* Title, Stage & Status */}
- <div className="grid sm:grid-cols-3 gap-4">
- <div className="sm:col-span-1">
- <label className="font-semibold text-slate-700 block mb-1">
- Meeting Title <span className="text-red-500">*</span>
- </label>
- <input
- type="text"
- required
- value={mediationForm.title}
- onChange={(e) => setMediationForm({ ...mediationForm, title: e.target.value })}
- placeholder="e.g. Mediation Hearing: Boundary Dispute"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500 font-medium"
- />
- </div>
-
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Hearing Stage <span className="text-red-500">*</span>
- </label>
- <select
- value={mediationForm.hearingStage}
- onChange={(e) => setMediationForm({ ...mediationForm, hearingStage: e.target.value })}
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-medium focus:ring-2 focus:ring-sky-500"
- >
- <option value="1st Mediation Hearing">1st Mediation Hearing (KP Form 7)</option>
- <option value="2nd Mediation Hearing">2nd Mediation Hearing</option>
- <option value="3rd Mediation Hearing">3rd Mediation Hearing</option>
- <option value="Conciliation Proceedings">Conciliation Proceedings (Pangkat Tagapagkasundo)</option>
- <option value="Arbitration Session">Arbitration Session</option>
- </select>
- </div>
-
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Mediation Status <span className="text-red-500">*</span>
- </label>
- <select
- value={mediationForm.mediationStatus || 'Scheduled'}
- onChange={(e) => setMediationForm({ ...mediationForm, mediationStatus: e.target.value })}
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs font-medium focus:ring-2 focus:ring-sky-500"
- >
- <option value="Pending">Pending</option>
- <option value="Scheduled">Scheduled</option>
- <option value="Ongoing">Ongoing</option>
- <option value="Rescheduled">Rescheduled</option>
- <option value="Settled">Settled</option>
- <option value="Unsettled">Unsettled</option>
- <option value="Cancelled">Cancelled</option>
- </select>
- </div>
- </div>
-
- {/* Date, Time, Venue & Mediator */}
- <div className="grid sm:grid-cols-3 gap-3">
- <div>
- <div className="flex items-center justify-between mb-1">
- <label className="font-semibold text-slate-700 block">
- Hearing Date <span className="text-red-500">*</span>
- </label>
- {(() => {
- const sel = String(mediationForm.date || '').trim().slice(0, 10);
- const isExisting = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
- const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
- if (!conflict) return null;
- return (
- <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
- Already Booked
- </span>
- );
- })()}
- </div>
- <input
- type="date"
- required
- min={mediationModalMode === 'edit' ? undefined : new Date().toISOString().slice(0, 10)}
- value={mediationForm.date}
- onChange={(e) => setMediationForm({ ...mediationForm, date: e.target.value })}
- className={`w-full border rounded-lg p-2.5 text-xs focus:ring-2 ${
- (() => {
- const sel = String(mediationForm.date || '').trim().slice(0, 10);
- const isExisting = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
- const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
- return conflict ? 'border-red-500 bg-red-50/50 text-red-900 focus:ring-red-400' : 'border-slate-300 focus:ring-sky-500';
- })()
- }`}
- />
- {(() => {
- const sel = String(mediationForm.date || '').trim().slice(0, 10);
- const isExisting = (mediationModalMode === 'edit' && selected) || (selected && selected.id && selected.meetingType === 'mediation');
- const conflict = sel ? meetings.find((m) => (isExisting && m.id === selected?.id ? false : String(m.date || '').trim().slice(0, 10) === sel)) : null;
- if (!conflict) return null;
- return (
- <p className="text-[11px] text-red-600 font-medium mt-1 leading-tight flex items-center gap-1.5">
- <AdminIcon name="warning" size={13} className="text-red-600 shrink-0" />
- <span>Already scheduled: "{conflict.title}"{conflict.time ? ` at ${conflict.time}` : ''}. You cannot choose this day.</span>
- </p>
- );
- })()}
- </div>
-
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Time Window <span className="text-red-500">*</span>
- </label>
- <input
- type="text"
- required
- value={mediationForm.time}
- onChange={(e) => setMediationForm({ ...mediationForm, time: e.target.value })}
- placeholder="e.g. 10:00 AM"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
-
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Presiding Mediator / Lupon Chair
- </label>
- <input
- type="text"
- value={mediationForm.mediator}
- onChange={(e) => setMediationForm({ ...mediationForm, mediator: e.target.value })}
- placeholder="e.g. Presiding Mediator / Lupon Member"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
- </div>
-
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Hearing Venue / Location <span className="text-red-500">*</span>
- </label>
- <input
- type="text"
- required
- value={mediationForm.location}
- onChange={(e) => setMediationForm({ ...mediationForm, location: e.target.value })}
- placeholder="Barangay Poblacion Mediation Hall / Session Room"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
-
- {/* Complainant & Respondent */}
- <div className="grid sm:grid-cols-2 gap-4">
- <div>
- <div className="flex items-center justify-between mb-1">
- <label className="font-semibold text-slate-700 block">
- Complainant Name
- </label>
- <span className="text-[10px] text-sky-700 font-medium hidden sm:inline-flex items-center gap-1">
- <AdminIcon name="lightbulb" size={11} />
- <span>Select or type registered resident (auto-fills email)</span>
- </span>
- </div>
- <input
- type="text"
- list="registered-residents-list"
- value={mediationForm.residentName}
- onChange={(e) => handleResidentNameChange(e.target.value)}
- placeholder="e.g. Kent Manuel Ramero"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500 font-medium"
- />
- <datalist id="registered-residents-list">
- {registeredResidents.map((r) => (
- <option key={r.id} value={r.fullName}>
- {r.fullName} ({r.email || 'No email registered'}) · {r.status}
- </option>
- ))}
- </datalist>
- </div>
-
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Respondent Name
- </label>
- <input
- type="text"
- value={mediationForm.respondentName}
- onChange={(e) => setMediationForm({ ...mediationForm, respondentName: e.target.value })}
- placeholder="e.g. Pedro Santos"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500 font-medium"
- />
- </div>
- </div>
-
- {/* Resident Email & Notification Notice */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div>
- <div className="flex items-center justify-between mb-1">
- <label className="font-semibold text-slate-900 block">
- Complainant Email (Recipient of Official Notice)
- </label>
- {mediationForm.residentEmail && (
- <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded border border-emerald-300">
- <AdminIcon name="check" size={11} />
- <span>Registered Email Auto-Populated</span>
- </span>
- )}
- </div>
- <input
- type="email"
- value={mediationForm.residentEmail}
- onChange={(e) => setMediationForm({ ...mediationForm, residentEmail: e.target.value })}
- placeholder="resident@gmail.com"
- className="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500 font-medium"
- />
- <p className="text-[11px] text-sky-700 mt-1">
- {mediationForm.residentEmail
- ? `Official Notice of Hearing will be automatically emailed to ${mediationForm.residentEmail}.`
- : 'Selecting a filed case or typing a registered resident (e.g. Kent) automatically puts their registered email here.'}
- </p>
- </div>
-
- <label className="flex items-start gap-2.5 cursor-pointer">
- <input
- type="checkbox"
- checked={mediationForm.sendNotification}
- onChange={(e) => setMediationForm({ ...mediationForm, sendNotification: e.target.checked })}
- className="mt-0.5 rounded text-sky-600 focus:ring-sky-500"
- />
- <div>
- <span className="font-bold text-slate-900 flex items-center gap-1.5">
- <AdminIcon name="mail" size={14} className="text-sky-700" />
- <span>Send Official Hearing Notification Email to Resident upon Saving</span>
- </span>
- <span className="text-[11px] text-sky-700 block mt-0.5 leading-relaxed">
- Sends an official Notice of Mediation Hearing directly to the resident's email inbox with the scheduled date, time, venue, and instructions.
- </span>
- </div>
- </label>
- </div>
-
- {/* SECTION 3: Main Topics & Disputed Matters */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex items-center justify-between">
- <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="pin" size={14} className="text-sky-700" />
- <span>3. Main Topics & Disputed Points Discussed ({mediationForm.mainTopics.length})</span>
- </h4>
- <button
- type="button"
- onClick={addMediationTopic}
- className="text-[11px] font-semibold text-sky-700 hover:text-sky-900"
- >
- + Add Topic
- </button>
- </div>
- <div className="space-y-2">
- {mediationForm.mainTopics.map((topic, i) => (
- <div key={i} className="flex gap-2">
- <span className="font-bold text-slate-400 py-2 w-5 text-center">{i + 1}.</span>
- <input
- type="text"
- value={topic}
- onChange={(e) => updateMediationTopic(i, e.target.value)}
- placeholder="Dispute agenda or matter discussed..."
- className="flex-1 bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500"
- />
- <button
- type="button"
- onClick={() => removeMediationTopic(i)}
- className="text-red-500 hover:text-red-700 px-2"
- title="Remove topic"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- ))}
- </div>
- </div>
-
- {/* SECTION 4: Important Points, Statements & Dispute Summary */}
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- <AdminIcon name="chat" size={13} className="text-sky-600" /><span>4. Important Points, Parties' Statements & Summary</span>
- </label>
- <textarea
- rows={3}
- value={mediationForm.concernsRaised}
- onChange={(e) => setMediationForm({ ...mediationForm, concernsRaised: e.target.value })}
- placeholder="Record complainant statements, respondent reply, facts established, and mediator remarks..."
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
-
- {/* SECTION 5: Amicable Settlement Terms & Formal Agreements (KP Form 16) */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex items-center justify-between">
- <div>
- <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="scale" size={14} className="text-sky-700" /> 5. Amicable Settlement Terms & Formal Agreements (KP Form 16) ({mediationForm.resolutions.length})
- </h4>
- <p className="text-[11px] text-sky-700 mt-0.5">
- Agreed terms signed by complainant and respondent under the auspices of the Lupong Tagapamayapa.
- </p>
- </div>
- <button
- type="button"
- onClick={addMediationResolution}
- className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 shadow-xs transition"
- >
- <span>+</span>
- <span>Add Agreement Clause</span>
- </button>
- </div>
-
- {mediationForm.resolutions.length === 0 ? (
- <div className="text-center py-4 bg-white/70 border border-dashed border-slate-200 rounded-lg">
- <p className="text-xs text-slate-500 italic">No settlement terms recorded yet. Click "+ Add Agreement Clause" to record agreed covenants.</p>
- </div>
- ) : (
- <div className="space-y-2">
- {mediationForm.resolutions.map((r, i) => (
- <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
- <div className="col-span-3">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">AGREEMENT #</label>
- <input
- type="text"
- value={r.id}
- onChange={(e) => updateMediationResolution(i, 'id', e.target.value)}
- placeholder="KP-2024-001"
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-mono font-bold text-slate-900"
- />
- </div>
- <div className="col-span-6">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">TERMS / DESCRIPTION</label>
- <input
- type="text"
- value={r.title}
- onChange={(e) => updateMediationResolution(i, 'title', e.target.value)}
- placeholder="e.g. Respondent agrees to pay ₱5,000 damages by end of month..."
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-2">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">STATUS</label>
- <select
- value={r.status}
- onChange={(e) => updateMediationResolution(i, 'status', e.target.value)}
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-medium"
- >
- <option value="Agreed">Agreed</option>
- <option value="Adopted">Adopted</option>
- <option value="Pending">Pending</option>
- <option value="Under Review">Under Review</option>
- </select>
- </div>
- <div className="col-span-1 text-center pt-3">
- <button
- type="button"
- onClick={() => removeMediationResolution(i)}
- className="text-red-500 hover:text-red-700 text-sm"
- title="Remove clause"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- </div>
- ))}
- </div>
- )}
- </div>
-
- {/* SECTION 6: Party Undertakings & Compliance Deadlines */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex items-center justify-between">
- <div>
- <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="check-circle" size={14} className="text-sky-700" /> 6. Party Undertakings & Compliance Deadlines ({mediationForm.actionItems.length})
- </h4>
- <p className="text-[11px] text-sky-700 mt-0.5">
- Assigned commitments, designated responsible persons, deadlines, and tracking status.
- </p>
- </div>
- <button
- type="button"
- onClick={addMediationActionItem}
- className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 shadow-xs transition"
- >
- <span>+</span>
- <span>Add Commitment</span>
- </button>
- </div>
-
- {mediationForm.actionItems.length === 0 ? (
- <div className="text-center py-4 bg-white/70 border border-dashed border-slate-200 rounded-lg">
- <p className="text-xs text-slate-500 italic">No commitments recorded yet. Click "+ Add Commitment" to specify actions and deadlines.</p>
- </div>
- ) : (
- <div className="space-y-2">
- {mediationForm.actionItems.map((a, i) => (
- <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
- <div className="col-span-2">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">ITEM #</label>
- <input
- type="text"
- value={a.id}
- onChange={(e) => updateMediationActionItem(i, 'id', e.target.value)}
- placeholder="ACT-001"
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-mono font-medium"
- />
- </div>
- <div className="col-span-4">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">COMMITMENT / OBLIGATION</label>
- <input
- type="text"
- value={a.task}
- onChange={(e) => updateMediationActionItem(i, 'task', e.target.value)}
- placeholder="Specific task or undertaking..."
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-2">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">RESPONSIBLE PERSON</label>
- <input
- type="text"
- value={a.responsible}
- onChange={(e) => updateMediationActionItem(i, 'responsible', e.target.value)}
- placeholder="e.g. Respondent"
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-2">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">DEADLINE</label>
- <input
- type="date"
- value={a.deadline}
- onChange={(e) => updateMediationActionItem(i, 'deadline', e.target.value)}
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-1">
- <label className="text-[10px] font-semibold text-slate-400 block mb-0.5">STATUS</label>
- <select
- value={a.status}
- onChange={(e) => updateMediationActionItem(i, 'status', e.target.value)}
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-medium"
- >
- <option value="Pending">Pending</option>
- <option value="In Progress">In Progress</option>
- <option value="Completed">Completed</option>
- </select>
- </div>
- <div className="col-span-1 text-center pt-3">
- <button
- type="button"
- onClick={() => removeMediationActionItem(i)}
- className="text-red-500 hover:text-red-700 text-sm"
- title="Remove commitment"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- </div>
- ))}
- </div>
- )}
- </div>
-
- {/* SECTION 7: Next Mediation / Conciliation Session */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
- <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="calendar" size={14} className="text-sky-700" /> 7. Next Hearing / Follow-up Session (Optional)
- </h4>
- {mediationForm.nextMeetingDate && (
- <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-sky-200 text-slate-900 self-start sm:self-auto">
- <AdminIcon name="mail" size={12} className="text-sky-900" /><span>Gmail + Portal Alerts Active</span>
- </span>
- )}
- </div>
-
- <div className="grid sm:grid-cols-3 gap-3">
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Next Session Date</label>
- <input
- type="date"
- min={new Date().toISOString().slice(0, 10)}
- value={mediationForm.nextMeetingDate}
- onChange={(e) => setMediationForm({ ...mediationForm, nextMeetingDate: e.target.value })}
- className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Next Session Time</label>
- <input
- type="text"
- value={mediationForm.nextMeetingTime}
- onChange={(e) => setMediationForm({ ...mediationForm, nextMeetingTime: e.target.value })}
- placeholder="e.g. 10:00 AM"
- className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Next Session Venue</label>
- <input
- type="text"
- value={mediationForm.nextMeetingVenue}
- onChange={(e) => setMediationForm({ ...mediationForm, nextMeetingVenue: e.target.value })}
- placeholder="Barangay Poblacion Mediation Hall"
- className="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-sky-500"
- />
- </div>
- </div>
-
- <div className="flex items-center gap-2 p-2.5 rounded-lg bg-sky-50 border border-slate-200 text-slate-900 text-xs">
- <AdminIcon name="mail" size={15} className="text-sky-700 shrink-0" />
- <span>
- <strong>Automated Resident Notification:</strong> Specifying a Next Session schedule will automatically notify the resident's user account in-app and dispatch an official <strong>Notice of Next Mediation Session</strong> to their registered Gmail ({mediationForm.residentEmail || 'complainant'}).
- </span>
- </div>
- </div>
-
- <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
- <button
- type="button"
- onClick={() => setIsMediationModalOpen(false)}
- className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
- >
- Cancel
- </button>
- <button
- type="submit"
- disabled={saving}
- className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-sm disabled:opacity-50"
- >
- {saving ? 'Saving Proceedings…' : (mediationModalMode === 'edit' ? 'Update Mediation Record' : 'Schedule Mediation Meeting')}
- </button>
- </div>
- </form>
- </div>
- </div>
- )}
-
- {/* FULL COUNCIL SESSION MODAL */}
- {isCouncilModalOpen && (
- <div
- className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto"
- onClick={() => setIsCouncilModalOpen(false)}
- >
- <div
- className="bg-white rounded-xl shadow-lg w-full max-w-4xl my-8 overflow-hidden"
- onClick={(e) => e.stopPropagation()}
- >
- <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
- <div>
- <h3 className="font-bold text-base flex items-center gap-2">
- <AdminIcon name="building" size={16} className="text-blue-400" />
- <span>{modalMode === 'edit' ? 'Edit Council Meeting Minutes' : 'Record New Council Session'}</span>
- </h3>
- <p className="text-xs text-slate-400 mt-0.5">Barangay Poblacion Municipal System</p>
- </div>
- <button
- type="button"
- onClick={() => setIsCouncilModalOpen(false)}
- className="text-slate-400 hover:text-white text-xl leading-none"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
-
- <form onSubmit={handleSaveCouncil} className="p-6 space-y-6 text-xs max-h-[80vh] overflow-y-auto">
- {/* SECTION 1 Form */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="calendar" size={13} className="text-blue-600" /> 1. Session Information
- </h4>
- <div className="grid sm:grid-cols-2 gap-3">
- <div className="sm:col-span-2">
- <label className="font-semibold text-slate-700 block mb-1">
- Session Title <span className="text-red-500">*</span>
- </label>
- <input
- type="text"
- required
- value={form.title}
- onChange={(e) => setForm({ ...form, title: e.target.value })}
- placeholder="e.g. Barangay Poblacion Council Regular Session"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1">
- Date <span className="text-red-500">*</span>
- </label>
- <input
- type="date"
- required
- value={form.date}
- onChange={(e) => setForm({ ...form, date: e.target.value })}
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Time</label>
- <input
- type="text"
- value={form.time}
- onChange={(e) => setForm({ ...form, time: e.target.value })}
- placeholder="02:00 PM - 04:30 PM"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- <div className="sm:col-span-2">
- <label className="font-semibold text-slate-700 block mb-1">Venue / Location</label>
- <input
- type="text"
- value={form.location}
- onChange={(e) => setForm({ ...form, location: e.target.value })}
- placeholder="Barangay Poblacion Session Hall"
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- </div>
- </div>
-
- {/* SECTION 2 Form: Attendance */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="users" size={14} className="text-blue-600" /> 2. Attendance (Quorum & Absentees)
- </h4>
- <div className="grid sm:grid-cols-2 gap-4">
- {/* Attendees */}
- <div>
- <div className="flex items-center justify-between mb-1.5">
- <label className="font-semibold text-slate-700">Attendees Present ({form.attendees.length})</label>
- <button
- type="button"
- onClick={addAttendee}
- className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
- >
- + Add Attendee
- </button>
- </div>
- <div className="space-y-2">
- {form.attendees.map((name, i) => (
- <div key={i} className="flex gap-2">
- <input
- type="text"
- value={name}
- onChange={(e) => updateAttendee(i, e.target.value)}
- placeholder="Council Member / Officer"
- className="flex-1 border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"
- />
- <button
- type="button"
- onClick={() => removeAttendee(i)}
- className="text-red-500 hover:text-red-700 px-2"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- ))}
- </div>
- </div>
-
- {/* Absentees */}
- <div>
- <div className="flex items-center justify-between mb-1.5">
- <label className="font-semibold text-slate-700">Absentees / Excused ({form.absentees.length})</label>
- <button
- type="button"
- onClick={addAbsentee}
- className="text-[11px] font-semibold text-amber-600 hover:text-amber-800"
- >
- + Add Absentee
- </button>
- </div>
- <div className="space-y-2">
- {form.absentees.map((name, i) => (
- <div key={i} className="flex gap-2">
- <input
- type="text"
- value={name}
- onChange={(e) => updateAbsentee(i, e.target.value)}
- placeholder="Absent Member"
- className="flex-1 border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"
- />
- <button
- type="button"
- onClick={() => removeAbsentee(i)}
- className="text-red-500 hover:text-red-700 px-2"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- ))}
- </div>
- </div>
- </div>
- </div>
-
- {/* SECTION 3 Form: Main Topics */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex items-center justify-between">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="pin" size={13} className="text-blue-600" /> 3. Main Topics Discussed ({form.mainTopics.length})
- </h4>
- <button
- type="button"
- onClick={addTopic}
- className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
- >
- + Add Topic
- </button>
- </div>
- <div className="space-y-2">
- {form.mainTopics.map((topic, i) => (
- <div key={i} className="flex gap-2">
- <span className="font-bold text-slate-400 py-2 w-5 text-center">{i + 1}.</span>
- <input
- type="text"
- value={topic}
- onChange={(e) => updateTopic(i, e.target.value)}
- placeholder="Agenda or discussed topic..."
- className="flex-1 border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"
- />
- <button
- type="button"
- onClick={() => removeTopic(i)}
- className="text-red-500 hover:text-red-700 px-2"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- ))}
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1 mt-3">Summary Meeting Notes / Minutes Narrative</label>
- <textarea
- rows={3}
- value={form.minutes}
- onChange={(e) => setForm({ ...form, minutes: e.target.value })}
- placeholder="Detailed summary notes of the session proceedings..."
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- </div>
-
- {/* SECTION 4 Form: Concerns Raised */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="chat" size={13} className="text-blue-600" /> 4. Important Points & Concerns Raised
- </h4>
- <textarea
- rows={3}
- value={form.concernsRaised}
- onChange={(e) => setForm({ ...form, concernsRaised: e.target.value })}
- placeholder="Citizen petitions, resident inquiries, floor debates, or critical concerns raised during the meeting..."
- className="w-full border border-slate-300 rounded-lg p-2.5 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
-
- {/* SECTION 5 Form: Resolutions */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex items-center justify-between">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="scale" size={14} className="text-blue-600" /> 5. Decisions & Resolutions Made ({form.resolutions.length})
- </h4>
- <button
- type="button"
- onClick={addResolution}
- className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
- >
- + Add Resolution
- </button>
- </div>
- <div className="space-y-2">
- {form.resolutions.map((r, i) => (
- <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200">
- <div className="col-span-3">
- <input
- type="text"
- value={r.id}
- onChange={(e) => updateResolution(i, 'id', e.target.value)}
- placeholder="R2024-001"
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-mono font-bold"
- />
- </div>
- <div className="col-span-6">
- <input
- type="text"
- value={r.title}
- onChange={(e) => updateResolution(i, 'title', e.target.value)}
- placeholder="Resolution title / approved decision..."
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-2">
- <select
- value={r.status}
- onChange={(e) => updateResolution(i, 'status', e.target.value)}
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-medium"
- >
- <option value="Approved">Approved</option>
- <option value="Adopted">Adopted</option>
- <option value="Pending">Pending</option>
- <option value="Under Review">Under Review</option>
- </select>
- </div>
- <div className="col-span-1 text-center">
- <button
- type="button"
- onClick={() => removeResolution(i)}
- className="text-red-500 hover:text-red-700"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- </div>
- ))}
- </div>
- </div>
-
- {/* SECTION 6 Form: Action Items */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <div className="flex items-center justify-between">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="check-circle" size={14} className="text-blue-600" /> 6. Action Items & Follow-ups ({form.actionItems.length})
- </h4>
- <button
- type="button"
- onClick={addActionItem}
- className="text-[11px] font-semibold text-blue-600 hover:text-blue-800"
- >
- + Add Action Item
- </button>
- </div>
- <div className="space-y-2">
- {form.actionItems.map((a, i) => (
- <div key={i} className="grid grid-cols-12 gap-2 items-center bg-white p-2.5 rounded-lg border border-slate-200">
- <div className="col-span-2">
- <input
- type="text"
- value={a.id}
- onChange={(e) => updateActionItem(i, 'id', e.target.value)}
- placeholder="ACT-001"
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-mono font-medium"
- />
- </div>
- <div className="col-span-4">
- <input
- type="text"
- value={a.task}
- onChange={(e) => updateActionItem(i, 'task', e.target.value)}
- placeholder="Task description..."
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-2">
- <input
- type="text"
- value={a.responsible}
- onChange={(e) => updateActionItem(i, 'responsible', e.target.value)}
- placeholder="Responsible person"
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-2">
- <input
- type="date"
- value={a.deadline}
- onChange={(e) => updateActionItem(i, 'deadline', e.target.value)}
- className="w-full border border-slate-300 rounded p-1.5 text-xs"
- />
- </div>
- <div className="col-span-1">
- <select
- value={a.status}
- onChange={(e) => updateActionItem(i, 'status', e.target.value)}
- className="w-full border border-slate-300 rounded p-1.5 text-xs font-medium"
- >
- <option value="Pending">Pending</option>
- <option value="In Progress">In Progress</option>
- <option value="Completed">Completed</option>
- </select>
- </div>
- <div className="col-span-1 text-center">
- <button
- type="button"
- onClick={() => removeActionItem(i)}
- className="text-red-500 hover:text-red-700"
- >
- <AdminIcon name="x" size={12} />
- </button>
- </div>
- </div>
- ))}
- </div>
- </div>
-
- {/* SECTION 7 Form: Next Meeting Schedule */}
- <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
- <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
- <AdminIcon name="calendar" size={14} className="text-blue-600" /> 7. Next Meeting Schedule (If Already Scheduled)
- </h4>
- <div className="grid sm:grid-cols-3 gap-3">
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Next Meeting Date</label>
- <input
- type="date"
- min={new Date().toISOString().slice(0, 10)}
- value={form.nextMeetingDate}
- onChange={(e) => setForm({ ...form, nextMeetingDate: e.target.value })}
- className="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Time</label>
- <input
- type="text"
- value={form.nextMeetingTime}
- onChange={(e) => setForm({ ...form, nextMeetingTime: e.target.value })}
- placeholder="02:00 PM"
- className="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- <div>
- <label className="font-semibold text-slate-700 block mb-1">Venue</label>
- <input
- type="text"
- value={form.nextMeetingVenue}
- onChange={(e) => setForm({ ...form, nextMeetingVenue: e.target.value })}
- placeholder="Barangay Session Hall"
- className="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-blue-500"
- />
- </div>
- </div>
- </div>
-
- <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-3">
- <button
- type="button"
- onClick={() => setIsCouncilModalOpen(false)}
- className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium"
- >
- Cancel
- </button>
- <button
- type="submit"
- disabled={saving}
- className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm disabled:opacity-50"
- >
- {saving ? 'Saving…' : (modalMode === 'edit' ? 'Update Meeting Minutes' : 'Save Meeting Record')}
- </button>
- </div>
- </form>
- </div>
- </div>
- )}
- </div>
- );
+  const [activeTab, setActiveTab] = useState('schedule'); // 'schedule' | 'minutes' | 'list'
+  const [meetings, setMeetings] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // Selected existing mediation or active drafting state
+  const [selectedMeetingId, setSelectedMeetingId] = useState(null);
+  const [referenceCase, setReferenceCase] = useState({
+    id: 'CMP-2024-001',
+    title: 'Formal dispute resolution',
+    category: 'Property & Boundary Dispute'
+  });
+
+  // Calendar State
+  const now = new Date();
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth()); // 0-indexed
+  const [selectedDay, setSelectedDay] = useState(now.getDate());
+
+  // Logistics & Schedule
+  const [sessionStartTime, setSessionStartTime] = useState('02:00 PM');
+  const [duration, setDuration] = useState('60 Minutes');
+  const [logisticalFormat, setLogisticalFormat] = useState('in-person'); // 'in-person' | 'virtual'
+  const [facility, setFacility] = useState('Barangay Poblacion Mediation Hall, Level 2');
+  const [virtualLink, setVirtualLink] = useState('https://brgy-poblacion.site/room/CMP-2024-001');
+  const [primaryObjectives, setPrimaryObjectives] = useState(
+    '1. Formal inquiry into neighbor boundary noise & encroachment dispute.\n2. Review photographic evidence of setback line compliance.\n3. Establish amicably agreed quiet hours and remedial fencing arrangement.'
+  );
+  const [uploadedFiles, setUploadedFiles] = useState([
+    'Survey_Map_Boundary_Exhibit_A.pdf',
+    'CCTV_Timestamp_AudioLogs.jpeg'
+  ]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Participants State
+  const [participants, setParticipants] = useState([
+    {
+      id: 'p1',
+      name: 'Elena Rodriguez',
+      role: 'COMPLAINANT',
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      present: true,
+      signed: true,
+      statement: 'Respondent continues loud machinery operation past 10:00 PM and constructed an unauthorized perimeter awning extending over the shared property line.'
+    },
+    {
+      id: 'p2',
+      name: 'Marcus Thorne',
+      role: 'RESPONDENT',
+      avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+      present: true,
+      signed: false,
+      statement: 'Work was necessary for structural reinforcement following storm damages. Agreeable to restricting generator use to 8:00 AM - 6:00 PM and trimming the overhang.'
+    }
+  ]);
+
+  const [assignedMediator, setAssignedMediator] = useState({
+    name: 'Hon. Arthur Pendelton',
+    title: 'Certified Lupon Tagapamayapa / Accredited Neutral Mediator',
+    license: 'MED-NCR-2024-914',
+    signed: true
+  });
+  const [showMediatorModal, setShowMediatorModal] = useState(false);
+  const [showCaseSelectorModal, setShowCaseSelectorModal] = useState(false);
+
+  // Minutes State (Tab 2)
+  const [minutesData, setMinutesData] = useState({
+    hearingNumber: '1st Official Hearing',
+    commencedAt: '02:08 PM',
+    adjournedAt: '03:15 PM',
+    presidingOfficer: 'Hon. Arthur Pendelton (Lupon Head)',
+    recordingSecretary: 'Barangay Secretary',
+    discussionSummary: 'Both parties demonstrated willingness to find common ground. Complainant highlighted persistent disturbance of minor children during school evenings. Respondent presented repair permit and acknowledged boundary error without willful malice.',
+    termsList: [
+      'Respondent shall halt all loud power equipment and generator operations strictly after 6:00 PM daily.',
+      'Perimeter awning overhang of 1.2 meters shall be retrofitted and recessed back within legal setback by scheduled completion date.',
+      'Complainant agrees to dismiss complaint formal escalation pending municipal inspection on scheduled completion date.',
+      'Both parties commit to direct barangay notification before undertaking exterior construction.'
+    ],
+    statusOutcome: 'Amicable Settlement Signed (Kasunduan)',
+    notes: 'Next compliance check scheduled for verification.'
+  });
+
+  const [newTermInput, setNewTermInput] = useState('');
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
+  const showNotification = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Fetch Existing Meetings and Complaints from API
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [resMeetings, resComplaints] = await Promise.all([
+        api.get('/meetings'),
+        api.get('/complaints')
+      ]);
+
+      const allMeetings = resMeetings.data || [];
+      setMeetings(allMeetings);
+
+      const allComplaints = resComplaints.data?.complaints || [];
+      setComplaints(allComplaints);
+
+      // Pick first mediation meeting if available
+      const firstMediation = allMeetings.find((m) => m.meetingType === 'mediation');
+      if (firstMediation) {
+        loadMeetingIntoState(firstMediation, allComplaints);
+      } else if (allComplaints.length > 0) {
+        linkComplaintToForm(allComplaints[0]);
+      }
+    } catch (err) {
+      console.error('Error loading mediation data:', err);
+      showNotification('Unable to sync live mediation records.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const linkComplaintToForm = (c) => {
+    if (!c) return;
+    setReferenceCase({
+      id: c.id,
+      title: c.title || 'Barangay Dispute',
+      category: c.category || 'Mediation'
+    });
+    setParticipants([
+      {
+        id: 'p1',
+        name: c.residentName || 'Complainant',
+        role: 'COMPLAINANT',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        present: true,
+        signed: true,
+        statement: c.details || c.description || 'Complainant requests barangay intervention to resolve this dispute peacefully.'
+      },
+      {
+        id: 'p2',
+        name: c.respondentName || 'Respondent Party',
+        role: 'RESPONDENT',
+        avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+        present: true,
+        signed: false,
+        statement: 'Respondent acknowledges receipt of summon and appears to present counter-proposals.'
+      }
+    ]);
+  };
+
+  const loadMeetingIntoState = (m, complaintList = complaints) => {
+    setSelectedMeetingId(m.id);
+    const dateObj = m.date ? new Date(m.date) : new Date();
+    if (!isNaN(dateObj.getTime())) {
+      setCurrentYear(dateObj.getFullYear());
+      setCurrentMonth(dateObj.getMonth());
+      setSelectedDay(dateObj.getDate());
+    }
+    setSessionStartTime(m.time || '02:00 PM');
+    setFacility(m.location || 'Barangay Poblacion Mediation Hall');
+    setPrimaryObjectives(
+      Array.isArray(m.mainTopics) && m.mainTopics.length > 0
+        ? m.mainTopics.join('\n')
+        : (m.concernsRaised || '1. Formal inquiry into dispute.\n2. Review settlement possibilities.')
+    );
+
+    const comp = complaintList.find((c) => c.id === m.caseId);
+    setReferenceCase({
+      id: m.caseId || (comp ? comp.id : 'CMP-MED'),
+      title: m.title || (comp ? comp.title : 'Mediation Hearing'),
+      category: comp?.category || 'Community Dispute'
+    });
+
+    setParticipants([
+      {
+        id: 'p1',
+        name: m.residentName || (comp?.residentName) || 'Complainant',
+        role: 'COMPLAINANT',
+        avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        present: true,
+        signed: true,
+        statement: m.concernsRaised || 'Complainant is seeking resolution on this matter.'
+      },
+      {
+        id: 'p2',
+        name: m.respondentName || (comp?.respondentName) || 'Respondent',
+        role: 'RESPONDENT',
+        avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
+        present: true,
+        signed: m.mediationStatus === 'Settled',
+        statement: 'Respondent agrees to mediation conditions.'
+      }
+    ]);
+
+    if (m.mediator) {
+      setAssignedMediator(prev => ({
+        ...prev,
+        name: m.mediator
+      }));
+    }
+
+    setMinutesData(prev => ({
+      ...prev,
+      hearingNumber: m.hearingStage || '1st Mediation Hearing',
+      presidingOfficer: m.mediator ? `${m.mediator} (Lupon Head)` : prev.presidingOfficer,
+      discussionSummary: m.minutes || prev.discussionSummary,
+      termsList: Array.isArray(m.resolutions) && m.resolutions.length > 0
+        ? m.resolutions.map(r => r.title || r)
+        : prev.termsList,
+      statusOutcome: m.mediationStatus ? `${m.mediationStatus} (Kasunduan)` : prev.statusOutcome
+    }));
+  };
+
+  const handleFileUpload = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const fileName = e.target.files[0].name;
+      setIsUploading(true);
+      setTimeout(() => {
+        setUploadedFiles(prev => [...prev, fileName]);
+        setIsUploading(false);
+        showNotification(`File "${fileName}" attached successfully.`);
+      }, 600);
+    }
+  };
+
+  const removeFile = (idx) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const removeParticipant = (id) => {
+    setParticipants(prev => prev.filter(p => p.id !== id));
+    showNotification('Participant removed from hearing list.');
+  };
+
+  const handleAddTerm = () => {
+    if (!newTermInput.trim()) return;
+    setMinutesData(prev => ({
+      ...prev,
+      termsList: [...prev.termsList, newTermInput.trim()]
+    }));
+    setNewTermInput('');
+  };
+
+  const removeTerm = (index) => {
+    setMinutesData(prev => ({
+      ...prev,
+      termsList: prev.termsList.filter((_, i) => i !== index)
+    }));
+  };
+
+  const toggleParticipantPresent = (id) => {
+    setParticipants(prev =>
+      prev.map(p => p.id === id ? { ...p, present: !p.present } : p)
+    );
+  };
+
+  const toggleParticipantSign = (id) => {
+    setParticipants(prev =>
+      prev.map(p => p.id === id ? { ...p, signed: !p.signed } : p)
+    );
+    showNotification('Digital signature authorization updated.');
+  };
+
+  // Today boundary comparison
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
+  const canGoPrevMonth =
+    currentYear > todayDate.getFullYear() ||
+    (currentYear === todayDate.getFullYear() && currentMonth > todayDate.getMonth());
+
+  // Month navigation
+  const prevMonth = () => {
+    if (!canGoPrevMonth) return;
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((y) => y - 1);
+    } else {
+      setCurrentMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((y) => y + 1);
+    } else {
+      setCurrentMonth((m) => m + 1);
+    }
+  };
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Calendar days builder
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const firstDayIndex = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7; // Monday = 0
+  const calendarDays = [];
+  for (let i = 0; i < firstDayIndex; i++) {
+    calendarDays.push(null);
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    calendarDays.push(d);
+  }
+
+  // Selected date ISO string
+  const pad = (n) => String(n).padStart(2, '0');
+  const selectedDateISO = `${currentYear}-${pad(currentMonth + 1)}-${pad(selectedDay)}`;
+
+  const handleSaveMediation = async (confirmMinutes = false) => {
+    setSaving(true);
+    try {
+      const complainant = participants.find(p => p.role === 'COMPLAINANT') || participants[0];
+      const respondent = participants.find(p => p.role === 'RESPONDENT') || participants[1];
+
+      const payload = {
+        title: `Mediation Hearing: Case ${referenceCase.id}`,
+        date: selectedDateISO,
+        time: sessionStartTime,
+        location: logisticalFormat === 'in-person' ? facility : `Virtual: ${virtualLink}`,
+        meetingType: 'mediation',
+        caseId: referenceCase.id,
+        residentName: complainant?.name || '',
+        respondentName: respondent?.name || '',
+        mediator: assignedMediator.name,
+        hearingStage: minutesData.hearingNumber,
+        mainTopics: primaryObjectives.split('\n').filter(Boolean),
+        concernsRaised: complainant?.statement || '',
+        minutes: minutesData.discussionSummary,
+        resolutions: minutesData.termsList.map((t, idx) => ({
+          id: `RES-${idx + 1}`,
+          title: t,
+          status: 'Agreed'
+        })),
+        actionItems: [
+          {
+            task: 'Conduct compliance verification check',
+            responsible: assignedMediator.name,
+            deadline: selectedDateISO,
+            status: 'Pending'
+          }
+        ],
+        mediationStatus: confirmMinutes ? 'Settled' : 'Scheduled',
+        sendNotification: true
+      };
+
+      if (selectedMeetingId) {
+        await api.put(`/meetings/${selectedMeetingId}`, payload);
+        showNotification('Mediation record updated successfully.');
+      } else {
+        const { data } = await api.post('/meetings', payload);
+        setSelectedMeetingId(data.id);
+        showNotification('Mediation scheduled and calendar slot reserved!');
+      }
+
+      const res = await api.get('/meetings');
+      setMeetings(res.data || []);
+      if (confirmMinutes) {
+        showNotification('Minutes and Kasunduan officially certified and saved.');
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification(err.response?.data?.message || 'Failed to save mediation record.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const mediatorList = [
+    { name: 'Hon. Arthur Pendelton', title: 'Accredited Senior Mediator / Lupon Chair', license: 'MED-NCR-2024-914' },
+    { name: 'Atty. Sofia Guanzon', title: 'Barangay Legal Consultant & Mediator', license: 'MED-NCR-2023-402' },
+    { name: 'Engr. Danilo Ramos', title: 'Certified Community Mediator (Property & Setbacks)', license: 'MED-NCR-2021-118' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F4F6F9] text-slate-800 font-sans pb-24 antialiased selection:bg-slate-200">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-[#0A1A2F] text-white px-4 py-3 rounded-lg shadow-xl text-sm flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-top-3">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+          <button onClick={() => setToastMessage(null)} className="ml-2 text-slate-400 hover:text-white">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Main Content Container */}
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 pt-4">
+        {/* Header Title Section & Reference Case Badge */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-amber-100 text-amber-900 font-bold tracking-wider text-[11px] px-2.5 py-0.5 rounded uppercase">
+                Action Required
+              </span>
+              <span className="text-slate-500 text-sm font-medium">Case Filing / Katarungang Pambarangay Hearing</span>
+            </div>
+            <h1 className="text-3xl sm:text-[34px] font-extrabold text-slate-900 tracking-tight leading-none">
+              Schedule Mediation Hearing
+            </h1>
+            <p className="text-slate-500 text-sm mt-2 max-w-2xl">
+              Initialize a formal mediation session for community dispute resolution. All participants will be notified upon confirmation.
+            </p>
+          </div>
+
+          {/* Reference Case Card */}
+          <div 
+            onClick={() => setShowCaseSelectorModal(true)}
+            className="flex items-center gap-3.5 bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-5 py-3 shadow-sm border-l-4 border-l-[#0A1A2F] self-start md:self-center cursor-pointer transition-all group"
+            title="Click to switch or link a different case"
+          >
+            <div className="p-2.5 bg-slate-100 text-slate-700 rounded-lg group-hover:bg-[#0A1A2F] group-hover:text-white transition-colors">
+              <FileText className="w-5 h-5 text-[#0A1A2F] group-hover:text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">REFERENCE CASE</p>
+                <span className="text-[10px] text-blue-600 font-semibold underline">Change</span>
+              </div>
+              <p className="text-lg font-black text-slate-900 tracking-tight">{referenceCase.id}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Switcher */}
+        <div className="flex items-center border-b border-slate-200 mb-6 gap-8">
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 ${
+              activeTab === 'schedule'
+                ? 'text-[#0A1A2F] border-b-2 border-[#0A1A2F]'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <CalendarIcon className="w-4 h-4" />
+            <span>Hearing Schedule & Setup</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('minutes')}
+            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 ${
+              activeTab === 'minutes'
+                ? 'text-[#0A1A2F] border-b-2 border-[#0A1A2F]'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            <span>Formal Meeting Minutes</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold uppercase tracking-wider">
+              Live Record
+            </span>
+          </button>
+        </div>
+
+        {/* TAB 1: SCHEDULE & LOGISTICS */}
+        {activeTab === 'schedule' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Date & Objectives */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Date Selection Card */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2.5 font-bold text-slate-900 text-base">
+                    <CalendarIcon className="w-5 h-5 text-slate-800" />
+                    <span>Date Selection</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={prevMonth}
+                      disabled={!canGoPrevMonth}
+                      className="p-1.5 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent rounded text-slate-600 transition-colors"
+                      title={canGoPrevMonth ? 'Previous Month' : 'Past months disabled'}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-semibold text-slate-700 px-1">
+                      {monthNames[currentMonth]} {currentYear}
+                    </span>
+                    <button 
+                      onClick={nextMonth}
+                      className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors"
+                      title="Next Month"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Day Header */}
+                <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">
+                  <span>MON</span>
+                  <span>TUE</span>
+                  <span>WED</span>
+                  <span>THU</span>
+                  <span>FRI</span>
+                  <span>SAT</span>
+                  <span>SUN</span>
+                </div>
+
+                {/* Calendar Days Grid */}
+                <div className="grid grid-cols-7 gap-2 text-center text-sm font-semibold mb-6">
+                  {calendarDays.map((day, idx) => {
+                    if (!day) {
+                      return <span key={`empty-${idx}`} className="py-2.5 text-slate-300 select-none">·</span>;
+                    }
+                    const dayDate = new Date(currentYear, currentMonth, day);
+                    dayDate.setHours(0, 0, 0, 0);
+                    const isPast = dayDate < todayDate;
+                    const isSelected = selectedDay === day;
+
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => !isPast && setSelectedDay(day)}
+                        disabled={isPast}
+                        title={isPast ? 'Previous dates cannot be selected' : `Select ${monthNames[currentMonth]} ${day}, ${currentYear}`}
+                        className={`py-2.5 rounded-lg transition-all ${
+                          isPast
+                            ? 'text-slate-300 cursor-not-allowed line-through'
+                            : isSelected
+                            ? 'bg-[#0A1A2F] text-white font-bold shadow-md ring-2 ring-slate-900/10'
+                            : 'hover:bg-slate-100 text-slate-700 font-medium'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Start Time & Duration */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      SESSION START
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={sessionStartTime}
+                        onChange={(e) => setSessionStartTime(e.target.value)}
+                        className="w-full bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-slate-300 rounded-lg px-3.5 py-2.5 font-bold text-slate-800 text-sm outline-none"
+                      />
+                      <Clock className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                      ESTIMATED DURATION
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={duration}
+                        onChange={(e) => setDuration(e.target.value)}
+                        className="w-full appearance-none bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-slate-300 rounded-lg px-3.5 py-2.5 font-bold text-slate-800 text-sm outline-none cursor-pointer"
+                      >
+                        <option>30 Minutes</option>
+                        <option>60 Minutes</option>
+                        <option>90 Minutes</option>
+                        <option>120 Minutes</option>
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Primary Objectives & Evidence Attachment */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex items-center gap-2.5 font-bold text-slate-900 text-base mb-4">
+                  <CalendarIcon className="w-5 h-5 text-slate-800" />
+                  <span>Hearing Scope & Objectives</span>
+                </div>
+
+                <div className="mb-5">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    PRIMARY OBJECTIVES
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={primaryObjectives}
+                    onChange={(e) => setPrimaryObjectives(e.target.value)}
+                    placeholder="Outline the key points for mediation..."
+                    className="w-full bg-[#f8fafc] border border-slate-200 rounded-lg p-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:bg-white transition-all placeholder:text-slate-400 resize-none font-normal leading-relaxed"
+                  />
+                </div>
+
+                {/* Evidence Upload Area */}
+                <div>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                    ATTACH EVIDENCE DOCUMENTS (PDF, JPEG)
+                  </label>
+                  <label className="border border-dashed border-slate-300 hover:border-slate-400 bg-slate-50/70 rounded-lg p-4 flex items-center justify-between cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-white rounded-md border border-slate-200 text-slate-600 group-hover:text-slate-900">
+                        <Paperclip className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-semibold text-slate-600">
+                        {isUploading ? 'Uploading file...' : 'Drop files here or click to browse'}
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-800 hover:text-black">
+                      UPLOAD
+                    </span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                  </label>
+
+                  {/* Attached Files List */}
+                  {uploadedFiles.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {uploadedFiles.map((file, idx) => (
+                        <div key={idx} className="flex items-center justify-between bg-slate-100/80 px-3 py-2 rounded text-xs text-slate-700 font-medium">
+                          <div className="flex items-center gap-2 truncate">
+                            <FileText className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            <span className="truncate">{file}</span>
+                          </div>
+                          <button
+                            onClick={() => removeFile(idx)}
+                            className="text-slate-400 hover:text-rose-600 ml-2"
+                            title="Remove file"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Logistical Format & Attendees */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Participants & Mediator Card */}
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2.5 font-bold text-slate-900 text-base">
+                    <CalendarIcon className="w-5 h-5 text-slate-800" />
+                    <span>Hearing Parties & Mediator</span>
+                  </div>
+                  <button
+                    onClick={() => setShowCaseSelectorModal(true)}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold"
+                  >
+                    Load from Case
+                  </button>
+                </div>
+
+                {/* Parties list */}
+                <div className="space-y-4 mb-6">
+                  {participants.map((person) => (
+                    <div key={person.id} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={person.avatar}
+                          alt={person.name}
+                          className="w-10 h-10 rounded-md object-cover border border-slate-200"
+                        />
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900 leading-snug">
+                            {person.name}
+                          </h4>
+                          <span className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            {person.role}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => removeParticipant(person.id)}
+                          className="text-slate-300 hover:text-rose-500 transition-colors p-1"
+                          title="Remove party"
+                        >
+                          <MinusCircle className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Neutral Mediator Section */}
+                <div className="pt-4 border-t border-slate-100">
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    NEUTRAL MEDIATOR
+                  </label>
+
+                  {assignedMediator ? (
+                    <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/60 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs">
+                          {assignedMediator.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-900">{assignedMediator.name}</p>
+                          <p className="text-[11px] text-slate-500">{assignedMediator.license}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowMediatorModal(true)}
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-900 underline"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowMediatorModal(true)}
+                      className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-lg py-4 px-3 flex items-center justify-center gap-2 text-slate-400 hover:text-slate-700 transition-all text-sm font-medium"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      <span>Assign Certified Mediator...</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: FORMAL MEETING MINUTES & SETTLEMENT */}
+        {activeTab === 'minutes' && (
+          <div className="space-y-6">
+            {/* Top Toolbar for Minutes */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="bg-emerald-100 text-emerald-800 font-bold text-xs px-3 py-1 rounded-full flex items-center gap-1.5">
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                  Active Proceedings
+                </span>
+                <span className="text-xs text-slate-500">
+                  Hearing Stage: <strong className="text-slate-700">{minutesData.hearingNumber}</strong>
+                </span>
+                <span className="text-slate-300">|</span>
+                <span className="text-xs text-slate-500">
+                  Date: <strong className="text-slate-700">{formatDisplayDate(selectedDateISO)} ({sessionStartTime})</strong>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowPrintModal(true)}
+                  className="px-3.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1.5"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>Print Minutes</span>
+                </button>
+                <button
+                  onClick={() => setShowPrintModal(true)}
+                  className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#0A1A2F] hover:bg-[#12233b] rounded-lg transition-colors flex items-center gap-1.5"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export Official Kasunduan</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Attendance & Officers Panel */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Presiding & Officers */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-slate-700" />
+                  Presiding Officers
+                </h3>
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="text-slate-400 font-medium">Mediator / Officer in Charge</label>
+                    <input
+                      type="text"
+                      value={minutesData.presidingOfficer}
+                      onChange={(e) => setMinutesData({ ...minutesData, presidingOfficer: e.target.value })}
+                      className="w-full mt-1 font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded p-2 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-400 font-medium">Recording Secretary</label>
+                    <input
+                      type="text"
+                      value={minutesData.recordingSecretary}
+                      onChange={(e) => setMinutesData({ ...minutesData, recordingSecretary: e.target.value })}
+                      className="w-full mt-1 font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded p-2 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Attendance Checklist */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm md:col-span-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-slate-700" />
+                  Attendance Verification
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {participants.map((person) => (
+                    <div
+                      key={person.id}
+                      className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-slate-50/50"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <img src={person.avatar} alt="" className="w-7 h-7 rounded-md object-cover" />
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 leading-tight">{person.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">{person.role}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => toggleParticipantPresent(person.id)}
+                        className={`text-xs px-2.5 py-1 rounded font-bold transition-all ${
+                          person.present
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-rose-100 text-rose-800'
+                        }`}
+                      >
+                        {person.present ? '✓ Present' : '✗ Absent'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Statements & Findings Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Complainant Statement */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Complainant's Statement & Claims
+                  </h4>
+                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                    {participants[0]?.name || 'Complainant'}
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  value={participants[0]?.statement || ''}
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    setParticipants(prev => [
+                      { ...prev[0], statement: text },
+                      prev[1]
+                    ]);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 leading-relaxed outline-none focus:bg-white"
+                />
+              </div>
+
+              {/* Respondent Statement */}
+              <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Respondent's Answer & Settlement Offer
+                  </h4>
+                  <span className="text-[10px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
+                    {participants[1]?.name || 'Respondent'}
+                  </span>
+                </div>
+                <textarea
+                  rows={4}
+                  value={participants[1]?.statement || ''}
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    setParticipants(prev => [
+                      prev[0],
+                      { ...prev[1], statement: text }
+                    ]);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-700 leading-relaxed outline-none focus:bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Terms of Agreement (Amicable Settlement / Kasunduan) */}
+            <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 gap-2">
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Terms of Amicable Settlement (Kasunduan)
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Legally enforceable conditions stipulated under Chapter VII, Title I, Book III of Republic Act No. 7160 (Katarungang Pambarangay).
+                  </p>
+                </div>
+                <span className="self-start sm:self-center text-xs font-bold bg-blue-50 text-blue-800 px-3 py-1 rounded-full border border-blue-200">
+                  {minutesData.statusOutcome}
+                </span>
+              </div>
+
+              {/* Clauses List */}
+              <div className="mt-4 space-y-2.5">
+                {minutesData.termsList.map((term, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start justify-between gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs font-medium text-slate-800"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="font-bold text-slate-400 shrink-0">{index + 1}.</span>
+                      <p className="leading-relaxed">{term}</p>
+                    </div>
+                    <button
+                      onClick={() => removeTerm(index)}
+                      className="text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                      title="Remove term"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Term Input */}
+              <div className="mt-4 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Draft another binding stipulation or term..."
+                  value={newTermInput}
+                  onChange={(e) => setNewTermInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddTerm()}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-xs outline-none focus:bg-white focus:border-slate-400"
+                />
+                <button
+                  onClick={handleAddTerm}
+                  className="px-4 py-2 bg-[#0A1A2F] text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-1.5 shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Term</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bottom Floating Bar */}
+        <div className="mt-8 bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-slate-600 text-xs">
+            <div className="p-1.5 bg-amber-50 text-amber-600 rounded-full shrink-0">
+              <Info className="w-4 h-4" />
+            </div>
+            <span>
+              Invitations will be dispatched via official digital channels immediately upon confirmation.
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => showNotification('Draft state saved locally.')}
+              className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors"
+            >
+              Save Draft
+            </button>
+            <button
+              onClick={() => showNotification('Official summons notification dispatched to parties via email.')}
+              className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+            >
+              Send Invitations
+            </button>
+            <button
+              onClick={() => {
+                if (activeTab === 'schedule') {
+                  handleSaveMediation(false);
+                  setActiveTab('minutes');
+                } else {
+                  handleSaveMediation(true);
+                }
+              }}
+              disabled={saving}
+              className="px-5 py-2.5 bg-[#0A1A2F] hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+            >
+              {saving ? 'Processing...' : (activeTab === 'schedule' ? 'Confirm Schedule' : 'Finalize & Archive Record')}
+            </button>
+          </div>
+        </div>
+      </main>
+
+      {/* MODAL: Mediator Directory */}
+      {showMediatorModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-extrabold text-slate-900 text-base">Select Certified Mediator</h3>
+              <button
+                onClick={() => setShowMediatorModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-4">
+              Choose an accredited peace officer or legal mediator for Case #{referenceCase.id}.
+            </p>
+            <div className="space-y-3">
+              {mediatorList.map((m, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    setAssignedMediator({
+                      name: m.name,
+                      title: m.title,
+                      license: m.license,
+                      signed: true
+                    });
+                    setShowMediatorModal(false);
+                    showNotification(`Assigned ${m.name} as Neutral Mediator.`);
+                  }}
+                  className="p-3 border border-slate-200 hover:border-[#0A1A2F] hover:bg-slate-50/70 rounded-lg cursor-pointer transition-all"
+                >
+                  <p className="text-xs font-bold text-slate-900">{m.name}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{m.title}</p>
+                  <span className="text-[10px] text-slate-400 font-mono mt-1 inline-block">
+                    {m.license}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Case Selector */}
+      {showCaseSelectorModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base">Select Complaint to Mediate</h3>
+                <p className="text-xs text-slate-500">Pick an active resident complaint to link to this hearing.</p>
+              </div>
+              <button
+                onClick={() => setShowCaseSelectorModal(false)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1">
+              {complaints.length === 0 ? (
+                <p className="text-center py-6 text-xs text-slate-400">No complaints found.</p>
+              ) : (
+                complaints.map((c) => (
+                  <div
+                    key={c.id}
+                    onClick={() => {
+                      linkComplaintToForm(c);
+                      setShowCaseSelectorModal(false);
+                      showNotification(`Linked to case #${c.id}`);
+                    }}
+                    className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                      referenceCase.id === c.id
+                        ? 'border-[#0A1A2F] bg-slate-50 ring-1 ring-[#0A1A2F]'
+                        : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50/60'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-mono font-bold text-slate-800">{c.id}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700">
+                        {c.status || 'Active'}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900">{c.title || 'Untitled Case'}</p>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                      Complainant: {c.residentName || 'Anonymous'} vs. Respondent: {c.respondentName || 'TBD'}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: Printable Official Minutes Preview */}
+      {showPrintModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl border border-slate-200 p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200 mb-4">
+              <div>
+                <p className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">OFFICIAL TRANSCRIPT</p>
+                <h3 className="text-lg font-black text-slate-900">Mediation Record & Settlement Agreement</h3>
+              </div>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="p-1 rounded text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700 leading-relaxed font-serif">
+              <div className="bg-slate-50 p-3 rounded border border-slate-200 font-sans text-[11px] grid grid-cols-2 gap-2">
+                <div><strong>Case Reference:</strong> {referenceCase.id}</div>
+                <div><strong>Hearing Date:</strong> {formatDisplayDate(selectedDateISO)} ({sessionStartTime})</div>
+                <div><strong>Venue:</strong> {logisticalFormat === 'in-person' ? facility : virtualLink}</div>
+                <div><strong>Presiding:</strong> {minutesData.presidingOfficer}</div>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-slate-900 uppercase font-sans text-[11px] tracking-wide mb-1">
+                  1. Matter of Dispute
+                </h5>
+                <p className="whitespace-pre-line">{primaryObjectives}</p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-slate-900 uppercase font-sans text-[11px] tracking-wide mb-1">
+                  2. Summary of Proceedings & Admissions
+                </h5>
+                <p>{minutesData.discussionSummary}</p>
+              </div>
+
+              <div>
+                <h5 className="font-bold text-slate-900 uppercase font-sans text-[11px] tracking-wide mb-1">
+                  3. Binding Covenants (Kasunduan)
+                </h5>
+                <ol className="list-decimal pl-5 space-y-1">
+                  {minutesData.termsList.map((t, i) => (
+                    <li key={i}>{t}</li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="pt-6 border-t border-slate-200 grid grid-cols-2 gap-8 font-sans text-[11px]">
+                <div className="text-center pt-8 border-t border-slate-400">
+                  <p className="font-bold">{participants[0]?.name || 'Complainant'}</p>
+                  <p className="text-slate-500 text-[10px]">Complainant (Signed)</p>
+                </div>
+                <div className="text-center pt-8 border-t border-slate-400">
+                  <p className="font-bold">{participants[1]?.name || 'Respondent'}</p>
+                  <p className="text-slate-500 text-[10px]">Respondent (Attested)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-slate-200 font-sans">
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="px-4 py-2 border border-slate-200 text-xs font-semibold rounded-lg hover:bg-slate-50"
+              >
+                Close Preview
+              </button>
+              <button
+                onClick={() => {
+                  window.print();
+                }}
+                className="px-4 py-2 bg-[#0A1A2F] text-white text-xs font-bold rounded-lg hover:bg-slate-900 flex items-center gap-2"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Confirm & Print Document</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

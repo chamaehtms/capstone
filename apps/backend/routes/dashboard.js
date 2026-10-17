@@ -102,7 +102,7 @@ router.get('/overview', async (req, res) => {
 // Fast aggregation endpoint providing sidebar badge IDs in a single query
 router.get('/sidebar-counts', async (req, res) => {
   try {
-    const adminId = req.user?.id || req.user?.userId || null;
+    const adminId = req.admin?.id || req.admin?.userId || req.user?.id || req.user?.userId || null;
 
     const [
       residentsRes,
@@ -142,7 +142,7 @@ router.get('/sidebar-counts', async (req, res) => {
 // Retrieves admin-targeted notifications
 router.get('/notifications', async (req, res) => {
   try {
-    const adminId = req.user?.id || req.user?.userId || null;
+    const adminId = req.admin?.id || req.admin?.userId || req.user?.id || req.user?.userId || null;
     const { rows } = await pool.query(
       `SELECT id, target_role, admin_id, resident_id, case_id, title, message, type, link, read,
               actor_name, actor_avatar, created_at
@@ -237,7 +237,7 @@ router.get('/notifications', async (req, res) => {
 router.post('/notifications/mark-read', async (req, res) => {
   try {
     const { id } = req.body || {};
-    const adminId = req.user?.id || req.user?.userId || null;
+    const adminId = req.admin?.id || req.admin?.userId || req.user?.id || req.user?.userId || null;
 
     if (id) {
       await pool.query(

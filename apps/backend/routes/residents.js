@@ -117,12 +117,12 @@ function toResident(r) {
     contact: r.contact,
     email: r.email,
     status: r.status,
-    category: r.category || [],
+    category: typeof r.category === 'string' ? JSON.parse(r.category || '[]') : (r.category || []),
     education: r.education,
     bloodType: r.blood_type,
     placeOfBirth: r.place_of_birth,
     spouse: r.spouse,
-    household: r.household || [],
+    household: typeof r.household === 'string' ? JSON.parse(r.household || '[]') : (r.household || []),
     photoUrl: r.photo_url,
     idDocumentUrl: r.id_document_url,
     selfieIdUrl: r.selfie_id_url,
@@ -143,8 +143,11 @@ function toResident(r) {
 // admin enrolled directly always show up here immediately, Pending or not.
 router.get('/', async (req, res) => {
   try {
-    const { search, zone, status, gender } = req.query;
-    const conditions = [`NOT (self_registered = true AND status = 'Pending')`];
+    const { search, zone, status, gender, includePending } = req.query;
+    const conditions = [];
+    if (includePending !== 'true') {
+      conditions.push(`NOT (self_registered = true AND status = 'Pending')`);
+    }
     const params = [];
 
     if (search) {
@@ -403,12 +406,17 @@ router.post('/', async (req, res) => {
       }
     }
 
-    if (birthDate) {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const cleanBirth = String(birthDate).trim().slice(0, 10);
-      if (cleanBirth > todayStr) {
-        return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid birthdate.' });
-      }
+    if (!birthDate) {
+      return res.status(400).json({ message: 'Date of birth is required.' });
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const cleanBirth = String(birthDate).trim().slice(0, 10);
+    if (cleanBirth > todayStr) {
+      return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid birthdate.' });
+    }
+    const ageCheck = calculateExactAge(cleanBirth);
+    if (ageCheck === null || ageCheck < 18) {
+      return res.status(400).json({ message: 'Resident must be 18 years old or above.' });
     }
 
     const age = birthDate ? calculateExactAge(birthDate) : null;
@@ -676,6 +684,67 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Database error updating resident.' });
+  }
+});
+
+// POST /api/residents/:id/household-member
+// Adds a family member to the resident's household list (works for any verified or unverified member)
+router.post('/:id/household-member', async (req, res) => {
+  try {
+    const { rows: existingRows } = await pool.query('SELECT * FROM residents WHERE id = $1', [req.params.id]);
+    if (existingRows.length === 0) return res.status(404).json({ message: 'Resident not found.' });
+
+    const resident = toResident(existingRows[0]);
+    const { name, relation, age, contact, status, residentId } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Member name is required.' });
+    }
+
+    const currentHousehold = Array.isArray(resident.household) ? resident.household : [];
+    const newMember = {
+      id: residentId || `mem-${uuidv4().slice(0, 8)}`,
+      name: name.trim(),
+      relation: relation?.trim() || 'FAMILY MEMBER',
+      age: age ? parseInt(age, 10) : null,
+      contact: contact?.trim() || '',
+      status: status || 'Pending', // can be Unverified / Pending / Verified
+      addedAt: new Date().toISOString()
+    };
+
+    const updatedHousehold = [...currentHousehold, newMember];
+
+    const { rows } = await pool.query(
+      'UPDATE residents SET household = $1 WHERE id = $2 RETURNING *',
+      [JSON.stringify(updatedHousehold), req.params.id]
+    );
+
+    res.json(toResident(rows[0]));
+  } catch (err) {
+    console.error('[household-member] Error:', err);
+    res.status(500).json({ message: 'Database error adding family member.' });
+  }
+});
+
+// DELETE /api/residents/:id/household-member/:memberId
+router.delete('/:id/household-member/:memberId', async (req, res) => {
+  try {
+    const { rows: existingRows } = await pool.query('SELECT * FROM residents WHERE id = $1', [req.params.id]);
+    if (existingRows.length === 0) return res.status(404).json({ message: 'Resident not found.' });
+
+    const resident = toResident(existingRows[0]);
+    const currentHousehold = Array.isArray(resident.household) ? resident.household : [];
+    const updatedHousehold = currentHousehold.filter((m) => m.id !== req.params.memberId && m.name !== req.params.memberId);
+
+    const { rows } = await pool.query(
+      'UPDATE residents SET household = $1 WHERE id = $2 RETURNING *',
+      [JSON.stringify(updatedHousehold), req.params.id]
+    );
+
+    res.json(toResident(rows[0]));
+  } catch (err) {
+    console.error('[household-member DELETE] Error:', err);
+    res.status(500).json({ message: 'Database error removing family member.' });
   }
 });
 

@@ -140,7 +140,7 @@ async function verifyRecaptcha(token, remoteIp) {
     return { success: false, message: 'Please complete the reCAPTCHA security verification.' };
   }
 
-  if (token.startsWith('recaptcha-verified-') || token === 'fallback-dev-token') {
+  if (process.env.NODE_ENV !== 'production' && (token.startsWith('recaptcha-verified-') || token === 'fallback-dev-token')) {
     return { success: true };
   }
 

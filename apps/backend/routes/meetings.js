@@ -134,6 +134,7 @@ router.post('/', async (req, res) => {
     }
 
     // Check if the selected date already has a conflicting session at the same venue and time
+    const venue = location || (meetingType === 'mediation' ? 'Barangay Poblacion Mediation Hall' : 'Barangay Poblacion Session Hall');
     const cleanTime = String(time || '').trim();
     let conflictRows = [];
     if (cleanTime) {
@@ -143,7 +144,7 @@ router.post('/', async (req, res) => {
            AND LOWER(TRIM(location)) = LOWER(TRIM($2))
            AND LOWER(TRIM(time)) = LOWER(TRIM($3))
          LIMIT 1`,
-        [cleanDate, venue || location || '', cleanTime]
+        [cleanDate, venue, cleanTime]
       );
       conflictRows = rows;
     }
@@ -193,7 +194,6 @@ router.post('/', async (req, res) => {
     }
 
     const id = `mtg-${uuidv4().slice(0, 8)}`;
-    const venue = location || (meetingType === 'mediation' ? 'Barangay Poblacion Mediation Hall' : 'Barangay Poblacion Session Hall');
 
     const { rows } = await pool.query(
       `INSERT INTO meetings

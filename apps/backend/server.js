@@ -83,7 +83,12 @@ app.use(
       if (!origin || allowedOrigins.has('*')) {
         return callback(null, true);
       }
-      if (allowedOrigins.has(normalizeOrigin(origin))) {
+      const normOrigin = normalizeOrigin(origin);
+      if (allowedOrigins.has(normOrigin)) {
+        return callback(null, true);
+      }
+      // Allow localhost with any dev port in non-production environments
+      if (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS error: Origin ${origin} not allowed`));
@@ -113,6 +118,9 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // Serves uploaded resident photos, e.g. GET /uploads/residents/res-abc123.jpg
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', (req, res) => {
+  res.status(404).json({ message: 'The requested evidence or uploaded file was not found on the server.' });
+});
 
 // Lightweight liveness probe for cloud orchestrators (Render, AWS, Railway, Docker)
 app.get('/health', (req, res) => {
@@ -146,14 +154,6 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found.' });
 });
 
-// Global safety net to prevent unhandled runtime exceptions from crashing the server
-process.on('uncaughtException', (err) => {
-  console.error('[CRASH PREVENTED] Uncaught Exception:', err.message || err);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('[CRASH PREVENTED] Unhandled Rejection:', reason);
-});
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {

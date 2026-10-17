@@ -149,7 +149,7 @@ export default function EditResident() {
               <input
                 type="date"
                 min="1900-01-01"
-                max={new Date().toISOString().slice(0, 10)}
+                max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10); })()}
                 value={form.birthDate}
                 onChange={update('birthDate')}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"

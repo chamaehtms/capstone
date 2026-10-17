@@ -12,6 +12,7 @@ const RequestAccess = lazy(() => import('./pages/RequestAccess.jsx'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail.jsx'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
 const ResidentRecords = lazy(() => import('./pages/ResidentRecords.jsx'));
+const ResidentProfiling = lazy(() => import('./pages/ResidentProfilingRegistry.tsx'));
 const EnrollResident = lazy(() => import('./pages/EnrollResident.jsx'));
 const ResidentProfile = lazy(() => import('./pages/ResidentProfile.jsx'));
 const EditResident = lazy(() => import('./pages/EditResident.jsx'));
@@ -64,6 +65,7 @@ export default function App() {
         >
           <Route index element={<Overview />} />
           <Route path="residents" element={<ResidentRecords />} />
+          <Route path="resident-profiling" element={<ResidentProfiling />} />
           <Route path="residents/enroll" element={<EnrollResident />} />
           <Route path="residents/:id" element={<ResidentProfile />} />
           <Route path="residents/:id/edit" element={<EditResident />} />

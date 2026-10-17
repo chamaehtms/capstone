@@ -5,14 +5,14 @@ import api, { toAssetUrl } from '../api';
 import AdminIcon from './AdminIcons.jsx';
 
 const links = [
- { to: '/', label: 'Overview', icon: 'grid', end: true },
- { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
- { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
- { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
- { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
- { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
- { to: '/notifications', label: 'Notifications', icon: 'bell', badgeKey: 'notifications' },
- { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
+  { to: '/', label: 'Overview', icon: 'grid', end: true },
+  { to: '/residents', label: 'Resident Records', icon: 'users', badgeKey: 'residents' },
+  { to: '/resident-profiling', label: 'Resident Profiling', icon: 'users' },
+  { to: '/complaints', label: 'Complaints Record', icon: 'clipboard', badgeKey: 'complaints' },
+  { to: '/meetings', label: 'Mediation', icon: 'calendar', badgeKey: 'meetings' },
+  { to: '/escalation', label: 'Escalation', icon: 'trending-up', badgeKey: 'escalations' },
+  { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
+  { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
 ];
 
 export default function Sidebar({ isOpen = false, onClose = () => {} }) {
@@ -66,7 +66,6 @@ export default function Sidebar({ isOpen = false, onClose = () => {} }) {
  meetings: updateCount('meetings', data.meetings || [], initialized),
  escalations: updateCount('escalations', data.escalations || [], initialized),
  pendingRequests: updateCount('pendingRequests', data.pendingRequests || [], initialized),
- notifications: updateCount('notifications', data.notifications || [], initialized),
  };
  currentIds.current.initialized = true;
  setNewCounts(counts);

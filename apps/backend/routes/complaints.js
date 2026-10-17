@@ -530,4 +530,51 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/complaints/:id
+// Deletes the complaint and cascades to its associated escalations, meetings, and notifications.
+router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const { rows: compRows } = await client.query('SELECT * FROM complaints WHERE id = $1', [req.params.id]);
+    if (compRows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Complaint record not found.' });
+    }
+    const complaint = compRows[0];
+
+    // 1. Delete associated escalations (where case_ref matches complaint ID)
+    await client.query('DELETE FROM escalations WHERE case_ref = $1', [req.params.id]);
+
+    // 2. Delete associated meetings (where case_id matches complaint ID)
+    await client.query('DELETE FROM meetings WHERE case_id = $1', [req.params.id]);
+
+    // 3. Delete associated notifications (where case_id matches complaint ID)
+    await client.query('DELETE FROM notifications WHERE case_id = $1', [req.params.id]);
+
+    // 4. Delete the complaint record itself
+    await client.query('DELETE FROM complaints WHERE id = $1', [req.params.id]);
+
+    await client.query('COMMIT');
+
+    // 5. Clean up attached evidence file if locally stored
+    if (complaint.attachment_url && !complaint.attachment_url.startsWith('http')) {
+      const oldPath = path.join(__dirname, '..', complaint.attachment_url.replace(/^\//, ''));
+      fs.unlink(oldPath, () => {});
+    }
+
+    res.json({
+      message: `Complaint #${req.params.id} and its associated escalation/hearing records were successfully deleted.`,
+      id: req.params.id,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[complaints DELETE] Error:', err);
+    res.status(500).json({ message: 'Database error deleting complaint: ' + (err.message || 'Server error') });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

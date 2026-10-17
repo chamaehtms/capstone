@@ -6,7 +6,7 @@ function verifyToken(token) {
   try {
     return jwt.verify(token, JWT_SECRET);
   } catch (err) {
-    if (JWT_SECRET !== 'dev-secret-change-me') {
+    if (process.env.NODE_ENV !== 'production' && !process.env.JWT_SECRET) {
       try {
         return jwt.verify(token, 'dev-secret-change-me');
       } catch (fallbackErr) {

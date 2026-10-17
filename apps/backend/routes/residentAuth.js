@@ -66,7 +66,7 @@ async function verifyRecaptcha(token, remoteIp) {
     return { success: false, message: 'Please complete the reCAPTCHA security verification.' };
   }
 
-  if (token.startsWith('recaptcha-verified-') || token === 'fallback-dev-token') {
+  if (process.env.NODE_ENV !== 'production' && (token.startsWith('recaptcha-verified-') || token === 'fallback-dev-token')) {
     return { success: true };
   }
 
@@ -415,13 +415,20 @@ router.post('/register', (req, res) => {
         return res.status(400).json({ message: 'Enter a valid email address.' });
       }
 
-      if (birthDate) {
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const cleanBirth = String(birthDate).trim().slice(0, 10);
-        if (cleanBirth > todayStr) {
-          cleanupFiles();
-          return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid date of birth.' });
-        }
+      if (!birthDate) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Date of birth is required.' });
+      }
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const cleanBirth = String(birthDate).trim().slice(0, 10);
+      if (cleanBirth > todayStr) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Date of birth cannot be in the future. Please provide a valid date of birth.' });
+      }
+      const calculatedRegAge = calculateExactAge(cleanBirth);
+      if (calculatedRegAge === null || calculatedRegAge < 18) {
+        cleanupFiles();
+        return res.status(400).json({ message: 'Residents must be 18 years old or above to register.' });
       }
 
       const domainValid = await validateEmailDomain(normalizedEmail);
@@ -888,6 +895,12 @@ router.put('/me', requireResidentAuth, async (req, res) => {
       if (cleanBirth > todayStr) {
         return res.status(400).json({
           message: 'Birthdate cannot be in the future. Please provide a valid birthdate.',
+        });
+      }
+      const updatedAge = calculateExactAge(cleanBirth);
+      if (updatedAge === null || updatedAge < 18) {
+        return res.status(400).json({
+          message: 'Resident must be 18 years old or above.',
         });
       }
       merged.birthDate = cleanBirth;

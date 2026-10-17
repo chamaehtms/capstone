@@ -371,12 +371,25 @@ export default function Register() {
       return;
     }
 
-    if (form.dateOfBirth) {
-      const todayStr = new Date().toISOString().slice(0, 10);
-      if (form.dateOfBirth > todayStr) {
-        setError('Date of birth cannot be in the future. Please select a valid date of birth.');
-        return;
-      }
+    if (!form.dateOfBirth) {
+      setError('Please enter your date of birth.');
+      return;
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (form.dateOfBirth > todayStr) {
+      setError('Date of birth cannot be in the future. Please select a valid date of birth.');
+      return;
+    }
+    const [bYear, bMonth, bDay] = form.dateOfBirth.split('-').map(Number);
+    const today = new Date();
+    let residentAge = today.getFullYear() - bYear;
+    const mDiff = (today.getMonth() + 1) - bMonth;
+    if (mDiff < 0 || (mDiff === 0 && today.getDate() < bDay)) {
+      residentAge -= 1;
+    }
+    if (residentAge < 18) {
+      setError('You must be 18 years old or above to register as a resident.');
+      return;
     }
 
     if (!idFile) { setError('Please upload your valid ID card or document.'); return; }
@@ -935,7 +948,7 @@ export default function Register() {
                 <input
                   type="date"
                   min="1900-01-01"
-                  max={new Date().toISOString().slice(0, 10)}
+                  max={(() => { const d = new Date(); d.setFullYear(d.getFullYear() - 18); return d.toISOString().slice(0, 10); })()}
                   value={form.dateOfBirth}
                   onChange={e => update('dateOfBirth', e.target.value)}
                 />
