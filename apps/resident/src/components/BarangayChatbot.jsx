@@ -18,6 +18,7 @@ function cleanText(text) {
 }
 
 export default function BarangayChatbot() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => Session.isLoggedIn());
   const [isOpen, setIsOpen] = useState(false);
   const [chatMode, setChatMode] = useState('ai'); // 'ai' | 'admin'
   const [aiMessages, setAiMessages] = useState([]);
@@ -35,6 +36,21 @@ export default function BarangayChatbot() {
 
   const messagesEndRef = useRef(null);
   const adminMessagesEndRef = useRef(null);
+
+  // Keep logged in state synchronized on route changes or storage events
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(Session.isLoggedIn());
+    };
+
+    window.addEventListener('storage', checkAuth);
+    const interval = setInterval(checkAuth, 1000);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      clearInterval(interval);
+    };
+  }, []);
 
   const user = Session.getUser();
   const token = Session.getToken();
@@ -299,6 +315,10 @@ export default function BarangayChatbot() {
         return { bg: 'var(--gray-bg, #f1f5f9)', text: 'var(--gray-text, #475569)', border: 'var(--border, #e2e8f0)' };
     }
   };
+
+  if (!isLoggedIn) {
+    return null;
+  }
 
   return (
     <>
