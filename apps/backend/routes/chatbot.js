@@ -114,6 +114,23 @@ router.get('/messages', async (req, res) => {
   }
 });
 
+// PUT /api/chatbot/messages/read-by-admin/:residentId - Mark messages from resident as read by admin
+router.put('/messages/read-by-admin/:residentId', requireAuth, async (req, res) => {
+  try {
+    const { residentId } = req.params;
+    await pool.query(
+      `UPDATE admin_messages
+       SET read_by_admin = true
+       WHERE resident_id = $1 AND read_by_admin = false`,
+      [residentId]
+    );
+    res.json({ success: true, message: 'Messages marked as read.' });
+  } catch (err) {
+    console.error('[chatbot] Error marking messages read by admin:', err);
+    res.status(500).json({ message: 'Database error marking messages as read.' });
+  }
+});
+
 // POST /api/chatbot/messages - Resident sends message to admin
 router.post('/messages', async (req, res) => {
   try {

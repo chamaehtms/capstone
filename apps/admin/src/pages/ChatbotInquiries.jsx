@@ -44,6 +44,27 @@ export default function ChatbotInquiries() {
     }
   };
 
+  // When admin selects or views a resident thread, mark unread messages as read
+  useEffect(() => {
+    if (!selectedResidentId) return;
+    const hasUnread = messages.some(
+      (m) => m.resident_id === selectedResidentId && !m.read_by_admin && m.sender_role === 'resident'
+    );
+    if (!hasUnread) return;
+
+    api.put(`/chatbot/messages/read-by-admin/${selectedResidentId}`)
+      .then(() => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.resident_id === selectedResidentId && m.sender_role === 'resident'
+              ? { ...m, read_by_admin: true }
+              : m
+          )
+        );
+      })
+      .catch((err) => console.warn('Could not mark thread as read:', err));
+  }, [selectedResidentId, messages]);
+
   const loadKnowledge = async () => {
     try {
       const res = await api.get('/chatbot/knowledge');
