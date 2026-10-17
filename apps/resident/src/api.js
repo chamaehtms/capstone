@@ -60,31 +60,54 @@ export const Session = {
 // FormData instance (sent as multipart — the admin backend uses multer for
 // the ID-document and complaint-evidence uploads). FormData must NOT get a
 // Content-Type header; the browser sets its own multipart boundary.
-async function request(path, { method = 'GET', body, auth = true } = {}) {
+// Low-level fetch helper with automatic retry for waking servers / transient network drops.
+async function request(path, { method = 'GET', body, auth = true, retries = 2, retryDelay = 1000 } = {}) {
   const headers = {};
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   if (!isFormData) headers['Content-Type'] = 'application/json';
   if (auth && Session.getToken()) headers['Authorization'] = `Bearer ${Session.getToken()}`;
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : (isFormData ? body : JSON.stringify(body))
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if ((res.status === 401 || (res.status === 403 && data.code === 'ACCOUNT_DELETED')) && auth) {
-      Session.clear();
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/') {
-        window.location.href = '/login?reason=account_removed';
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        method,
+        headers,
+        body: body === undefined ? undefined : (isFormData ? body : JSON.stringify(body))
+      });
+
+      // If server is waking up or temporarily unavailable (502, 503, 504), retry
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelay * (attempt + 1)));
+        continue;
       }
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if ((res.status === 401 || (res.status === 403 && data.code === 'ACCOUNT_DELETED')) && auth) {
+          Session.clear();
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login' && window.location.pathname !== '/') {
+            window.location.href = '/login?reason=account_removed';
+          }
+        }
+        const err = new Error(data.message || data.error || `Request failed (${res.status})`);
+        err.rejectedField = data.rejectedField;
+        err.data = data;
+        throw err;
+      }
+      return data;
+    } catch (err) {
+      // If network dropped or connection refused and we have remaining retries
+      const isNetworkError = !err.data && (
+        err.name === 'TypeError' ||
+        /failed to fetch|network|load failed/i.test(err.message || '')
+      );
+      if (isNetworkError && attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelay * (attempt + 1)));
+        continue;
+      }
+      throw err;
     }
-    const err = new Error(data.message || data.error || `Request failed (${res.status})`);
-    err.rejectedField = data.rejectedField;
-    err.data = data;
-    throw err;
   }
-  return data;
 }
 
 // Kept for any direct/simple calls.

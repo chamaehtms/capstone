@@ -5,17 +5,34 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Landing from './pages/Landing.jsx';
 import Login from './pages/Login.jsx';
 
-// Lazy-load module pages
-const Register = lazy(() => import('./pages/Register.jsx'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
-const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
-const Services = lazy(() => import('./pages/Services.jsx'));
-const FileComplaint = lazy(() => import('./pages/FileComplaint.jsx'));
-const SubmissionSuccess = lazy(() => import('./pages/SubmissionSuccess.jsx'));
-const Track = lazy(() => import('./pages/Track.jsx'));
-const Profile = lazy(() => import('./pages/Profile.jsx'));
-const Notifications = lazy(() => import('./pages/Notifications.jsx'));
-const AnnouncementDetail = lazy(() => import('./pages/AnnouncementDetail.jsx'));
+// Helper to auto-retry dynamic module imports if a network drop or new deployment occurred
+function lazyWithRetry(componentImport) {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (err) {
+      // If a deploy occurred or network dropped, retry loading the chunk
+      const hasRetried = sessionStorage.getItem(`retry_${componentImport.toString()}`);
+      if (!hasRetried) {
+        sessionStorage.setItem(`retry_${componentImport.toString()}`, 'true');
+        window.location.reload();
+      }
+      throw err;
+    }
+  });
+}
+
+// Lazy-load module pages with chunk failure recovery
+const Register = lazyWithRetry(() => import('./pages/Register.jsx'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword.jsx'));
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard.jsx'));
+const Services = lazyWithRetry(() => import('./pages/Services.jsx'));
+const FileComplaint = lazyWithRetry(() => import('./pages/FileComplaint.jsx'));
+const SubmissionSuccess = lazyWithRetry(() => import('./pages/SubmissionSuccess.jsx'));
+const Track = lazyWithRetry(() => import('./pages/Track.jsx'));
+const Profile = lazyWithRetry(() => import('./pages/Profile.jsx'));
+const Notifications = lazyWithRetry(() => import('./pages/Notifications.jsx'));
+const AnnouncementDetail = lazyWithRetry(() => import('./pages/AnnouncementDetail.jsx'));
 
 import BarangayChatbot from './components/BarangayChatbot.jsx';
 

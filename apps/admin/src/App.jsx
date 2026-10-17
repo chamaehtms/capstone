@@ -7,27 +7,44 @@ import Layout from './components/Layout.jsx';
 import Login from './pages/Login.jsx';
 import Overview from './pages/Overview.jsx';
 
-// Lazy-load heavier module pages on demand
-const RequestAccess = lazy(() => import('./pages/RequestAccess.jsx'));
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail.jsx'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
-const ResidentRecords = lazy(() => import('./pages/ResidentRecords.jsx'));
-const EnrollResident = lazy(() => import('./pages/EnrollResident.jsx'));
-const ResidentProfile = lazy(() => import('./pages/ResidentProfile.jsx'));
-const EditResident = lazy(() => import('./pages/EditResident.jsx'));
-const ComplaintsRecord = lazy(() => import('./pages/ComplaintsRecord.jsx'));
-const CaseDetail = lazy(() => import('./pages/CaseDetail.jsx'));
-const CaseFiling = lazy(() => import('./pages/CaseFiling.jsx'));
-const MeetingMinutes = lazy(() => import('./pages/MeetingMinutes.jsx'));
-const Escalation = lazy(() => import('./pages/Escalation.jsx'));
-const EscalationDetail = lazy(() => import('./pages/EscalationDetail.jsx'));
-const EscalationCompose = lazy(() => import('./pages/EscalationCompose.jsx'));
-const LetterIssued = lazy(() => import('./pages/LetterIssued.jsx'));
-const PendingRequests = lazy(() => import('./pages/PendingRequests.jsx'));
-const Announcements = lazy(() => import('./pages/Announcements.jsx'));
-const ChatbotInquiries = lazy(() => import('./pages/ChatbotInquiries.jsx'));
-const Settings = lazy(() => import('./pages/Settings.jsx'));
-const Notifications = lazy(() => import('./pages/Notifications.jsx'));
+// Helper to auto-retry dynamic module imports if a network drop or new deployment occurred
+function lazyWithRetry(componentImport) {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (err) {
+      // If a deploy occurred or network dropped, retry loading the chunk
+      const hasRetried = sessionStorage.getItem(`admin_retry_${componentImport.toString()}`);
+      if (!hasRetried) {
+        sessionStorage.setItem(`admin_retry_${componentImport.toString()}`, 'true');
+        window.location.reload();
+      }
+      throw err;
+    }
+  });
+}
+
+// Lazy-load heavier module pages on demand with recovery
+const RequestAccess = lazyWithRetry(() => import('./pages/RequestAccess.jsx'));
+const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail.jsx'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword.jsx'));
+const ResidentRecords = lazyWithRetry(() => import('./pages/ResidentRecords.jsx'));
+const EnrollResident = lazyWithRetry(() => import('./pages/EnrollResident.jsx'));
+const ResidentProfile = lazyWithRetry(() => import('./pages/ResidentProfile.jsx'));
+const EditResident = lazyWithRetry(() => import('./pages/EditResident.jsx'));
+const ComplaintsRecord = lazyWithRetry(() => import('./pages/ComplaintsRecord.jsx'));
+const CaseDetail = lazyWithRetry(() => import('./pages/CaseDetail.jsx'));
+const CaseFiling = lazyWithRetry(() => import('./pages/CaseFiling.jsx'));
+const MeetingMinutes = lazyWithRetry(() => import('./pages/MeetingMinutes.jsx'));
+const Escalation = lazyWithRetry(() => import('./pages/Escalation.jsx'));
+const EscalationDetail = lazyWithRetry(() => import('./pages/EscalationDetail.jsx'));
+const EscalationCompose = lazyWithRetry(() => import('./pages/EscalationCompose.jsx'));
+const LetterIssued = lazyWithRetry(() => import('./pages/LetterIssued.jsx'));
+const PendingRequests = lazyWithRetry(() => import('./pages/PendingRequests.jsx'));
+const Announcements = lazyWithRetry(() => import('./pages/Announcements.jsx'));
+const ChatbotInquiries = lazyWithRetry(() => import('./pages/ChatbotInquiries.jsx'));
+const Settings = lazyWithRetry(() => import('./pages/Settings.jsx'));
+const Notifications = lazyWithRetry(() => import('./pages/Notifications.jsx'));
 
 function PageLoading() {
   return (
