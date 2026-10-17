@@ -13,6 +13,7 @@ const links = [
   { to: '/pending-requests', label: 'Pending Requests', icon: 'shield', badgeKey: 'pendingRequests' },
   { to: '/announcements', label: 'Announcements', icon: 'megaphone' },
   { to: '/puroks', label: 'Purok & Zones', icon: 'pin' },
+  { to: '/chatbot-inquiries', label: 'AI & Inquiries', icon: 'chat' },
 ];
 
 export default function Sidebar({ isOpen = false, onClose = () => {} }) {
