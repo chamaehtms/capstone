@@ -860,7 +860,7 @@ export default function Register() {
                   Registration Received
                 </h2>
                 <p style={{ color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.6, fontSize: '0.92rem' }}>
-                  Your details could not yet be automatically matched against the pre-existing Barangay Resident Database.
+                  Your identification document and selfie have passed AI pre-screening and are now queued for manual review by a Barangay Administrator.
                 </p>
 
                 <div style={{

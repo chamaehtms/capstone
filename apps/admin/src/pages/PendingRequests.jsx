@@ -248,12 +248,12 @@ export default function PendingRequests() {
  <div>
  <h1 className="text-2xl font-bold text-slate-900">Pending Registrations</h1>
  <p className="text-sm text-slate-500">
- Review resident registrations submitted through the Residents Portal. Registrants who verify their 6-digit Gmail code with an authentic ID are automatically approved.
+ Review resident registrations submitted through the Residents Portal. All applicants undergo AI document pre-screening and require final manual approval by a barangay administrator.
  </p>
  </div>
- <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-semibold shrink-0">
- <AdminIcon name="check-circle" size={14} color="#15803d" />
- <span>AI Auto-Accept: Active on Gmail Code</span>
+ <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 text-xs font-semibold shrink-0">
+ <AdminIcon name="shield-check" size={14} color="#1d4ed8" />
+ <span>AI Pre-Screened · Manual Approval Required</span>
  </div>
  </div>
 

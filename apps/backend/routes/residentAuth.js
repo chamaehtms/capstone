@@ -657,18 +657,29 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ message: 'The verification code is incorrect.' });
     }
     const { rows: updatedRows } = await pool.query(
-      `UPDATE residents SET email_verified = true, status = 'Verified', email_verification_code_hash = NULL,
+      `UPDATE residents SET email_verified = true, email_verification_code_hash = NULL,
        email_verification_expires_at = NULL, email_verification_attempts = 0 WHERE id = $1
        RETURNING *`,
       [resident.id]
     );
     const updatedResident = updatedRows[0] || resident;
 
-    // Send official approval email to resident now that email verification is confirmed
+    // Notify admins that resident email is verified and ready for manual review
     try {
-      await sendResidentApprovalEmail(updatedResident);
-    } catch (mailErr) {
-      console.error('[verify-email] Notice email failed:', mailErr.message);
+      await pool.query(
+        `INSERT INTO notifications (id, target_role, resident_id, title, message, type, link, actor_name, actor_avatar, created_at)
+         VALUES ($1, 'admin', $2, $3, $4, 'pending_resident', '/pending-requests', $5, $6, now())`,
+        [
+          `notif-${uuidv4().slice(0, 8)}`,
+          updatedResident.id,
+          'Pending Resident Approval',
+          `${updatedResident.full_name} verified email OTP. AI pre-check passed; awaiting manual admin approval.`,
+          updatedResident.full_name,
+          updatedResident.selfie_id_url || null,
+        ]
+      );
+    } catch (notifErr) {
+      console.error('[verify-email] Admin notice error:', notifErr.message);
     }
 
     const token = jwt.sign(
@@ -681,9 +692,9 @@ router.post('/verify-email', async (req, res) => {
       success: true,
       token,
       resident: toResidentAccount(updatedResident),
-      verified: true,
-      status: 'Verified',
-      message: 'Email and identity verified successfully! Your account has been automatically approved for full portal access.',
+      verified: updatedResident.status === 'Verified',
+      status: updatedResident.status,
+      message: 'Email verified successfully! Your registration has passed AI pre-screening and is now awaiting manual barangay administrator approval.',
     });
   } catch (err) {
     console.error(err);
