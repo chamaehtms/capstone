@@ -83,10 +83,26 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Category and subject are required.' });
     }
 
-    const { rows: countRows } = await pool.query('SELECT COUNT(*)::int AS count FROM escalations');
+    // Determine next sequential ID for the current year
     const year = new Date().getFullYear();
-    const seq = String(countRows[0].count + 1).padStart(3, '0');
-    const id = `ESC-${year}-${seq}`;
+    const { rows: yearRows } = await pool.query(
+      `SELECT id FROM escalations WHERE id LIKE $1`,
+      [`ESC-${year}-%`]
+    );
+
+    let maxSeq = 0;
+    yearRows.forEach((row) => {
+      const parts = (row.id || '').split('-');
+      if (parts.length >= 3) {
+        const num = parseInt(parts[2], 10);
+        if (!isNaN(num) && num > maxSeq) {
+          maxSeq = num;
+        }
+      }
+    });
+
+    const nextSeq = maxSeq + 1;
+    const id = `ESC-${year}-${String(nextSeq).padStart(3, '0')}`;
 
     const { rows } = await pool.query(
       `INSERT INTO escalations
@@ -96,10 +112,22 @@ router.post('/', async (req, res) => {
       [id, category, reason || '', priority || 'Medium', toDepartment || '', toRecipient || '', subject, body || '', caseRef || '']
     );
 
+    // If caseRef references a complaint, ensure the complaint's needs_escalation flag is marked true
+    if (caseRef) {
+      try {
+        await pool.query(
+          `UPDATE complaints SET needs_escalation = true, status = CASE WHEN status = 'Closed' OR status = 'Resolved' THEN status ELSE 'Escalated' END WHERE id = $1`,
+          [caseRef]
+        );
+      } catch (compErr) {
+        console.warn('[escalations] Could not update complaint status:', compErr.message);
+      }
+    }
+
     res.status(201).json(toEscalation(rows[0]));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Database error creating escalation.' });
+    console.error('[escalations POST error]:', err);
+    res.status(500).json({ message: err.message || 'Database error creating escalation.' });
   }
 });
 

@@ -1,12 +1,29 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useParams, Link } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import AdminIcon from '../components/AdminIcons.jsx';
+import api from '../api';
 
 export default function LetterIssued() {
   const { id } = useParams();
   const { state } = useLocation();
-  const escalation = state?.escalation;
+  const [escalation, setEscalation] = useState(state?.escalation || null);
+  const [loading, setLoading] = useState(!state?.escalation);
+
+  useEffect(() => {
+    if (!escalation && id) {
+      setLoading(true);
+      api.get(`/escalations/${id}`)
+        .then((res) => {
+          setEscalation(res.data);
+        })
+        .catch((err) => {
+          console.error('[LetterIssued] Error loading escalation:', err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id, escalation]);
+
   const issueDate = escalation?.escalated
     ? new Date(escalation.escalated).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
     : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -75,29 +92,46 @@ export default function LetterIssued() {
         </span>
       </div>
 
-      <article className="letter-paper bg-white rounded-xl shadow-sm p-10 text-slate-800">
-        <header className="text-center border-b-2 border-blue-700 pb-5">
-          <p className="text-2xl font-bold tracking-wide">BARANGAY POBLACION</p>
-          <p className="text-sm text-slate-500 tracking-widest">LOCAL GOVERNMENT UNIT</p>
-          <p className="mt-5 text-xl font-bold text-blue-900">FORMAL ESCALATION LETTER</p>
+      <article className="letter-paper printable-document bg-white rounded-xl shadow-sm p-10 text-slate-800">
+        {/* Official Header with Seal */}
+        <header className="text-center border-b-2 border-blue-900 pb-5">
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <img src="/barangay-seal.png" alt="Barangay Seal" className="w-16 h-16 object-contain" />
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-widest text-slate-500 font-semibold">Republic of the Philippines · Province of Cebu</p>
+              <p className="text-xl font-bold tracking-wide text-slate-900 font-serif">BARANGAY POBLACION</p>
+              <p className="text-xs text-slate-600 font-medium">Municipality of Cordova · Office of the Punong Barangay</p>
+            </div>
+            <div className="w-16 h-16 hidden sm:block"></div>
+          </div>
+          <p className="mt-4 text-lg font-bold text-blue-900 tracking-wider uppercase font-serif border-t border-slate-200 pt-3">
+            OFFICIAL NOTICE OF ESCALATION & REFERRAL
+          </p>
         </header>
 
         <div className="mt-8 space-y-2 text-sm">
-          <p><span className="font-semibold">Date:</span> {issueDate}</p>
-          <p><span className="font-semibold">To:</span> {escalation?.toDepartment || 'Recipient Department'}</p>
-          <p><span className="font-semibold">Attention:</span> {escalation?.toRecipient || 'Concerned Officer'}</p>
-          <p className="pt-4"><span className="font-semibold">Subject:</span> {escalation?.subject || 'Escalation Letter'}</p>
-          {escalation?.caseRef && <p><span className="font-semibold">Case Reference:</span> {escalation.caseRef}</p>}
+          <p><span className="font-semibold text-slate-700">Date Issued:</span> {issueDate}</p>
+          <p><span className="font-semibold text-slate-700">Referral Department:</span> {escalation?.toDepartment || 'Recipient Department / Agency'}</p>
+          <p><span className="font-semibold text-slate-700">Attention:</span> {escalation?.toRecipient || 'Concerned Administrative Officer'}</p>
+          <p className="pt-4"><span className="font-semibold text-slate-700">Subject:</span> {escalation?.subject || 'Formal Escalation Referral'}</p>
+          {escalation?.caseRef && <p><span className="font-semibold text-slate-700">Barangay Case Reference:</span> {escalation.caseRef}</p>}
         </div>
 
-        <p className="mt-8 whitespace-pre-wrap leading-8 text-[15px]">
-          {escalation?.body || 'No letter body was provided.'}
-        </p>
+        <div className="mt-8 whitespace-pre-wrap leading-relaxed text-[15px] text-slate-900 font-serif border-t border-b border-slate-100 py-6 min-h-[220px]">
+          {escalation?.body || 'This case has been formally referred by the Barangay Administration for higher-level review and appropriate legal/administrative action.'}
+        </div>
 
-        <div className="mt-12">
-          <p className="text-sm">Respectfully submitted,</p>
-          <p className="mt-10 font-semibold">Barangay Poblacion Administrative Office</p>
-          <p className="mt-1 text-sm text-slate-500">Reference: {escalation?.id || id}</p>
+        <div className="mt-12 pt-6 grid grid-cols-2 gap-8 text-sm">
+          <div>
+            <p className="text-xs text-slate-500 uppercase tracking-wider">Case Tracking ID</p>
+            <p className="font-mono font-bold text-slate-800 text-base">{escalation?.id || id}</p>
+            <p className="text-xs text-slate-400 mt-1">Status: {escalation?.status || 'Under Review'}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-slate-500 mb-8">Attested and Dispatched by:</p>
+            <p className="font-bold text-slate-900 underline decoration-slate-400 decoration-1 underline-offset-4">Barangay Poblacion Administrative Office</p>
+            <p className="text-xs text-slate-500 mt-1">LGU Cordova, Cebu</p>
+          </div>
         </div>
       </article>
 

@@ -452,7 +452,8 @@ label.field-label {
   }
 
   /* Expand print document container to full width with crisp typography */
-  .printable-document {
+  .printable-document,
+  .letter-paper {
     display: block !important;
     box-shadow: none !important;
     border: none !important;
@@ -460,6 +461,15 @@ label.field-label {
     margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+  }
+
+  .letter-paper header {
+    border-bottom: 2px solid #0f172a !important;
+  }
+
+  .letter-actions,
+  .letter-issued-banner {
+    display: none !important;
   }
 
   /* Official Barangay letterhead when printing */
