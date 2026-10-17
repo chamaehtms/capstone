@@ -287,15 +287,16 @@ export default function BarangayChatbot() {
   const statusBadgeColor = (status) => {
     switch (status) {
       case 'Resolved':
-        return { bg: '#dcfce7', text: '#15803d', border: '#bbf7d0' };
+      case 'Resolved/Escalated':
+        return { bg: 'var(--green-bg, #ecfdf5)', text: 'var(--green-text, #059669)', border: '#a7f3d0' };
       case 'Mediation':
-        return { bg: '#e0e7ff', text: '#4338ca', border: '#c7d2fe' };
+        return { bg: 'var(--indigo-bg, #f5f3ff)', text: 'var(--indigo-text, #4338ca)', border: '#c7d2fe' };
       case 'In Progress':
-        return { bg: '#dbeafe', text: '#1d4ed8', border: '#bfdbfe' };
+        return { bg: 'var(--sky, #e0f2fe)', text: '#0369a1', border: 'var(--sky-2, #bae6fd)' };
       case 'Under Review':
-        return { bg: '#fef3c7', text: '#b45309', border: '#fde68a' };
+        return { bg: 'var(--amber-bg, #fffbeb)', text: 'var(--amber-text, #b45309)', border: '#fde68a' };
       default:
-        return { bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
+        return { bg: 'var(--gray-bg, #f1f5f9)', text: 'var(--gray-text, #475569)', border: 'var(--border, #e2e8f0)' };
     }
   };
 
@@ -312,23 +313,44 @@ export default function BarangayChatbot() {
               display: 'flex',
               alignItems: 'center',
               gap: 10,
-              padding: '12px 18px',
-              backgroundColor: '#1e3a8a',
+              padding: '13px 20px',
+              backgroundColor: 'var(--navy, #141b4d)',
               color: '#ffffff',
-              border: 'none',
-              borderRadius: 30,
-              boxShadow: '0 4px 14px rgba(30, 58, 138, 0.35)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 'var(--radius-pill, 9999px)',
+              boxShadow: '0 10px 25px -3px rgba(20, 27, 77, 0.4), 0 4px 6px -4px rgba(20, 27, 77, 0.2)',
               cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.88rem',
-              transition: 'all 0.2s ease',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              fontFamily: 'var(--font-body, inherit)',
+              letterSpacing: '0.01em',
+              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-2px)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.backgroundColor = 'var(--navy-2, #1b2364)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.backgroundColor = 'var(--navy, #141b4d)';
+            }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-            </svg>
+            <span
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </span>
             <span>Barangay Assistant</span>
           </button>
         )}
@@ -346,15 +368,15 @@ export default function BarangayChatbot() {
             maxWidth: 'calc(100vw - 20px)',
             height: 'var(--chat-height, 620px)',
             maxHeight: 'calc(100dvh - 30px)',
-            backgroundColor: '#ffffff',
-            borderRadius: 16,
-            boxShadow: '0 12px 36px rgba(15, 23, 42, 0.25)',
+            backgroundColor: 'var(--card, #ffffff)',
+            borderRadius: 'var(--radius-lg, 14px)',
+            boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.25), 0 0 0 1px var(--border, #e2e8f0)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             zIndex: 10000,
-            border: '1px solid #cbd5e1',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            border: '1px solid var(--border, #e2e8f0)',
+            fontFamily: 'var(--font-body, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif)',
           }}
         >
           <style>{`
@@ -374,39 +396,41 @@ export default function BarangayChatbot() {
           {/* Header */}
           <div
             style={{
-              backgroundColor: '#1e3a8a',
+              backgroundColor: 'var(--navy, #141b4d)',
               color: '#ffffff',
-              padding: '14px 16px',
+              padding: '14px 18px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              borderBottom: '1px solid #1e40af',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
               <div
                 style={{
-                  width: 34,
-                  height: 34,
+                  width: 36,
+                  height: 36,
                   borderRadius: '50%',
-                  backgroundColor: '#ffffff',
+                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#1e3a8a',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
                   flexShrink: 0,
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: '0.92rem', lineHeight: 1.2 }}>
+                <div style={{ fontWeight: 800, fontSize: '0.94rem', lineHeight: 1.25, letterSpacing: '-0.01em' }}>
                   Barangay Poblacion Assistant
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#93c5fd', marginTop: 2 }}>
-                  Verified RAG Assistant • Poblacion, Cordova
+                <div style={{ fontSize: '0.72rem', color: 'var(--sky-2, #bae6fd)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#4ade80' }}></span>
+                  <span>Official Civic Assistant • Poblacion, Cordova</span>
                 </div>
               </div>
             </div>
@@ -419,13 +443,13 @@ export default function BarangayChatbot() {
                   onClick={handleEndChat}
                   title="End conversation and start new session"
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
                     color: '#ffffff',
-                    borderRadius: 6,
+                    borderRadius: 'var(--radius-sm, 6px)',
                     fontSize: '0.7rem',
-                    fontWeight: 600,
-                    padding: '4px 8px',
+                    fontWeight: 700,
+                    padding: '5px 9px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -433,12 +457,12 @@ export default function BarangayChatbot() {
                     transition: 'all 0.15s ease',
                   }}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.85)';
-                    e.currentTarget.style.borderColor = '#ef4444';
+                    e.currentTarget.style.backgroundColor = 'var(--red-text, #dc2626)';
+                    e.currentTarget.style.borderColor = 'var(--red-text, #dc2626)';
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -447,7 +471,7 @@ export default function BarangayChatbot() {
                     <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
                     <path d="M3 21v-5h5"></path>
                   </svg>
-                  <span>End Chat</span>
+                  <span>Reset</span>
                 </button>
               )}
 
@@ -457,17 +481,27 @@ export default function BarangayChatbot() {
                 onClick={() => setIsOpen(false)}
                 title="Close Assistant"
                 style={{
-                  background: 'none',
+                  background: 'transparent',
                   border: 'none',
                   color: '#ffffff',
                   cursor: 'pointer',
-                  padding: 4,
+                  padding: 6,
                   display: 'flex',
                   alignItems: 'center',
+                  borderRadius: 'var(--radius-sm, 6px)',
                   opacity: 0.85,
+                  transition: 'opacity 0.15s ease, background-color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.12)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = '0.85';
+                  e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -478,24 +512,24 @@ export default function BarangayChatbot() {
           {/* Scope & Mode Switcher Bar */}
           <div
             style={{
-              padding: '6px 12px',
-              backgroundColor: '#f8fafc',
-              borderBottom: '1px solid #e2e8f0',
+              padding: '8px 14px',
+              backgroundColor: 'var(--bg, #f8fafc)',
+              borderBottom: '1px solid var(--border, #e2e8f0)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               gap: 8,
             }}
           >
-            {/* Segmented Switcher */}
+            {/* Segmented Switcher matching resident portal tabs */}
             <div
               style={{
                 display: 'flex',
-                background: '#e2e8f0',
-                borderRadius: 8,
-                padding: 2,
+                background: '#eef0f6',
+                borderRadius: 'var(--radius-pill, 9999px)',
+                padding: 3,
                 flex: 1,
-                maxWidth: 280,
+                maxWidth: 260,
               }}
             >
               <button
@@ -503,14 +537,14 @@ export default function BarangayChatbot() {
                 onClick={() => setChatMode('ai')}
                 style={{
                   flex: 1,
-                  padding: '6px 10px',
+                  padding: '6px 12px',
                   fontSize: '0.74rem',
-                  fontWeight: chatMode === 'ai' ? 700 : 500,
-                  borderRadius: 6,
+                  fontWeight: chatMode === 'ai' ? 800 : 600,
+                  borderRadius: 'var(--radius-pill, 9999px)',
                   border: 'none',
                   backgroundColor: chatMode === 'ai' ? '#ffffff' : 'transparent',
-                  color: chatMode === 'ai' ? '#1e3a8a' : '#64748b',
-                  boxShadow: chatMode === 'ai' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  color: chatMode === 'ai' ? 'var(--navy, #141b4d)' : 'var(--muted, #64748b)',
+                  boxShadow: chatMode === 'ai' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -533,14 +567,14 @@ export default function BarangayChatbot() {
                 }}
                 style={{
                   flex: 1,
-                  padding: '6px 10px',
+                  padding: '6px 12px',
                   fontSize: '0.74rem',
-                  fontWeight: chatMode === 'admin' ? 700 : 500,
-                  borderRadius: 6,
+                  fontWeight: chatMode === 'admin' ? 800 : 600,
+                  borderRadius: 'var(--radius-pill, 9999px)',
                   border: 'none',
                   backgroundColor: chatMode === 'admin' ? '#ffffff' : 'transparent',
-                  color: chatMode === 'admin' ? '#047857' : '#64748b',
-                  boxShadow: chatMode === 'admin' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  color: chatMode === 'admin' ? 'var(--blue, #2563eb)' : 'var(--muted, #64748b)',
+                  boxShadow: chatMode === 'admin' ? '0 1px 3px rgba(15, 23, 42, 0.08)' : 'none',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -557,13 +591,13 @@ export default function BarangayChatbot() {
                 {unreadAdminCount > 0 && (
                   <span
                     style={{
-                      background: '#ef4444',
+                      background: 'var(--red-text, #dc2626)',
                       color: '#ffffff',
                       fontSize: '0.62rem',
-                      fontWeight: 700,
-                      borderRadius: 10,
-                      padding: '1px 5px',
-                      lineHeight: 1,
+                      fontWeight: 800,
+                      borderRadius: 'var(--radius-pill, 9999px)',
+                      padding: '1px 6px',
+                      lineHeight: 1.2,
                     }}
                   >
                     {unreadAdminCount}
@@ -572,22 +606,22 @@ export default function BarangayChatbot() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <label htmlFor="chatbot-lang-select" style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748b' }}>
-                Lang:
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <label htmlFor="chatbot-lang-select" style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted, #64748b)' }}>
+                Language:
               </label>
               <select
                 id="chatbot-lang-select"
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  color: '#1e3a8a',
+                  fontSize: '0.74rem',
+                  fontWeight: 700,
+                  color: 'var(--navy, #141b4d)',
                   background: '#ffffff',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 6,
-                  padding: '3px 6px',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  padding: '4px 8px',
                   cursor: 'pointer',
                   outline: 'none',
                 }}
@@ -606,12 +640,12 @@ export default function BarangayChatbot() {
               <div
                 style={{
                   flex: 1,
-                  padding: 14,
+                  padding: 16,
                   overflowY: 'auto',
-                  backgroundColor: '#f8fafc',
+                  backgroundColor: 'var(--bg, #f8fafc)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 12,
+                  gap: 14,
                 }}
               >
                 {aiMessages.map((m) => {
@@ -630,86 +664,90 @@ export default function BarangayChatbot() {
                       {/* Sender Label */}
                       <div
                         style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 600,
-                          color: isResident ? '#64748b' : '#1e3a8a',
-                          marginBottom: 3,
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: isResident ? 'var(--muted, #64748b)' : 'var(--navy, #141b4d)',
+                          marginBottom: 4,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 4,
+                          gap: 5,
                         }}
                       >
                         {isResident ? (
                           <span>You</span>
                         ) : (
                           <>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#2563eb' }}></span>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--blue, #2563eb)' }}></span>
                             <span>Barangay AI Assistant</span>
                           </>
                         )}
-                        <span style={{ color: '#94a3b8', fontWeight: 400 }}>• {m.timestamp}</span>
+                        <span style={{ color: '#94a3b8', fontWeight: 500 }}>• {m.timestamp}</span>
                       </div>
 
                       {/* Message Bubble */}
                       <div
                         style={{
                           maxWidth: '85%',
-                          padding: '10px 14px',
-                          borderRadius: 12,
-                          fontSize: '0.84rem',
-                          lineHeight: 1.5,
+                          padding: '12px 16px',
+                          borderRadius: isResident ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                          fontSize: '0.86rem',
+                          lineHeight: 1.55,
                           whiteSpace: 'pre-wrap',
-                          backgroundColor: isResident ? '#1e3a8a' : '#ffffff',
-                          color: isResident ? '#ffffff' : '#0f172a',
-                          border: isResident ? 'none' : '1px solid #e2e8f0',
-                          boxShadow: isResident ? 'none' : '0 1px 2px rgba(15, 23, 42, 0.04)',
+                          backgroundColor: isResident ? 'var(--navy, #141b4d)' : 'var(--card, #ffffff)',
+                          color: isResident ? '#ffffff' : 'var(--text, #0f172a)',
+                          border: isResident ? 'none' : '1px solid var(--border, #e2e8f0)',
+                          boxShadow: isResident
+                            ? '0 4px 12px rgba(20, 27, 77, 0.15)'
+                            : '0 2px 6px rgba(15, 23, 42, 0.04)',
                         }}
                       >
                         {cleanText(m.text)}
 
                         {/* Verified Complaint Card If Retrieved */}
                         {m.complaints && m.complaints.length > 0 && (
-                          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {m.complaints.map((c) => {
                               const badge = statusBadgeColor(c.status);
                               return (
                                 <div
                                   key={c.id}
                                   style={{
-                                    padding: 10,
-                                    background: '#f8fafc',
-                                    borderRadius: 8,
-                                    border: '1px solid #cbd5e1',
-                                    fontSize: '0.78rem',
-                                    color: '#1e293b',
+                                    padding: '12px 14px',
+                                    background: 'var(--bg, #f8fafc)',
+                                    borderRadius: 'var(--radius, 8px)',
+                                    border: '1px solid var(--border, #e2e8f0)',
+                                    fontSize: '0.8rem',
+                                    color: 'var(--text, #0f172a)',
                                   }}
                                 >
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                                    <strong style={{ color: '#1e3a8a' }}>Case #{c.id}</strong>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                                    <strong style={{ color: 'var(--navy, #141b4d)', fontSize: '0.86rem' }}>Case #{c.id}</strong>
                                     <span
                                       style={{
                                         backgroundColor: badge.bg,
                                         color: badge.text,
                                         border: `1px solid ${badge.border}`,
                                         padding: '2px 8px',
-                                        borderRadius: 12,
-                                        fontWeight: 700,
-                                        fontSize: '0.7rem',
+                                        borderRadius: 'var(--radius-pill, 9999px)',
+                                        fontWeight: 800,
+                                        fontSize: '0.68rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.03em',
                                       }}
                                     >
                                       {c.status}
                                     </span>
                                   </div>
-                                  <div style={{ color: '#475569', marginBottom: 2 }}>
-                                    Category: {c.category || 'General Concern'}
+                                  <div style={{ color: 'var(--muted, #64748b)', marginBottom: 3 }}>
+                                    Category: <strong style={{ color: 'var(--text, #0f172a)' }}>{c.category || 'General Concern'}</strong>
                                   </div>
                                   {c.hearingStage && (
-                                    <div style={{ color: '#0284c7', fontWeight: 600 }}>
+                                    <div style={{ color: 'var(--blue, #2563eb)', fontWeight: 600 }}>
                                       Stage: {c.hearingStage}
                                     </div>
                                   )}
                                   {c.mediationDate && (
-                                    <div style={{ color: '#4338ca', fontSize: '0.74rem', marginTop: 3 }}>
+                                    <div style={{ color: 'var(--indigo-text, #4338ca)', fontSize: '0.76rem', marginTop: 4 }}>
                                       Mediation: {c.mediationDate} at {c.mediationVenue || 'Barangay Hall'}
                                     </div>
                                   )}
@@ -721,7 +759,7 @@ export default function BarangayChatbot() {
 
                         {/* Switch to Admin Chat Button if requested */}
                         {m.canMessageAdmin && (
-                          <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
+                          <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border, #e2e8f0)' }}>
                             <button
                               type="button"
                               onClick={() => {
@@ -729,23 +767,27 @@ export default function BarangayChatbot() {
                                 setChatMode('admin');
                               }}
                               style={{
-                                backgroundColor: '#0284c7',
+                                backgroundColor: 'var(--blue, #2563eb)',
                                 color: '#ffffff',
                                 border: 'none',
-                                padding: '6px 12px',
-                                borderRadius: 6,
-                                fontSize: '0.74rem',
-                                fontWeight: 600,
+                                padding: '7px 14px',
+                                borderRadius: 'var(--radius-pill, 9999px)',
+                                fontSize: '0.76rem',
+                                fontWeight: 700,
                                 cursor: 'pointer',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 5,
+                                gap: 6,
+                                boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)',
+                                transition: 'all 0.15s ease',
                               }}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#1d4ed8')}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--blue, #2563eb)')}
                             >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                               </svg>
-                              Switch to Barangay Admin Chat
+                              <span>Direct Message Barangay Admin</span>
                             </button>
                           </div>
                         )}
@@ -755,8 +797,8 @@ export default function BarangayChatbot() {
                 })}
 
                 {isTyping && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b', fontSize: '0.78rem', padding: '4px 8px' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#94a3b8', animation: 'pulse 1s infinite' }}></span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--muted, #64748b)', fontSize: '0.8rem', padding: '6px 10px' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--blue, #2563eb)', animation: 'pulse 1s infinite' }}></span>
                     <span>Barangay Assistant is checking official database...</span>
                   </div>
                 )}
@@ -767,11 +809,11 @@ export default function BarangayChatbot() {
               {/* Quick Action Chips */}
               <div
                 style={{
-                  padding: '6px 10px',
-                  backgroundColor: '#ffffff',
-                  borderTop: '1px solid #f1f5f9',
+                  padding: '8px 12px',
+                  backgroundColor: 'var(--card, #ffffff)',
+                  borderTop: '1px solid var(--border, #e2e8f0)',
                   display: 'flex',
-                  gap: 6,
+                  gap: 7,
                   overflowX: 'auto',
                   whiteSpace: 'nowrap',
                 }}
@@ -785,15 +827,26 @@ export default function BarangayChatbot() {
                       else handleSend(qp.query);
                     }}
                     style={{
-                      padding: '4px 10px',
-                      backgroundColor: '#f1f5f9',
-                      color: '#334155',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 16,
-                      fontSize: '0.72rem',
-                      fontWeight: 500,
+                      padding: '5px 12px',
+                      backgroundColor: 'var(--gray-bg, #f1f5f9)',
+                      color: 'var(--navy, #141b4d)',
+                      border: '1px solid var(--border, #e2e8f0)',
+                      borderRadius: 'var(--radius-pill, 9999px)',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
                       cursor: 'pointer',
                       flexShrink: 0,
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--sky, #e0f2fe)';
+                      e.currentTarget.style.borderColor = 'var(--sky-2, #bae6fd)';
+                      e.currentTarget.style.color = 'var(--blue, #2563eb)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--gray-bg, #f1f5f9)';
+                      e.currentTarget.style.borderColor = 'var(--border, #e2e8f0)';
+                      e.currentTarget.style.color = 'var(--navy, #141b4d)';
                     }}
                   >
                     {qp.label}
@@ -808,9 +861,9 @@ export default function BarangayChatbot() {
                   handleSend();
                 }}
                 style={{
-                  padding: '10px 14px',
-                  backgroundColor: '#ffffff',
-                  borderTop: '1px solid #e2e8f0',
+                  padding: '12px 14px',
+                  backgroundColor: 'var(--card, #ffffff)',
+                  borderTop: '1px solid var(--border, #e2e8f0)',
                   display: 'flex',
                   gap: 8,
                   alignItems: 'center',
@@ -823,12 +876,23 @@ export default function BarangayChatbot() {
                   onChange={(e) => setInput(e.target.value)}
                   style={{
                     flex: 1,
-                    padding: '9px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius, 8px)',
+                    border: '1px solid var(--border, #e2e8f0)',
+                    fontSize: '0.86rem',
                     outline: 'none',
-                    backgroundColor: '#f8fafc',
+                    backgroundColor: 'var(--bg, #f8fafc)',
+                    fontFamily: 'var(--font-body, inherit)',
+                    color: 'var(--text, #0f172a)',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--blue, #2563eb)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border, #e2e8f0)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
                 <button
@@ -836,16 +900,23 @@ export default function BarangayChatbot() {
                   disabled={!input.trim() || isTyping}
                   aria-label="Send message to AI"
                   style={{
-                    backgroundColor: '#1e3a8a',
+                    backgroundColor: 'var(--navy, #141b4d)',
                     color: '#ffffff',
                     border: 'none',
-                    borderRadius: 8,
-                    padding: '9px 14px',
+                    borderRadius: 'var(--radius, 8px)',
+                    padding: '10px 16px',
                     cursor: !input.trim() || isTyping ? 'not-allowed' : 'pointer',
-                    opacity: !input.trim() || isTyping ? 0.6 : 1,
+                    opacity: !input.trim() || isTyping ? 0.5 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (input.trim() && !isTyping) e.currentTarget.style.backgroundColor = 'var(--navy-2, #1b2364)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--navy, #141b4d)';
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -863,22 +934,22 @@ export default function BarangayChatbot() {
               {/* Admin Chat Banner */}
               <div
                 style={{
-                  padding: '8px 14px',
-                  backgroundColor: '#ecfdf5',
-                  borderBottom: '1px solid #a7f3d0',
+                  padding: '9px 16px',
+                  backgroundColor: 'var(--green-bg, #ecfdf5)',
+                  borderBottom: '1px solid #bbf7d0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  fontSize: '0.74rem',
-                  color: '#065f46',
+                  fontSize: '0.76rem',
+                  color: 'var(--green-text, #059669)',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }}></span>
-                  <span style={{ fontWeight: 600 }}>Direct Line to Barangay Admin Staff</span>
+                  <span style={{ fontWeight: 700 }}>Direct Line to Barangay Admin Staff</span>
                 </div>
                 {taggedCaseId && (
-                  <span style={{ fontSize: '0.7rem', color: '#047857', fontWeight: 700 }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--navy, #141b4d)', fontWeight: 800 }}>
                     Case #{taggedCaseId}
                   </span>
                 )}
@@ -888,12 +959,12 @@ export default function BarangayChatbot() {
               <div
                 style={{
                   flex: 1,
-                  padding: 14,
+                  padding: 16,
                   overflowY: 'auto',
-                  backgroundColor: '#f8fafc',
+                  backgroundColor: 'var(--bg, #f8fafc)',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 12,
+                  gap: 14,
                 }}
               >
                 {adminMessages.length === 0 ? (
@@ -902,30 +973,31 @@ export default function BarangayChatbot() {
                       margin: 'auto 0',
                       textAlign: 'center',
                       padding: '24px 16px',
-                      color: '#64748b',
+                      color: 'var(--muted, #64748b)',
                     }}
                   >
                     <div
                       style={{
-                        width: 44,
-                        height: 44,
+                        width: 48,
+                        height: 48,
                         borderRadius: '50%',
-                        backgroundColor: '#d1fae5',
-                        color: '#059669',
+                        backgroundColor: 'var(--green-bg, #ecfdf5)',
+                        color: 'var(--green-text, #059669)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto 10px',
+                        margin: '0 auto 12px',
+                        border: '1px solid #a7f3d0',
                       }}
                     >
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                       </svg>
                     </div>
-                    <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9rem', marginBottom: 4 }}>
+                    <div style={{ fontWeight: 800, color: 'var(--navy, #141b4d)', fontSize: '0.94rem', marginBottom: 5 }}>
                       Direct Admin Inquiries
                     </div>
-                    <p style={{ fontSize: '0.78rem', lineHeight: 1.4, maxWidth: 280, margin: '0 auto' }}>
+                    <p style={{ fontSize: '0.82rem', lineHeight: 1.5, maxWidth: 300, margin: '0 auto', color: 'var(--muted, #64748b)' }}>
                       Send official concerns, blotter inquiries, or follow-ups directly to the Barangay Poblacion administration.
                     </p>
                   </div>
@@ -947,44 +1019,46 @@ export default function BarangayChatbot() {
                         {/* Sender Label */}
                         <div
                           style={{
-                            fontSize: '0.68rem',
-                            fontWeight: 600,
-                            color: isAdmin ? '#059669' : '#64748b',
-                            marginBottom: 3,
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            color: isAdmin ? 'var(--green-text, #059669)' : 'var(--muted, #64748b)',
+                            marginBottom: 4,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 4,
+                            gap: 5,
                           }}
                         >
                           {isAdmin ? (
                             <>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#059669' }}></span>
+                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green-text, #059669)' }}></span>
                               <span>Barangay Official Admin</span>
                             </>
                           ) : (
                             <span>You</span>
                           )}
-                          <span style={{ color: '#94a3b8', fontWeight: 400 }}>• {m.timestamp}</span>
+                          <span style={{ color: '#94a3b8', fontWeight: 500 }}>• {m.timestamp}</span>
                         </div>
 
                         {/* Bubble */}
                         <div
                           style={{
                             maxWidth: '85%',
-                            padding: '10px 14px',
-                            borderRadius: 12,
-                            fontSize: '0.84rem',
-                            lineHeight: 1.5,
+                            padding: '12px 16px',
+                            borderRadius: isResident ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                            fontSize: '0.86rem',
+                            lineHeight: 1.55,
                             whiteSpace: 'pre-wrap',
-                            backgroundColor: isAdmin ? '#ecfdf5' : '#047857',
-                            color: isAdmin ? '#065f46' : '#ffffff',
-                            border: isAdmin ? '1px solid #a7f3d0' : 'none',
-                            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
+                            backgroundColor: isAdmin ? 'var(--card, #ffffff)' : 'var(--navy, #141b4d)',
+                            color: isAdmin ? 'var(--text, #0f172a)' : '#ffffff',
+                            border: isAdmin ? '1px solid var(--border, #e2e8f0)' : 'none',
+                            boxShadow: isResident
+                              ? '0 4px 12px rgba(20, 27, 77, 0.15)'
+                              : '0 2px 6px rgba(15, 23, 42, 0.04)',
                           }}
                         >
                           {cleanText(m.text)}
                           {m.caseId && (
-                            <div style={{ marginTop: 4, fontSize: '0.68rem', opacity: 0.85, fontWeight: 600 }}>
+                            <div style={{ marginTop: 5, fontSize: '0.72rem', opacity: 0.85, fontWeight: 700 }}>
                               Ref: #{m.caseId}
                             </div>
                           )}
@@ -997,12 +1071,13 @@ export default function BarangayChatbot() {
                 {adminSentSuccess && (
                   <div
                     style={{
-                      padding: '8px 12px',
-                      backgroundColor: '#f0fdf4',
+                      padding: '9px 14px',
+                      backgroundColor: 'var(--green-bg, #ecfdf5)',
                       border: '1px solid #bbf7d0',
-                      borderRadius: 8,
-                      color: '#15803d',
-                      fontSize: '0.75rem',
+                      borderRadius: 'var(--radius, 8px)',
+                      color: 'var(--green-text, #059669)',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
                       textAlign: 'center',
                     }}
                   >
@@ -1017,9 +1092,9 @@ export default function BarangayChatbot() {
               <form
                 onSubmit={(e) => handleSendAdminMessage(e, adminInput)}
                 style={{
-                  padding: '10px 14px',
-                  backgroundColor: '#ffffff',
-                  borderTop: '1px solid #e2e8f0',
+                  padding: '12px 14px',
+                  backgroundColor: 'var(--card, #ffffff)',
+                  borderTop: '1px solid var(--border, #e2e8f0)',
                   display: 'flex',
                   gap: 8,
                   alignItems: 'center',
@@ -1033,12 +1108,23 @@ export default function BarangayChatbot() {
                   disabled={sendingAdminMsg}
                   style={{
                     flex: 1,
-                    padding: '9px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #cbd5e1',
-                    fontSize: '0.84rem',
+                    padding: '10px 14px',
+                    borderRadius: 'var(--radius, 8px)',
+                    border: '1px solid var(--border, #e2e8f0)',
+                    fontSize: '0.86rem',
                     outline: 'none',
-                    backgroundColor: '#f8fafc',
+                    backgroundColor: 'var(--bg, #f8fafc)',
+                    fontFamily: 'var(--font-body, inherit)',
+                    color: 'var(--text, #0f172a)',
+                    transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--blue, #2563eb)';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.12)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border, #e2e8f0)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 />
                 <button
@@ -1046,16 +1132,23 @@ export default function BarangayChatbot() {
                   disabled={!adminInput.trim() || sendingAdminMsg}
                   aria-label="Send message to Admin"
                   style={{
-                    backgroundColor: '#047857',
+                    backgroundColor: 'var(--navy, #141b4d)',
                     color: '#ffffff',
                     border: 'none',
-                    borderRadius: 8,
-                    padding: '9px 14px',
+                    borderRadius: 'var(--radius, 8px)',
+                    padding: '10px 16px',
                     cursor: !adminInput.trim() || sendingAdminMsg ? 'not-allowed' : 'pointer',
-                    opacity: !adminInput.trim() || sendingAdminMsg ? 0.6 : 1,
+                    opacity: !adminInput.trim() || sendingAdminMsg ? 0.5 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (adminInput.trim() && !sendingAdminMsg) e.currentTarget.style.backgroundColor = 'var(--navy-2, #1b2364)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'var(--navy, #141b4d)';
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
