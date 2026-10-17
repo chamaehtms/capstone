@@ -20,7 +20,6 @@ function cleanText(text) {
 export default function BarangayChatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [chatMode, setChatMode] = useState('ai'); // 'ai' | 'admin'
-  const [language, setLanguage] = useState('en'); // 'en' | 'fil' | 'ceb'
   const [aiMessages, setAiMessages] = useState([]);
   const [adminMessages, setAdminMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -42,11 +41,7 @@ export default function BarangayChatbot() {
   // Initial welcome greeting
   useEffect(() => {
     const greetingText =
-      language === 'fil'
-        ? 'Magandang araw! Ako ang Barangay AI Assistant para sa Poblacion, Cordova. Maaari kitang tulungan sa impormasyon ukol sa mga sertipiko, proseso ng reklamo, anunsyo, at mga alituntunin sa komunidad. Paano kita matutulungan ngayon?'
-        : language === 'ceb'
-        ? 'Maayong adlaw! Ako ang Barangay AI Assistant para sa Poblacion, Cordova. Makatabang ko nimo sa mga serbisyo sa barangay, clearance, pagsusi sa reklamo, ug mga patakaran sa komunidad. Unsay akong ikatabang nimo karon?'
-        : 'Good day! I am the official Barangay AI Assistant for Poblacion, Cordova. I can assist you with barangay clearances, complaint tracking, community announcements, and official office procedures. How may I help you today?';
+      'Good day. I am the official Barangay AI Assistant for Poblacion, Cordova. I can assist you with barangay clearances, complaint tracking, community announcements, and official office procedures. How may I help you today?';
 
     setAiMessages([
       {
@@ -56,7 +51,7 @@ export default function BarangayChatbot() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       },
     ]);
-  }, [language]);
+  }, []);
 
   // Load message thread from admin if resident is authenticated with periodic polling (every 4 seconds)
   useEffect(() => {
@@ -371,58 +366,6 @@ export default function BarangayChatbot() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* Language Selector */}
-              <div style={{ display: 'flex', background: 'rgba(255,255,255,0.15)', borderRadius: 6, padding: 2 }}>
-                <button
-                  type="button"
-                  onClick={() => setLanguage('en')}
-                  style={{
-                    padding: '2px 6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderRadius: 4,
-                    background: language === 'en' ? '#ffffff' : 'transparent',
-                    color: language === 'en' ? '#1e3a8a' : '#ffffff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  EN
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage('fil')}
-                  style={{
-                    padding: '2px 6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderRadius: 4,
-                    background: language === 'fil' ? '#ffffff' : 'transparent',
-                    color: language === 'fil' ? '#1e3a8a' : '#ffffff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  FIL
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLanguage('ceb')}
-                  style={{
-                    padding: '2px 6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderRadius: 4,
-                    background: language === 'ceb' ? '#ffffff' : 'transparent',
-                    color: language === 'ceb' ? '#1e3a8a' : '#ffffff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  CEB
-                </button>
-              </div>
-
               {/* Close Button */}
               <button
                 type="button"
@@ -768,13 +711,7 @@ export default function BarangayChatbot() {
               >
                 <input
                   type="text"
-                  placeholder={
-                    language === 'fil'
-                      ? 'Magtanong ukol sa serbisyo ng barangay...'
-                      : language === 'ceb'
-                      ? 'Pangutana mahitungod sa serbisyo sa barangay...'
-                      : 'Ask about barangay services, clearance, complaints...'
-                  }
+                  placeholder="Ask about barangay services, clearance, complaints..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   style={{
