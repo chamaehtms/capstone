@@ -1,6 +1,29 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+let tesseract = null;
+try {
+  tesseract = require('tesseract.js');
+} catch (e) {
+  // Graceful fallback if tesseract is missing
+}
+
+/**
+ * Secondary local OCR engine using Tesseract.
+ * Used as a zero-cost, offline fallback when Sightengine OCR misses text due to camera distance or glare.
+ */
+async function performLocalOcr(imageBufferOrPath) {
+  if (!tesseract || !tesseract.recognize) return '';
+  try {
+    const result = await tesseract.recognize(imageBufferOrPath, 'eng', {
+      errorHandler: () => {},
+    });
+    return (result?.data?.text || '').trim();
+  } catch (err) {
+    console.warn('[performLocalOcr] Local Tesseract OCR fallback error:', err.message);
+    return '';
+  }
+}
 
 function extractSightengineScore(payload) {
   if (!payload || typeof payload !== 'object') return null;
@@ -149,6 +172,8 @@ async function validateIdImage(fileOrUrl, options = {}) {
     form.append('api_user', userId);
     form.append('api_secret', apiSecret);
 
+    let rawBuffer = null;
+
     if (typeof fileOrUrl === 'string') {
       const str = fileOrUrl.trim();
       if (str.startsWith('http://') || str.startsWith('https://')) {
@@ -164,15 +189,15 @@ async function validateIdImage(fileOrUrl, options = {}) {
         if (mimeType === 'application/pdf') {
           return { status: 'document_pdf', score: null, summary: 'PDF document uploaded (Manual review recommended).' };
         }
-        const buffer = await fs.promises.readFile(absPath);
-        form.append('media', new Blob([buffer], { type: mimeType }), path.basename(absPath));
+        rawBuffer = await fs.promises.readFile(absPath);
+        form.append('media', new Blob([rawBuffer], { type: mimeType }), path.basename(absPath));
       }
     } else if (fileOrUrl && fileOrUrl.path) {
       if (fileOrUrl.mimetype === 'application/pdf') {
         return { status: 'document_pdf', score: null, summary: 'PDF document uploaded (Manual review recommended).' };
       }
-      const buffer = await fs.promises.readFile(fileOrUrl.path);
-      form.append('media', new Blob([buffer], { type: fileOrUrl.mimetype || 'image/jpeg' }), fileOrUrl.originalname || 'id_file.jpg');
+      rawBuffer = await fs.promises.readFile(fileOrUrl.path);
+      form.append('media', new Blob([rawBuffer], { type: fileOrUrl.mimetype || 'image/jpeg' }), fileOrUrl.originalname || 'id_file.jpg');
     } else {
       return { status: 'no_document', score: null, summary: 'No valid document provided.' };
     }
@@ -193,8 +218,22 @@ async function validateIdImage(fileOrUrl, options = {}) {
 
     const sharpness = typeof data.sharpness === 'number' ? data.sharpness : null;
     const brightness = typeof data.brightness === 'number' ? data.brightness : null;
-    const ocrText = (data.text?.content || '').trim();
+    let ocrText = (data.text?.content || '').trim();
     const faces = Array.isArray(data.faces) ? data.faces : [];
+
+    // Tesseract Secondary OCR Fallback:
+    // If Sightengine OCR extracted little or no text (< 12 characters) from the ID card image,
+    // invoke local Tesseract OCR to extract micro-text and prevent false unsupported_id rejections.
+    if (rawBuffer && ocrText.length < 12 && options.isIdCard) {
+      try {
+        const localText = await performLocalOcr(rawBuffer);
+        if (localText && localText.trim().length > 0) {
+          ocrText = (ocrText ? `${ocrText} ${localText}` : localText).trim();
+        }
+      } catch (localOcrErr) {
+        console.warn('[validateIdImage] Fallback OCR bypassed:', localOcrErr.message);
+      }
+    }
 
     // 1. Check for blurry image (low sharpness)
     if (sharpness !== null && sharpness < 0.20) {
@@ -406,25 +445,27 @@ async function verifyIdDocumentStep(idDocFile, options = {}) {
   }
 
   // 1b. Image quality check (Sharpness / blur)
+  // Severe blur (< 0.10) is rejected; borderline blur is escalated for manual admin review
   if (idScan.status === 'blurry') {
-    return {
-      step: 1,
-      valid: false,
-      rejectedField: 'idDocument',
-      idScan,
-      reason: `ID Image Quality Issue: The uploaded ID is too blurry to read (${idScan.summary}). Please take a well-focused, sharp photo and re-upload.`,
-    };
+    if (typeof idScan.sharpness === 'number' && idScan.sharpness < 0.10) {
+      return {
+        step: 1,
+        valid: false,
+        rejectedField: 'idDocument',
+        idScan,
+        reason: `ID Image Quality Issue: The uploaded ID is too blurry to read (${idScan.summary}). Please take a well-focused, sharp photo and re-upload.`,
+      };
+    }
+    // Borderline sharpness: Soft-pass to manual review
+    idScan.manualReviewAdvised = true;
+    idScan.summary = 'Borderline sharpness detected on ID document. Queued for Barangay Officer manual inspection.';
   }
 
-  // 1c. Image lighting / glare check
+  // 1c. Image lighting / glare check (Laminated IDs often reflect camera flash)
+  // Escalate to manual review rather than hard-failing authentic residents
   if (idScan.status === 'poor_lighting') {
-    return {
-      step: 1,
-      valid: false,
-      rejectedField: 'idDocument',
-      idScan,
-      reason: `ID Image Quality Issue: ${idScan.summary}`,
-    };
+    idScan.manualReviewAdvised = true;
+    idScan.summary = `Lighting/Glare variance noted (${idScan.summary}). Queued for Barangay Officer manual inspection.`;
   }
 
   // 1d. Expiration check
@@ -450,33 +491,28 @@ async function verifyIdDocumentStep(idDocFile, options = {}) {
   }
 
   // 1f. Unsupported document check
+  // If no OCR keywords matched, but an image was provided, route to manual admin review
+  // so unusual/special local IDs or new ID formats are not blocked outright.
   if (idScan.status === 'unsupported_id') {
-    return {
-      step: 1,
-      valid: false,
-      rejectedField: 'idDocument',
-      idScan,
-      reason: `Unsupported Document: ${idScan.summary}`,
-    };
+    idScan.manualReviewAdvised = true;
+    idScan.status = 'manual_verification_required';
+    idScan.summary = 'Unrecognized card typography or layout. Queued for Barangay Officer manual inspection.';
   }
 
-  // 1f. Readability check (sufficient OCR text extracted from physical card)
+  // 1g. Readability check (sufficient OCR text extracted from physical card)
   if (
     idDocFile.mimetype !== 'application/pdf' &&
     idScan.ocrText !== undefined &&
     idScan.ocrText.length < 10 &&
-    idScan.status !== 'provider_unavailable'
+    idScan.status !== 'provider_unavailable' &&
+    idScan.status !== 'manual_verification_required'
   ) {
-    return {
-      step: 1,
-      valid: false,
-      rejectedField: 'idDocument',
-      idScan,
-      reason: 'ID Readability Failed: The text on your uploaded ID card could not be read clearly. Please upload a flat, well-lit photo with all printed details legible.',
-    };
+    idScan.manualReviewAdvised = true;
+    idScan.status = 'manual_verification_required';
+    idScan.summary = 'Low OCR text resolution. Queued for Barangay Officer manual inspection.';
   }
 
-  // 1g. Profile match: Verify applicant's registered name against ID OCR text
+  // 1h. Profile match: Verify applicant's registered name against ID OCR text
   if (applicantName && idScan.ocrText && idScan.ocrText.length >= 30) {
     const nameMatch = verifyNameMatchesId(applicantName, idScan.ocrText);
     if (!nameMatch.matched) {
@@ -547,25 +583,25 @@ async function verifySelfieHoldingIdStep(selfieFile, idDocFile, idScan) {
   }
 
   // 2d. Image quality: Blur check
+  // Extreme blur (< 0.10) is rejected; slight blur is escalated for manual admin review
   if (selfieScan.status === 'blurry') {
-    return {
-      step: 2,
-      valid: false,
-      rejectedField: 'selfieWithId',
-      selfieScan,
-      reason: `Selfie Image Quality Issue: The selfie is too blurry (${selfieScan.summary}). Please hold your ID steady next to your face in good lighting and re-upload.`,
-    };
+    if (typeof selfieScan.sharpness === 'number' && selfieScan.sharpness < 0.10) {
+      return {
+        step: 2,
+        valid: false,
+        rejectedField: 'selfieWithId',
+        selfieScan,
+        reason: `Selfie Image Quality Issue: The selfie is too blurry (${selfieScan.summary}). Please hold your ID steady next to your face in good lighting and re-upload.`,
+      };
+    }
+    selfieScan.manualReviewAdvised = true;
+    selfieScan.summary = 'Borderline sharpness on selfie. Queued for Barangay Officer manual inspection.';
   }
 
-  // 2d. Image quality: Lighting check
+  // 2d. Image quality: Lighting check (Soft-flag for admin inspection)
   if (selfieScan.status === 'poor_lighting') {
-    return {
-      step: 2,
-      valid: false,
-      rejectedField: 'selfieWithId',
-      selfieScan,
-      reason: `Selfie Image Quality Issue: ${selfieScan.summary}`,
-    };
+    selfieScan.manualReviewAdvised = true;
+    selfieScan.summary = `Lighting/Glare variance noted in selfie (${selfieScan.summary}). Queued for Barangay Officer manual inspection.`;
   }
 
   // 2e. Image quality: AI deepfake detection
