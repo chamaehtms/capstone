@@ -37,20 +37,22 @@ export default function BarangayChatbot() {
     ]);
   }, [language]);
 
-  // Load message thread from admin if resident is authenticated
+  // Load message thread from admin if resident is authenticated with periodic polling (every 4 seconds)
   useEffect(() => {
-    const activeToken = Session.getToken() || localStorage.getItem('bp_token');
-    if (!isOpen || !activeToken) return;
+    if (!isOpen) return;
 
     let isMounted = true;
     async function loadAdminMessages() {
+      const activeToken = Session.getToken() || localStorage.getItem('bp_token');
+      if (!activeToken) return;
+
       try {
         const res = await fetch('/api/chatbot/messages', {
           headers: { Authorization: `Bearer ${activeToken}` },
         });
         if (!res.ok) return;
         const history = await res.json();
-        if (isMounted && Array.isArray(history) && history.length > 0) {
+        if (isMounted && Array.isArray(history)) {
           const formattedHistory = history.map((m) => ({
             id: m.id,
             sender: m.sender_role, // 'resident' or 'admin'
@@ -61,19 +63,37 @@ export default function BarangayChatbot() {
           }));
 
           setMessages((prev) => {
-            const welcome = prev.slice(0, 1);
-            return [...welcome, ...formattedHistory];
+            // Keep the initial welcome message from the AI
+            const welcome = prev.filter((m) => m.id.startsWith('welcome-') || (m.sender === 'ai' && !m.id.startsWith('msg-')));
+            
+            // Collect any pending AI replies and temporary unsaved messages
+            const map = new Map();
+            welcome.forEach((m) => map.set(m.id, m));
+            formattedHistory.forEach((m) => map.set(m.id, m));
+            
+            // Also preserve any conversational AI responses generated during this session
+            prev.forEach((m) => {
+              if (m.sender === 'ai' && !map.has(m.id)) {
+                map.set(m.id, m);
+              }
+            });
+
+            return Array.from(map.values());
           });
         }
       } catch (err) {
         console.warn('[BarangayChatbot] Could not load message history:', err);
       }
     }
+
     loadAdminMessages();
+    const interval = setInterval(loadAdminMessages, 4000);
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
-  }, [isOpen, token]);
+  }, [isOpen]);
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
