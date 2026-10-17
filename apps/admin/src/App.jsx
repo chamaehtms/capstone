@@ -26,7 +26,6 @@ const LetterIssued = lazy(() => import('./pages/LetterIssued.jsx'));
 const PendingRequests = lazy(() => import('./pages/PendingRequests.jsx'));
 const Announcements = lazy(() => import('./pages/Announcements.jsx'));
 const PuroksManagement = lazy(() => import('./pages/PuroksManagement.jsx'));
-const ChatbotInquiries = lazy(() => import('./pages/ChatbotInquiries.jsx'));
 const Settings = lazy(() => import('./pages/Settings.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 
@@ -80,7 +79,6 @@ export default function App() {
           <Route path="pending-requests" element={<PendingRequests />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="puroks" element={<PuroksManagement />} />
-          <Route path="chatbot-inquiries" element={<ChatbotInquiries />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="settings" element={<Settings />} />
         </Route>

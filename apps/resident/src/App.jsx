@@ -17,8 +17,6 @@ const Profile = lazy(() => import('./pages/Profile.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
 const AnnouncementDetail = lazy(() => import('./pages/AnnouncementDetail.jsx'));
 
-import BarangayChatbot from './components/BarangayChatbot.jsx';
-
 function ResidentPageLoading() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -57,7 +55,6 @@ export default function App() {
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
         <Route path="/announcements/:id" element={<ProtectedRoute><AnnouncementDetail /></ProtectedRoute>} />
       </Routes>
-      <BarangayChatbot />
     </Suspense>
   );
 }
