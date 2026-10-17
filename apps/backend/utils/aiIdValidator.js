@@ -46,6 +46,20 @@ const SUPPORTED_ID_KEYWORDS = [
   'EMPLOYEE ID', 'STAFF', 'CIVIC LEDGER', 'OFFICIAL', 'MUNICIPALITY'
 ];
 
+// Specific, high-confidence keywords that indicate an actual physical government/civic ID card in a selfie.
+// Excludes generic conversational words or room text like 'STAFF', 'POBLACION', 'CLEARANCE', 'OFFICIAL', 'GOVERNMENT'.
+const CARD_ANCHOR_KEYWORDS = [
+  'PHILSYS', 'PHILID', 'PHILIPPINE IDENTIFICATION', 'NATIONAL ID',
+  'DRIVER', 'LICENSE', 'LAND TRANSPORTATION',
+  'PASSPORT',
+  'COMELEC', 'VOTER',
+  'POSTAL ID', 'PHLPOST',
+  'PHILHEALTH', 'PAG-IBIG',
+  'UMID', 'PRC', 'GSIS',
+  'SENIOR CITIZEN', 'PERSONS WITH DISABILITY',
+  'IDENTITY CARD', 'IDENTIFICATION CARD'
+];
+
 // Screenshot & digital display indicator keywords detected via OCR
 const SCREENSHOT_OCR_KEYWORDS = [
   'BATTERY', 'WIFI', 'LTE', '5G', '4G', 'SCREENSHOT', 'CAPTURED',
@@ -592,50 +606,70 @@ async function verifySelfieHoldingIdStep(selfieFile, idDocFile, idScan) {
     };
   }
 
-  // 2h. ID Card Presence Verification: Ensure the physical ID card is actually visible in the selfie
+  // 2h. ID Card Presence & Cross-Match Verification:
+  // Detect whether an ID card is actually visible in the selfie.
   const idTokens = extractIdTokens(idScan?.ocrText);
   const selfieOcrText = (selfieScan.ocrText || '').toUpperCase();
-  const hasIdKeywordsInSelfie = SUPPORTED_ID_KEYWORDS.some((kw) => selfieOcrText.includes(kw));
   const detectedFacesInSelfie = typeof selfieScan.facesCount === 'number' ? selfieScan.facesCount : 1;
 
-  // An authentic selfie holding an ID typically shows:
-  // (a) Matching text tokens from the ID card
-  // (b) Or recognizable government/ID keywords
-  // (c) Or a secondary face detected (the portrait on the physical ID card)
+  // Specific anchor keywords representing real IDs (excludes generic shirt/room words like 'STAFF', 'POBLACION')
+  const matchedAnchorKeywords = CARD_ANCHOR_KEYWORDS.filter((kw) => selfieOcrText.includes(kw));
+  const hasCardAnchorKeyword = matchedAnchorKeywords.length > 0;
+
+  // Match tokens between the ID document uploaded in Step 1 and the selfie text
   let matchingTokens = [];
   if (idTokens.length > 0 && selfieOcrText.length > 0) {
     matchingTokens = idTokens.filter((token) => selfieOcrText.includes(token));
   }
 
-  const hasCardEvidence =
+  // Strong card evidence:
+  // (a) Specific government ID keyword found in selfie OCR (e.g. PHILSYS, DRIVER, COMELEC, PASSPORT)
+  // (b) Or matching token from the Step 1 ID card found in selfie OCR
+  // (c) Or a secondary face detected (the portrait photo on the physical ID card held up to the camera)
+  const hasDefiniteCardEvidence =
     matchingTokens.length > 0 ||
-    hasIdKeywordsInSelfie ||
-    detectedFacesInSelfie >= 2 ||
-    (selfieOcrText.length >= 8 && idTokens.length === 0);
+    hasCardAnchorKeyword ||
+    detectedFacesInSelfie >= 2;
 
-  // If the scanner succeeded, but no card evidence exists (0 text, 0 matching tokens, no card face, no ID keywords):
-  if (!hasCardEvidence && selfieScan.status !== 'provider_unavailable') {
+  // Cross-match check: If the selfie contains readable text (>= 12 chars), but has 0 matching tokens
+  // and no recognized ID anchor keywords, it is likely displaying a completely different card or random paper
+  if (idTokens.length >= 3 && selfieOcrText.length >= 12 && !hasDefiniteCardEvidence) {
     return {
       step: 2,
       valid: false,
       rejectedField: 'selfieWithId',
       selfieScan,
-      reason: 'No ID Card Detected in Selfie: Please take a photo of yourself holding your physical ID card close to your face. Both your face and the ID card must be clearly visible in the same frame.',
+      reason: 'ID Document Mismatch: The ID document shown in your selfie does not match the valid ID card you uploaded in Step 1. Please hold the exact same physical ID next to your face so both your face and ID are clearly visible.',
     };
   }
 
-  // 2i. Exact same ID cross-match: If both the uploaded ID and the held ID contain readable text, confirm match
-  if (idTokens.length >= 3 && selfieOcrText.length >= 12) {
-    if (matchingTokens.length === 0 && !hasIdKeywordsInSelfie) {
-      return {
-        step: 2,
-        valid: false,
-        rejectedField: 'selfieWithId',
-        selfieScan,
-        reason: 'ID Document Mismatch: The ID document shown in your selfie does not match the valid ID card you uploaded in Step 1. Please hold the exact same physical ID next to your face so both your face and ID are clearly visible.',
-      };
-    }
+  // If the scanner succeeded and there is definitive card evidence:
+  if (hasDefiniteCardEvidence) {
+    return {
+      step: 2,
+      valid: true,
+      selfieScan,
+    };
   }
+
+  // If scanner was unavailable or not configured, pass through for admin review
+  if (selfieScan.status === 'provider_unavailable' || selfieScan.status === 'not_configured') {
+    return {
+      step: 2,
+      valid: true,
+      selfieScan,
+    };
+  }
+
+  // When no definite text/second face is found:
+  // In arm's-length selfies, camera resolution or focal distance may cause the held ID's text
+  // to be unreadable by OCR (selfieOcrText is empty or near empty).
+  // Rather than falsely rejecting an authentic resident whose camera couldn't resolve micro-text,
+  // or accepting an upload with no ID, we check if the selfie meets basic quality:
+  // If the selfie is clear, has a valid face, and no red flags, we allow registration to complete
+  // while marking selfieScan as requiring manual admin review.
+  selfieScan.manualReviewAdvised = true;
+  selfieScan.summary = 'Selfie uploaded with valid face. ID card details in selfie queued for Barangay Admin verification.';
 
   return {
     step: 2,
