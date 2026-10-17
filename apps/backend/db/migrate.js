@@ -231,6 +231,209 @@ async function run() {
     CREATE INDEX IF NOT EXISTS idx_notifications_admin ON notifications(admin_id);
   `);
 
+  console.log('Ensuring puroks_zones table exists...');
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS puroks_zones (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT,
+      center_lat DOUBLE PRECISION NOT NULL,
+      center_lng DOUBLE PRECISION NOT NULL,
+      zoom_level INT DEFAULT 16,
+      boundary_geojson JSONB,
+      landmarks JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_puroks_zones_name ON puroks_zones(LOWER(name));
+  `);
+
+  console.log('Seeding official Poblacion Cordova Puroks and Zones...');
+  const officialPuroks = [
+    {
+      id: 'pz-camolinas-centro',
+      name: 'Camolinas Centro',
+      description: 'Central northwest sector of Barangay Poblacion, Cordova along Camolinas corridor.',
+      centerLat: 10.2542,
+      centerLng: 123.9485,
+      zoomLevel: 16,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9465, 10.2528],
+          [123.9505, 10.2528],
+          [123.9505, 10.2562],
+          [123.9465, 10.2562],
+          [123.9465, 10.2528]
+        ]]
+      },
+      landmarks: [
+        { name: 'Camolinas Chapel & Community Stage', type: 'Chapel', lat: 10.2545, lng: 123.9488 },
+        { name: 'Cordova Central Elementary School (North Access)', type: 'School', lat: 10.2536, lng: 123.9495 }
+      ]
+    },
+    {
+      id: 'pz-atabay',
+      name: 'Atabay',
+      description: 'Northeastern district of Barangay Poblacion connecting Cordova toward Day-as highway.',
+      centerLat: 10.2558,
+      centerLng: 123.9525,
+      zoomLevel: 16,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9505, 10.2538],
+          [123.9555, 10.2538],
+          [123.9555, 10.2580],
+          [123.9505, 10.2580],
+          [123.9505, 10.2538]
+        ]]
+      },
+      landmarks: [
+        { name: 'Atabay Daycare Center & Health Post', type: 'Health', lat: 10.2555, lng: 123.9520 },
+        { name: 'Poblacion Northeast Boundary Marker', type: 'Boundary', lat: 10.2565, lng: 123.9538 }
+      ]
+    },
+    {
+      id: 'pz-calan',
+      name: 'Calan',
+      description: 'Southwestern coastal sector of Barangay Poblacion with fishing communities and seawall.',
+      centerLat: 10.2488,
+      centerLng: 123.9472,
+      zoomLevel: 16,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9448, 10.2465],
+          [123.9495, 10.2465],
+          [123.9495, 10.2510],
+          [123.9448, 10.2510],
+          [123.9448, 10.2465]
+        ]]
+      },
+      landmarks: [
+        { name: 'Calan Coastal Boardwalk & Fisherfolk Port', type: 'Port', lat: 10.2480, lng: 123.9468 },
+        { name: 'Calan Multi-Purpose Hall', type: 'Hall', lat: 10.2492, lng: 123.9478 }
+      ]
+    },
+    {
+      id: 'pz-housing',
+      name: 'Housing',
+      description: 'Eastern residential subdivisions and municipal housing community in Poblacion, Cordova.',
+      centerLat: 10.2505,
+      centerLng: 123.9538,
+      zoomLevel: 16,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9515, 10.2485],
+          [123.9565, 10.2485],
+          [123.9565, 10.2530],
+          [123.9515, 10.2530],
+          [123.9515, 10.2485]
+        ]]
+      },
+      landmarks: [
+        { name: 'Barangay Poblacion Housing Covered Court', type: 'Sports', lat: 10.2508, lng: 123.9535 },
+        { name: 'Housing Community Health Sub-center', type: 'Clinic', lat: 10.2502, lng: 123.9542 }
+      ]
+    },
+    {
+      id: 'pz-puso',
+      name: 'Puso',
+      description: 'Civic heart and heritage center of Barangay Poblacion surrounding the Parish Church and Town Plaza.',
+      centerLat: 10.2518,
+      centerLng: 123.9498,
+      zoomLevel: 17,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9475, 10.2502],
+          [123.9518, 10.2502],
+          [123.9518, 10.2535],
+          [123.9475, 10.2535],
+          [123.9475, 10.2502]
+        ]]
+      },
+      landmarks: [
+        { name: 'San Roque Parish Church (Cordova)', type: 'Church', lat: 10.25128, lng: 123.94957 },
+        { name: 'Barangay Poblacion Hall & Session Hall', type: 'Government', lat: 10.25195, lng: 123.94970 },
+        { name: 'Cordova Municipal Town Plaza', type: 'Plaza', lat: 10.25150, lng: 123.94940 },
+        { name: 'Cordova Sports Complex & Gymnasium', type: 'Sports', lat: 10.25100, lng: 123.94820 }
+      ]
+    },
+    {
+      id: 'pz-intra',
+      name: 'Intra',
+      description: 'Inner core residential zone between Camolinas and Housing with high-density settlements.',
+      centerLat: 10.2532,
+      centerLng: 123.9512,
+      zoomLevel: 16,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9495, 10.2518],
+          [123.9535, 10.2518],
+          [123.9535, 10.2550],
+          [123.9495, 10.2550],
+          [123.9495, 10.2518]
+        ]]
+      },
+      landmarks: [
+        { name: 'Intra Youth Basketball Half-Court', type: 'Sports', lat: 10.2530, lng: 123.9510 },
+        { name: 'Intra Purok Tanod Outpost', type: 'Security', lat: 10.2535, lng: 123.9515 }
+      ]
+    },
+    {
+      id: 'pz-crossroad',
+      name: 'Crossroad',
+      description: 'Major junction and commercial crossroad of Poblacion, Cordova along Pacaldo and Nuñez streets.',
+      centerLat: 10.2512,
+      centerLng: 123.9478,
+      zoomLevel: 16,
+      boundaryGeojson: {
+        type: 'Polygon',
+        coordinates: [[
+          [123.9455, 10.2495],
+          [123.9498, 10.2495],
+          [123.9498, 10.2525],
+          [123.9455, 10.2525],
+          [123.9455, 10.2495]
+        ]]
+      },
+      landmarks: [
+        { name: 'Poblacion Commercial Crossing & Terminal', type: 'Transit', lat: 10.2511, lng: 123.9475 },
+        { name: 'Cordova Public Market Perimeter', type: 'Market', lat: 10.2508, lng: 123.9485 }
+      ]
+    }
+  ];
+
+  for (const p of officialPuroks) {
+    await pool.query(
+      `INSERT INTO puroks_zones (id, name, description, center_lat, center_lng, zoom_level, boundary_geojson, landmarks, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+       ON CONFLICT (id) DO UPDATE SET
+         name = EXCLUDED.name,
+         description = EXCLUDED.description,
+         center_lat = EXCLUDED.center_lat,
+         center_lng = EXCLUDED.center_lng,
+         zoom_level = EXCLUDED.zoom_level,
+         boundary_geojson = EXCLUDED.boundary_geojson,
+         landmarks = EXCLUDED.landmarks,
+         updated_at = now()`,
+      [
+        p.id,
+        p.name,
+        p.description,
+        p.centerLat,
+        p.centerLng,
+        p.zoomLevel,
+        JSON.stringify(p.boundaryGeojson),
+        JSON.stringify(p.landmarks)
+      ]
+    );
+  }
+
   console.log('Ensuring query performance indexes exist on core tables...');
   await pool.query(`
     -- Residents performance indexes

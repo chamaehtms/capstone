@@ -41,21 +41,15 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <img src="/barangay-seal.png" alt="Barangay Poblacion seal" className="brand-mark" />
-        <span>Barangay Residents Portal</span>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.68rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', fontWeight: 700 }}>Barangay Poblacion</span>
+          <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--navy)', lineHeight: 1.2 }}>Resident Portal</span>
+        </div>
         {user?.status === 'Pending' && (
-          <span style={{
-            fontSize: '0.68rem',
-            background: '#fef3c7',
-            color: '#92400e',
-            border: '1px solid #fcd34d',
-            padding: '2px 8px',
-            borderRadius: 10,
-            fontWeight: 700,
-            whiteSpace: 'nowrap'
-          }}>
-            ⏳ Pending Verification
+          <span className="notice-badge notice-badge-amber" style={{ marginLeft: 6, fontSize: '0.68rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <ModernIcon name="clock" size={12} color="var(--amber-text)" /> Pending Verification
           </span>
         )}
       </div>
@@ -80,10 +74,13 @@ export default function Navbar() {
           className={({ isActive }) => (isActive ? 'active notification-link' : 'notification-link')}
           aria-label="Notifications"
           title="Notifications"
-          style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '6px 8px' }}
+          style={{ position: 'relative', display: 'flex', alignItems: 'center' }}
         >
-          <ModernIcon name="bell" size={20} />
-          {unreadCount > 0 && <span className="notification-count">{unreadCount}</span>}
+          <span className="nav-item-label" style={{ position: 'relative' }}>
+            <ModernIcon name="bell" size={20} />
+            <span>Notifications</span>
+            {unreadCount > 0 && <span className="notification-count" style={{ top: '-6px', right: '-10px' }}>{unreadCount}</span>}
+          </span>
         </NavLink>
         <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>
           <span className="nav-item-label"><ModernIcon name="profile" size={20} />Profile</span>

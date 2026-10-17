@@ -78,6 +78,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/announcements/:id
+router.get('/:id', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization || '';
+    if (authHeader.startsWith('Bearer ')) {
+      const token = authHeader.slice(7);
+      try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        if (payload && payload.scope === 'resident') {
+          const { rows } = await pool.query('SELECT status FROM residents WHERE id = $1', [payload.id]);
+          if (rows.length > 0 && rows[0].status !== 'Verified') {
+            return res.status(403).json({ message: 'Verified resident account required.' });
+          }
+        }
+      } catch {
+        // ignore invalid token for public read
+      }
+    }
+
+    const { rows } = await pool.query('SELECT * FROM announcements WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Announcement not found.' });
+    }
+    res.json(toAnnouncement(rows[0]));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error retrieving announcement.' });
+  }
+});
+
 function getTodayManilaDateString() {
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Manila',

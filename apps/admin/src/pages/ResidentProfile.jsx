@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import api, { toAssetUrl } from '../api';
 import AdminIcon from '../components/AdminIcons.jsx';
+import AdminPurokMap from '../components/AdminPurokMap.jsx';
 
 function formatDate(value) {
   if (!value) return null;
@@ -82,6 +83,7 @@ export default function ResidentProfile() {
   const [clearanceExpiry, setClearanceExpiry] = useState('Oct 12, 2025');
 
   // Edit profile form state
+  const [purokOptions, setPurokOptions] = useState([]);
   const [editForm, setEditForm] = useState({
     fullName: '',
     occupation: '',
@@ -102,14 +104,19 @@ export default function ResidentProfile() {
   const load = async () => {
     setLoading(true);
     try {
-      const [resResident, resComplaints] = await Promise.all([
+      const [resResident, resComplaints, resPuroks] = await Promise.all([
         api.get(`/residents/${id}`),
-        api.get('/complaints')
+        api.get('/complaints'),
+        api.get('/puroks').catch(() => ({ data: [] }))
       ]);
 
       const r = resResident.data;
       setResident(r);
       setImgError(false);
+
+      if (Array.isArray(resPuroks.data) && resPuroks.data.length > 0) {
+        setPurokOptions(resPuroks.data.map(p => p.name));
+      }
 
       setEditForm({
         fullName: r.fullName || '',
@@ -375,7 +382,7 @@ export default function ResidentProfile() {
               {/* Total Case Incidents Block */}
               <div
                 onClick={() => setIsMediationHistoryModalOpen(true)}
-                className="w-full sm:w-auto bg-[#F8FAFC] border border-slate-200/90 rounded-xl px-6 py-3.5 border-l-4 border-l-[#0A1A2F] cursor-pointer hover:bg-slate-100/80 transition-colors shadow-2xs group"
+                className="w-full sm:w-auto bg-[#F8FAFC] border border-slate-200/90 rounded-xl px-6 py-3.5 cursor-pointer hover:bg-slate-100/80 transition-colors shadow-2xs group"
                 title="Click to view full dispute and mediation ledger"
               >
                 <div className="flex items-center justify-between gap-4">
@@ -562,53 +569,22 @@ export default function ResidentProfile() {
             {/* Right 5 Columns: Map + Zone + Compliance Card */}
             <div className="lg:col-span-5 space-y-6">
               
-              {/* Interactive Stylized Map of Poblacion Cordova */}
-              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs relative">
-                <div className="h-56 w-full relative bg-[#E8ECEF] overflow-hidden">
-                  
-                  {/* Custom SVG Render of Poblacion Cordova Streets & Landmarks */}
-                  <svg className="w-full h-full" viewBox="0 0 500 280" preserveAspectRatio="none">
-                    <rect width="500" height="280" fill="#F1F3F5" />
-                    
-                    {/* Street blocks */}
-                    <path d="M 0,40 L 500,70" stroke="#DFE4EA" strokeWidth="18" fill="none" />
-                    <path d="M 40,280 L 180,0" stroke="#E5E9EF" strokeWidth="22" fill="none" />
-                    <path d="M 120,280 L 320,0" stroke="#DFE4EA" strokeWidth="24" fill="none" />
-                    <path d="M 0,160 L 500,190" stroke="#E2E7ED" strokeWidth="16" fill="none" />
-                    
-                    {/* Primary Poblacion Avenue */}
-                    <path d="M 330,280 C 340,200 370,120 460,0" stroke="#D1D9E4" strokeWidth="14" fill="none" />
-                    <path d="M 180,180 C 260,190 350,220 500,220" stroke="#CAD3DF" strokeWidth="16" fill="none" />
-                    <path d="M 230,0 L 230,280" stroke="#D7DEE7" strokeWidth="12" fill="none" />
-
-                    {/* Green zone (Cordova Sports Complex) */}
-                    <rect x="30" y="180" width="85" height="45" rx="6" fill="#D6EDDA" stroke="#B9DFC1" strokeWidth="1" />
-                    <text x="35" y="205" fontSize="8" fill="#2B7A4B" fontWeight="600">Cordova Sports Complex</text>
-
-                    {/* Street Names text */}
-                    <text x="35" y="24" fontSize="8" fill="#8B96A5" fontWeight="500">Victorio Pacaldo Sr. St</text>
-                    <text x="238" y="70" fontSize="8" fill="#8B96A5" fontWeight="500" transform="rotate(78 238 70)">Bernardo Nuñez St</text>
-                    <text x="2" y="170" fontSize="8" fill="#8B96A5" fontWeight="500">A. Mangubat St</text>
-                    <text x="420" y="160" fontSize="8" fill="#8B96A5" fontWeight="500" transform="rotate(35 420 160)">Kamoningan Rd</text>
-
-                    {/* Landmark Pins */}
-                    <circle cx="340" cy="165" r="4" fill="#3B82F6" />
-                    <text x="352" y="168" fontSize="8.5" fill="#334155" fontWeight="600">San Roque Parish Church</text>
-
-                    <circle cx="310" cy="175" r="5" fill="#8B5CF6" />
-                    <text x="235" y="172" fontSize="9" fill="#6B21A8" fontWeight="700">Poblacion Barangay Hall</text>
-
-                    {/* Resident Residence Pin */}
-                    <circle cx="240" cy="190" r="7" fill="#10B981" fillOpacity="0.3" />
-                    <circle cx="240" cy="190" r="4.5" fill="#059669" stroke="#ffffff" strokeWidth="2" />
-                  </svg>
-
-                  {/* Corner indicator badge */}
-                  <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-xs px-2.5 py-1 rounded shadow-xs text-[10px] font-bold text-slate-700 flex items-center gap-1.5 border border-slate-200">
-                    <Navigation className="w-3 h-3 text-emerald-600" />
-                    <span>Geo-Tagged: {resident.zone || 'Barangay Poblacion'}</span>
-                  </div>
+              {/* Interactive Dynamic OpenStreetMap / Leaflet of Poblacion Cordova */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-emerald-600" />
+                    <span>Resident Purok / Zone Map</span>
+                  </h3>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    Poblacion, Cordova
+                  </span>
                 </div>
+                <AdminPurokMap
+                  zoneName={resident.zone}
+                  residentName={resident.fullName}
+                  height="260px"
+                />
               </div>
 
               {/* Residential Zone Card */}
@@ -811,6 +787,26 @@ export default function ResidentProfile() {
                   onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                   className="w-full mt-1 p-2 bg-slate-50 border border-slate-300 rounded font-semibold text-slate-800"
                 />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-500 uppercase text-[10px]">Assigned Purok / Zone</label>
+                <select
+                  value={editForm.zone}
+                  onChange={(e) => setEditForm({ ...editForm, zone: e.target.value })}
+                  className="w-full mt-1 p-2 bg-slate-50 border border-slate-300 rounded font-semibold text-slate-800"
+                >
+                  <option value="">Select Official Purok/Zone</option>
+                  {(purokOptions.length > 0
+                    ? purokOptions
+                    : ['Camolinas Centro', 'Atabay', 'Calan', 'Housing', 'Puso', 'Intra', 'Crossroad']
+                  ).map((pName) => (
+                    <option key={pName} value={pName}>{pName}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Updating the Purok will automatically relocate the resident's dynamic profile map to the newly assigned area.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">

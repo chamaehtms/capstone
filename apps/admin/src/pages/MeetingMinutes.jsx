@@ -55,12 +55,15 @@ function formatDisplayDate(dateStr) {
 }
 
 export default function MeetingMinutes() {
-  const [activeTab, setActiveTab] = useState('schedule'); // 'schedule' | 'minutes' | 'list'
+  const [activeTab, setActiveTab] = useState('list'); // 'list' | 'schedule' | 'minutes'
   const [meetings, setMeetings] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'Scheduled' | 'Settled' | 'Pending'
+  const [deletingId, setDeletingId] = useState(null);
 
   // Selected existing mediation or active drafting state
   const [selectedMeetingId, setSelectedMeetingId] = useState(null);
@@ -423,11 +426,35 @@ export default function MeetingMinutes() {
       if (confirmMinutes) {
         showNotification('Minutes and Kasunduan officially certified and saved.');
       }
+
+      // Directly navigate to the Mediation List
+      setActiveTab('list');
     } catch (err) {
       console.error(err);
       showNotification(err.response?.data?.message || 'Failed to save mediation record.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteMediation = async (id, e) => {
+    if (e) e.stopPropagation();
+    const confirmed = window.confirm('Are you sure you want to delete this scheduled mediation hearing? This action cannot be undone.');
+    if (!confirmed) return;
+
+    setDeletingId(id);
+    try {
+      await api.delete(`/meetings/${id}`);
+      setMeetings((prev) => prev.filter((m) => m.id !== id));
+      if (selectedMeetingId === id) {
+        setSelectedMeetingId(null);
+      }
+      showNotification('Mediation hearing deleted successfully.');
+    } catch (err) {
+      console.error('Delete mediation error:', err);
+      showNotification(err.response?.data?.message || 'Failed to delete mediation hearing.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -472,7 +499,7 @@ export default function MeetingMinutes() {
           {/* Reference Case Card */}
           <div 
             onClick={() => setShowCaseSelectorModal(true)}
-            className="flex items-center gap-3.5 bg-white border border-slate-200 hover:border-slate-400 rounded-xl px-5 py-3 shadow-sm border-l-4 border-l-[#0A1A2F] self-start md:self-center cursor-pointer transition-all group"
+            className="flex items-center gap-3.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl px-5 py-3 shadow-sm self-start md:self-center cursor-pointer transition-all group"
             title="Click to switch or link a different case"
           >
             <div className="p-2.5 bg-slate-100 text-slate-700 rounded-lg group-hover:bg-[#0A1A2F] group-hover:text-white transition-colors">
@@ -489,22 +516,37 @@ export default function MeetingMinutes() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center border-b border-slate-200 mb-6 gap-8">
+        <div className="flex items-center border-b border-slate-200 mb-6 gap-6 sm:gap-8 overflow-x-auto">
+          <button
+            onClick={() => setActiveTab('list')}
+            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
+              activeTab === 'list'
+                ? 'text-[#0A1A2F] border-b-2 border-[#0A1A2F]'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Scale className="w-4 h-4" />
+            <span>Mediation Hearings List</span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold">
+              {meetings.filter(m => m.meetingType === 'mediation').length}
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('schedule')}
-            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 ${
+            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'schedule'
                 ? 'text-[#0A1A2F] border-b-2 border-[#0A1A2F]'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <CalendarIcon className="w-4 h-4" />
-            <span>Hearing Schedule & Setup</span>
+            <span>Schedule Hearing</span>
           </button>
 
           <button
             onClick={() => setActiveTab('minutes')}
-            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 ${
+            className={`pb-3.5 text-sm font-bold transition-all relative flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'minutes'
                 ? 'text-[#0A1A2F] border-b-2 border-[#0A1A2F]'
                 : 'text-slate-500 hover:text-slate-800'
@@ -517,6 +559,203 @@ export default function MeetingMinutes() {
             </span>
           </button>
         </div>
+
+        {/* TAB 0: MEDIATION HEARINGS LIST */}
+        {activeTab === 'list' && (
+          <div className="space-y-5">
+            {/* Action Bar: Filters, Search, and New Schedule Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <div className="flex flex-1 items-center gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search case #, complainant, respondent, or mediator..."
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:bg-white focus:border-slate-400 text-slate-800"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-700 outline-none focus:bg-white focus:border-slate-400 font-medium"
+                >
+                  <option value="all">All Mediation Statuses</option>
+                  <option value="Scheduled">Scheduled</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Settled">Settled (Kasunduan)</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedMeetingId(null);
+                  setActiveTab('schedule');
+                }}
+                className="px-4 py-2 bg-[#0A1A2F] hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-2 shrink-0 shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Schedule New Hearing</span>
+              </button>
+            </div>
+
+            {/* Mediation Hearings Table */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-3.5 px-4">Case # / Stage</th>
+                      <th className="py-3.5 px-4">Hearing Date & Time</th>
+                      <th className="py-3.5 px-4">Parties Involved</th>
+                      <th className="py-3.5 px-4">Venue</th>
+                      <th className="py-3.5 px-4">Mediator</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {(() => {
+                      const mediationMeetings = meetings
+                        .filter((m) => m.meetingType === 'mediation')
+                        .filter((m) => {
+                          if (statusFilter !== 'all') {
+                            const curStatus = m.mediationStatus || 'Scheduled';
+                            if (curStatus.toLowerCase() !== statusFilter.toLowerCase()) return false;
+                          }
+                          if (searchTerm.trim()) {
+                            const q = searchTerm.toLowerCase();
+                            const matchCase = (m.caseId || '').toLowerCase().includes(q);
+                            const matchTitle = (m.title || '').toLowerCase().includes(q);
+                            const matchRes = (m.residentName || '').toLowerCase().includes(q);
+                            const matchResp = (m.respondentName || '').toLowerCase().includes(q);
+                            const matchMed = (m.mediator || '').toLowerCase().includes(q);
+                            return matchCase || matchTitle || matchRes || matchResp || matchMed;
+                          }
+                          return true;
+                        });
+
+                      if (mediationMeetings.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={7} className="py-12 text-center text-slate-400">
+                              <Scale className="w-10 h-10 mx-auto text-slate-300 mb-2 stroke-1" />
+                              <p className="font-semibold text-slate-600">No scheduled mediation hearings found.</p>
+                              <p className="text-xs text-slate-400 mt-1">
+                                {searchTerm ? 'Try adjusting your search criteria.' : 'Click "Schedule New Hearing" to book a session.'}
+                              </p>
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return mediationMeetings.map((m) => {
+                        const isSettled = m.mediationStatus === 'Settled';
+                        return (
+                          <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
+                            <td className="py-3.5 px-4">
+                              <div className="font-bold text-slate-900">{m.caseId || 'Direct Hearing'}</div>
+                              <span className="text-[10px] text-slate-500 font-medium">
+                                {m.hearingStage || '1st Mediation Hearing'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                                <CalendarIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                <span>{formatDisplayDate(m.date)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mt-0.5">
+                                <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+                                <span>{m.time || '10:00 AM'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <div className="font-semibold text-slate-900">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">C:</span>
+                                {m.residentName || 'Complainant'}
+                              </div>
+                              <div className="text-slate-600 text-[11px] mt-0.5">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold mr-1">R:</span>
+                                {m.respondentName || 'Respondent Party'}
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-600 max-w-[200px] truncate" title={m.location}>
+                              <div className="flex items-center gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                <span className="truncate">{m.location || 'Barangay Poblacion Mediation Hall'}</span>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-slate-700">
+                              <div className="font-medium">{m.mediator || 'Unassigned'}</div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span
+                                className={`text-[11px] font-bold px-2.5 py-1 rounded-full border inline-flex items-center gap-1.5 ${
+                                  isSettled
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-blue-50 text-blue-800 border-blue-200'
+                                }`}
+                              >
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${
+                                    isSettled ? 'bg-emerald-500' : 'bg-blue-500'
+                                  }`}
+                                />
+                                <span>{m.mediationStatus || 'Scheduled'}</span>
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    loadMeetingIntoState(m);
+                                    setActiveTab('minutes');
+                                  }}
+                                  className="px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-md transition-colors"
+                                  title="Record or review minutes & settlement"
+                                >
+                                  Minutes
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    loadMeetingIntoState(m);
+                                    setActiveTab('schedule');
+                                  }}
+                                  className="px-2.5 py-1.5 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                                  title="Edit schedule & logistics"
+                                >
+                                  Reschedule
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteMediation(m.id, e)}
+                                  disabled={deletingId === m.id}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                                  title="Delete mediation hearing"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TAB 1: SCHEDULE & LOGISTICS */}
         {activeTab === 'schedule' && (
@@ -1015,34 +1254,54 @@ export default function MeetingMinutes() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            <button
-              onClick={() => showNotification('Draft state saved locally.')}
-              className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors"
-            >
-              Save Draft
-            </button>
-            <button
-              onClick={() => showNotification('Official summons notification dispatched to parties via email.')}
-              className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors"
-            >
-              Send Invitations
-            </button>
-            <button
-              onClick={() => {
-                if (activeTab === 'schedule') {
-                  handleSaveMediation(false);
-                  setActiveTab('minutes');
-                } else {
-                  handleSaveMediation(true);
-                }
-              }}
-              disabled={saving}
-              className="px-5 py-2.5 bg-[#0A1A2F] hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
-            >
-              {saving ? 'Processing...' : (activeTab === 'schedule' ? 'Confirm Schedule' : 'Finalize & Archive Record')}
-            </button>
-          </div>
+          {activeTab !== 'list' ? (
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button
+                onClick={() => setActiveTab('list')}
+                className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors"
+              >
+                Back to Mediation List
+              </button>
+              <button
+                onClick={() => showNotification('Draft state saved locally.')}
+                className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors"
+              >
+                Save Draft
+              </button>
+              <button
+                onClick={() => showNotification('Official summons notification dispatched to parties via email.')}
+                className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg transition-colors"
+              >
+                Send Invitations
+              </button>
+              <button
+                onClick={() => {
+                  if (activeTab === 'schedule') {
+                    handleSaveMediation(false);
+                  } else {
+                    handleSaveMediation(true);
+                  }
+                }}
+                disabled={saving}
+                className="px-5 py-2.5 bg-[#0A1A2F] hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+              >
+                {saving ? 'Processing...' : (activeTab === 'schedule' ? 'Confirm Schedule' : 'Finalize & Archive Record')}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button
+                onClick={() => {
+                  setSelectedMeetingId(null);
+                  setActiveTab('schedule');
+                }}
+                className="px-5 py-2.5 bg-[#0A1A2F] hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all shadow-sm flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Schedule New Hearing</span>
+              </button>
+            </div>
+          )}
         </div>
       </main>
 

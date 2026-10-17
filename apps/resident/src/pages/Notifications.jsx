@@ -117,6 +117,7 @@ export default function Notifications() {
       <main className="page" style={{ paddingTop: '28px', maxWidth: '780px' }}>
         {/* Facebook-style Card Container */}
         <div
+          className="notification-card-container"
           style={{
             background: '#ffffff',
             borderRadius: '16px',
@@ -127,6 +128,7 @@ export default function Notifications() {
         >
           {/* Header */}
           <div
+            className="notification-header-wrap"
             style={{
               padding: '20px 24px',
               borderBottom: '1px solid #f1f5f9',
@@ -305,6 +307,7 @@ export default function Notifications() {
                 return (
                   <div
                     key={notif.id}
+                    className="notification-item-row"
                     onClick={() => handleItemClick(notif)}
                     style={{
                       display: 'flex',

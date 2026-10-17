@@ -390,6 +390,10 @@ export async function getAnnouncements() {
   return request('/announcements', { auth: false });
 }
 
+export async function getAnnouncement(id) {
+  return request(`/announcements/${encodeURIComponent(id)}`, { auth: false });
+}
+
 export async function getMyNotifications() {
   return request('/resident/complaints/notifications').catch(() => []);
 }

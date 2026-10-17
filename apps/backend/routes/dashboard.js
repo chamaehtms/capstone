@@ -14,6 +14,15 @@ router.get('/overview', async (req, res) => {
         COUNT(*) FILTER (WHERE priority = 'High')::int AS high_priority
       FROM complaints
     `);
+    const { rows: pendingResidentsCount } = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM residents WHERE self_registered = true AND status = 'Pending'`
+    );
+    const { rows: pendingAccessCount } = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM access_requests WHERE status = 'pending' AND (email_verified = true OR email_verified IS NULL)`
+    );
+    const { rows: upcomingMeetingsCount } = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM meetings WHERE date >= CURRENT_DATE`
+    );
     // Matches the same exclusion as GET /api/residents: self-registered
     // accounts still awaiting approval aren't "enrolled" yet.
     const { rows: residentCountRows } = await pool.query(
@@ -90,6 +99,10 @@ router.get('/overview', async (req, res) => {
       highPriorityComplaints: complaintStatRows[0].high_priority,
       activeProjects: resolvedCount,
       activeProjectsCompletionPct: resolutionPct,
+      pendingResidentsCount: pendingResidentsCount[0].count,
+      pendingAccessCount: pendingAccessCount[0].count,
+      totalPendingRequests: pendingResidentsCount[0].count + pendingAccessCount[0].count,
+      upcomingMeetingsCount: upcomingMeetingsCount[0].count,
       recentActivity,
     });
   } catch (err) {

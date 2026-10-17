@@ -44,3 +44,6 @@ apps/backend/uploads/complaint-evidence/*
 
 apps/backend/uploads/announcements/*
 !apps/backend/uploads/announcements/.gitkeep
+
+.agents
+skills-lock.json

@@ -392,7 +392,7 @@ export default function CaseFiling() {
 
           {/* Legal Quote 1 & Narrative */}
           <div className="space-y-2">
-            <p className="text-xs sm:text-sm font-semibold text-slate-700 italic bg-amber-50/70 border-l-4 border-amber-500 p-3 rounded-r-lg">
+            <p className="text-xs sm:text-sm font-medium text-slate-800 bg-amber-50/70 border border-amber-200/80 p-3.5 rounded-lg leading-relaxed">
               "I hereby complain against above named respondent for violating my rights and interest in the following manner:"
             </p>
             <textarea
@@ -407,7 +407,7 @@ export default function CaseFiling() {
 
           {/* Legal Quote 2 & Relief Sought */}
           <div className="space-y-2">
-            <p className="text-xs sm:text-sm font-semibold text-slate-700 italic bg-blue-50/70 border-l-4 border-blue-600 p-3 rounded-r-lg">
+            <p className="text-xs sm:text-sm font-medium text-slate-800 bg-blue-50/70 border border-blue-200/80 p-3.5 rounded-lg leading-relaxed">
               "THEREFORE, I pray, that the following relief be granted to me in accordance with law or equity:"
             </p>
             <textarea

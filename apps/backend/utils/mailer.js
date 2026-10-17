@@ -94,35 +94,35 @@ async function sendMediationNoticeEmail({
           </p>
 
           <!-- Hearing Details Card -->
-          <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #2563eb; border-radius: 8px; padding: 18px; margin-bottom: 22px;">
+          <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 18px; margin-bottom: 22px;">
             <h3 style="margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #1e3a8a; font-weight: 700;">
-              ⚖️ Hearing & Session Details
+              Hearing & Session Details
             </h3>
             <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
               <tr>
-                <td style="padding: 6px 0; color: #64748b; width: 140px; font-weight: 600;">📅 Scheduled Date:</td>
+                <td style="padding: 6px 0; color: #64748b; width: 140px; font-weight: 600;">Scheduled Date:</td>
                 <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${displayDate}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">⏰ Scheduled Time:</td>
+                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Scheduled Time:</td>
                 <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${displayTime}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">📍 Venue / Room:</td>
+                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Venue / Room:</td>
                 <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${displayVenue}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">👤 Presiding Officer:</td>
+                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Presiding Officer:</td>
                 <td style="padding: 6px 0; color: #0f172a;">${displayMediator}</td>
               </tr>
               ${respondentName ? `
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">👥 Other Party / Respondent:</td>
+                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Other Party / Respondent:</td>
                 <td style="padding: 6px 0; color: #0f172a;">${respondentName}</td>
               </tr>` : ''}
               ${caseId ? `
               <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">📑 Reference Case No.:</td>
+                <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Reference Case No.:</td>
                 <td style="padding: 6px 0; color: #2563eb; font-weight: 700; font-family: monospace;">${caseId}</td>
               </tr>` : ''}
             </table>
@@ -130,8 +130,8 @@ async function sendMediationNoticeEmail({
 
           ${notes ? `
           <!-- Notes Card -->
-          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 14px 16px; margin-bottom: 22px;">
-            <strong style="color: #92400e; font-size: 13px; display: block; margin-bottom: 4px;">📌 Important Instructions & Notes:</strong>
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin-bottom: 22px;">
+            <strong style="color: #92400e; font-size: 13px; display: block; margin-bottom: 4px;">Important Instructions & Notes:</strong>
             <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.5;">${notes}</p>
           </div>` : ''}
 
@@ -237,39 +237,39 @@ async function sendNextHearingNoticeEmail({
           </p>
 
           <!-- Follow-up Session Details Card -->
-          <div style="background-color: #faf5ff; border: 1px solid #d8b4fe; border-left: 4px solid #7c3aed; border-radius: 8px; padding: 18px; margin-bottom: 22px;">
+          <div style="background-color: #faf5ff; border: 1px solid #d8b4fe; border-radius: 8px; padding: 18px; margin-bottom: 22px;">
             <h3 style="margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #581c87; font-weight: 700;">
-              🗓️ Next Session Schedule & Venue Details
+              Next Session Schedule & Venue Details
             </h3>
             <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; width: 150px; font-weight: 600;">📅 Next Session Date:</td>
+                <td style="padding: 6px 0; color: #6b21a8; width: 150px; font-weight: 600;">Next Session Date:</td>
                 <td style="padding: 6px 0; color: #0f172a; font-weight: 800; font-size: 15px;">${displayDate}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">⏰ Scheduled Time:</td>
+                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">Scheduled Time:</td>
                 <td style="padding: 6px 0; color: #0f172a; font-weight: 800;">${displayTime}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">📍 Session Venue:</td>
+                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">Session Venue:</td>
                 <td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${displayVenue}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">⚖️ Proceeding Stage:</td>
+                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">Proceeding Stage:</td>
                 <td style="padding: 6px 0; color: #6b21a8; font-weight: 700;">${displayStage}</td>
               </tr>
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">👤 Presiding Officer:</td>
+                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">Presiding Officer:</td>
                 <td style="padding: 6px 0; color: #0f172a;">${displayMediator}</td>
               </tr>
               ${respondentName ? `
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">👥 Other Party:</td>
+                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">Other Party:</td>
                 <td style="padding: 6px 0; color: #0f172a;">${respondentName}</td>
               </tr>` : ''}
               ${caseId ? `
               <tr>
-                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">📑 Reference Case No.:</td>
+                <td style="padding: 6px 0; color: #6b21a8; font-weight: 600;">Reference Case No.:</td>
                 <td style="padding: 6px 0; color: #4338ca; font-weight: 700; font-family: monospace;">${caseId}</td>
               </tr>` : ''}
             </table>
@@ -277,8 +277,8 @@ async function sendNextHearingNoticeEmail({
 
           ${notes ? `
           <!-- Notes / Reminders Card -->
-          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 14px 16px; margin-bottom: 22px;">
-            <strong style="color: #92400e; font-size: 13px; display: block; margin-bottom: 4px;">📌 Proceeding Reminders & Action Items:</strong>
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px 16px; margin-bottom: 22px;">
+            <strong style="color: #92400e; font-size: 13px; display: block; margin-bottom: 4px;">Proceeding Reminders & Action Items:</strong>
             <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.5;">${notes}</p>
           </div>` : ''}
 
@@ -354,7 +354,7 @@ async function sendResidentApprovalEmail({
     year: 'numeric',
   });
 
-  const subject = '🎉 Account Approved by Admin - Barangay Poblacion Residents Portal';
+  const subject = 'Account Approved by Admin - Barangay Poblacion Residents Portal';
 
   const text = `Hello ${displayName},\n\n`
     + `Good news! Your resident account registration for the Barangay Poblacion Residents Portal has been officially approved and verified by the Barangay Admin.\n\n`
@@ -403,9 +403,9 @@ async function sendResidentApprovalEmail({
           </p>
 
           <!-- Account Details Card -->
-          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #10b981; border-radius: 10px; padding: 20px; margin-bottom: 26px;">
+          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 20px; margin-bottom: 26px;">
             <h3 style="margin: 0 0 14px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: #065f46; font-weight: 800;">
-              📋 Approved Resident Account Details
+              Approved Resident Account Details
             </h3>
             <table style="width: 100%; font-size: 14px; border-collapse: collapse;">
               <tr>
@@ -445,7 +445,7 @@ async function sendResidentApprovalEmail({
 
           <!-- Security Notice -->
           <div style="background-color: #f1f5f9; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 12px; color: #64748b; line-height: 1.6;">
-            <strong>🔒 Security Reminder:</strong> Barangay staff will never ask for your password. If you did not apply for this account, please report it immediately to the Barangay Poblacion Hall.
+            <strong>Security Reminder:</strong> Barangay staff will never ask for your password. If you did not apply for this account, please report it immediately to the Barangay Poblacion Hall.
           </div>
 
           <p style="margin: 0; font-size: 13px; color: #334155; line-height: 1.6;">
@@ -502,7 +502,7 @@ async function sendResidentPendingVerificationEmail({
     year: 'numeric',
   });
 
-  const subject = '⏳ Registration Received - Pending Verification - Barangay Poblacion';
+  const subject = 'Registration Received - Pending Verification - Barangay Poblacion';
 
   const text = `Hello ${displayName},\n\n`
     + `Thank you for registering on the Barangay Poblacion Residents Portal.\n\n`
@@ -535,7 +535,7 @@ async function sendResidentPendingVerificationEmail({
           <h1 style="margin: 6px 0 0; font-size: 24px; font-weight: 800; letter-spacing: 0.5px;">BARANGAY POBLACION</h1>
           <p style="margin: 4px 0 0; font-size: 13px; color: #cbd5e1;">Office of the Punong Barangay · Online Residents Portal</p>
           <div style="margin-top: 16px; display: inline-block; background-color: #f59e0b; color: #ffffff; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px; padding: 6px 18px; border-radius: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">
-            ⏳ Registration Pending Verification
+            Registration Pending Verification
           </div>
         </div>
 
@@ -549,9 +549,9 @@ async function sendResidentPendingVerificationEmail({
           </p>
 
           <!-- Status Notice Card -->
-          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-left: 4px solid #f59e0b; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+          <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <strong style="color: #92400e; font-size: 14px;">📋 Limited-Access Active</strong>
+              <strong style="color: #92400e; font-size: 14px;">Limited-Access Active</strong>
               <span style="font-size: 11px; font-weight: 700; background-color: #fef3c7; color: #b45309; padding: 3px 10px; border-radius: 12px;">PENDING VERIFICATION</span>
             </div>
             <p style="margin: 0; font-size: 13px; color: #78350f; line-height: 1.6;">

@@ -72,14 +72,16 @@ export default function Services() {
         </label>
 
         {!isVerified && (
-          <div className="card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb', marginBottom: 20, padding: '14px 18px', borderRadius: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ color: '#d97706', display: 'flex', alignItems: 'center' }}>
-                <ModernIcon name="clock" size={16} color="#d97706" />
+          <div className="notice-card notice-card-amber">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <strong style={{ color: 'var(--amber-text)', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="clock" size={16} color="var(--amber-text)" /> Account Pending Verification · Limited Access Active
+              </strong>
+              <span className="notice-badge notice-badge-amber">
+                LIMITED ACCESS
               </span>
-              <strong style={{ color: '#b45309', fontSize: '0.9rem' }}>Account Pending Verification — Limited Access Active</strong>
             </div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569', lineHeight: 1.5 }}>
+            <p style={{ margin: 0, fontSize: '0.86rem', color: '#475569', lineHeight: 1.5 }}>
               Your account currently allows filing Barangay Justice complaints, reporting infrastructure damages, and tracking existing case progress. Announcements and certified administrative documents require verified resident status.
             </p>
           </div>
@@ -208,6 +210,23 @@ export default function Services() {
                     {post.imageUrl && (
                       <img src={toAssetUrl(post.imageUrl)} alt={post.title} className="announcement-post-image" />
                     )}
+
+                    <div style={{ padding: '12px 2px 14px', borderTop: '1px solid #f1f5f9', marginTop: 10 }}>
+                      <Link
+                        to={`/announcements/${post.id}`}
+                        style={{
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          color: '#2563eb',
+                          textDecoration: 'none',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        Open Bulletin Page →
+                      </Link>
+                    </div>
                   </article>
                 ))}
               </div>

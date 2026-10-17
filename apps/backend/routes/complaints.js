@@ -120,15 +120,21 @@ router.get('/', async (req, res) => {
       SELECT
         COUNT(*) FILTER (WHERE status NOT IN ('Resolved', 'Escalated', 'Closed'))::int AS active,
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE status = 'Resolved')::int AS resolved
+        COUNT(*) FILTER (WHERE status = 'Resolved')::int AS resolved,
+        COUNT(*) FILTER (WHERE mediation_date IS NOT NULL AND status NOT IN ('Resolved', 'Escalated', 'Closed'))::int AS scheduled_hearings
       FROM complaints
     `);
-    const { active, total, resolved } = statRows[0];
+    const { active, total, resolved, scheduled_hearings } = statRows[0];
     const resolutionRate = total ? Math.round((resolved / total) * 100) : 0;
 
     res.json({
       complaints: rows.map(toComplaint),
-      stats: { active, resolutionRate },
+      stats: {
+        active,
+        resolved,
+        resolutionRate,
+        scheduledHearings: scheduled_hearings,
+      },
     });
   } catch (err) {
     console.error(err);

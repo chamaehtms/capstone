@@ -166,12 +166,12 @@ export default function Track() {
                         <ModernIcon name="tool" size={18} color="#0284c7" />
                         <span>Inspection & Work Order Details</span>
                       </div>
-                      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #0284c7', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
+                      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                           <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>
                             {result.category || 'Infrastructure'} Case
                           </strong>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: 12, background: '#e0f2fe', color: '#0369a1' }}>
+                          <span className="notice-badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
                             WORK ORDER
                           </span>
                         </div>
@@ -315,7 +315,7 @@ export default function Track() {
                         <span>Mediation Schedule</span>
                       </div>
                       {result.mediationDate || caseMediation ? (
-                        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderLeft: '4px solid #4f46e5', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
+                        <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: 8, padding: '14px 16px', marginTop: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                             <strong style={{ color: '#1e293b', fontSize: '0.92rem' }}>
                               {result.hearingStage || caseMediation?.hearingStage || '1st Mediation Hearing'}

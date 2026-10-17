@@ -15,6 +15,7 @@ const SubmissionSuccess = lazy(() => import('./pages/SubmissionSuccess.jsx'));
 const Track = lazy(() => import('./pages/Track.jsx'));
 const Profile = lazy(() => import('./pages/Profile.jsx'));
 const Notifications = lazy(() => import('./pages/Notifications.jsx'));
+const AnnouncementDetail = lazy(() => import('./pages/AnnouncementDetail.jsx'));
 
 function ResidentPageLoading() {
   return (
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/track" element={<ProtectedRoute><Track /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/announcements/:id" element={<ProtectedRoute><AnnouncementDetail /></ProtectedRoute>} />
       </Routes>
     </Suspense>
   );

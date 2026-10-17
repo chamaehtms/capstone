@@ -283,7 +283,7 @@ export default function EnrollResident() {
         </section>
 
         {/* Identity Verification Documents & Live Selfie */}
-        <section className={`bg-white rounded-xl shadow-sm p-6 space-y-5 border-l-4 ${rejectedField ? 'border-l-red-500' : 'border-l-blue-600'}`}>
+        <section className={`bg-white rounded-xl shadow-sm p-6 space-y-5 border ${rejectedField ? 'border-red-300 ring-1 ring-red-200' : 'border-slate-200'}`}>
           <div>
             <div className="flex items-center gap-2">
               <AdminIcon name="id-card" size={18} className={rejectedField ? 'text-red-500' : 'text-blue-600'} />

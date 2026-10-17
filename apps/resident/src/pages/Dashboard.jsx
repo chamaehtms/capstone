@@ -10,7 +10,6 @@ export default function Dashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [complaints, setComplaints] = useState([]);
   const [mediations, setMediations] = useState([]);
-  const [lightboxAnnouncement, setLightboxAnnouncement] = useState(null);
 
   useEffect(() => {
     // Validate live account status with backend; kicks user to login if removed
@@ -45,10 +44,12 @@ export default function Dashboard() {
         </p>
 
         {!isVerified && (
-          <div className="card" style={{ borderLeft: '4px solid #f59e0b', background: '#fffbeb', marginBottom: 20, padding: '16px 20px', borderRadius: 10 }}>
+          <div className="notice-card notice-card-amber">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <strong style={{ color: '#b45309', fontSize: '0.95rem' }}>⏳ Account Pending Verification · Limited Access Active</strong>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#fef3c7', color: '#92400e' }}>
+              <strong style={{ color: 'var(--amber-text)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="clock" size={16} color="var(--amber-text)" /> Account Pending Verification · Limited Access Active
+              </strong>
+              <span className="notice-badge notice-badge-amber">
                 LIMITED ACCESS
               </span>
             </div>
@@ -56,10 +57,10 @@ export default function Dashboard() {
               Your resident information could not yet be automatically verified against the Barangay Resident Database. You have <strong>limited access</strong>: you may submit complaints and track their status in real time. General announcements and official certificate issuance will be enabled once your residency is confirmed by barangay officials.
             </p>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 8 }}>
-              <Link to="/file-complaint" style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link to="/file-complaint" style={{ fontSize: '0.85rem', color: 'var(--amber-text)', fontWeight: 700, textDecoration: 'underline' }}>
                 Submit a Complaint / Report →
               </Link>
-              <Link to="/track" style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link to="/track" style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 700, textDecoration: 'underline' }}>
                 Track Your Requests →
               </Link>
             </div>
@@ -67,12 +68,12 @@ export default function Dashboard() {
         )}
 
         {complaintsAgainstMe.length > 0 && (
-          <div className="card" style={{ borderLeft: '4px solid #ef4444', background: '#fef2f2', marginBottom: 20, padding: '16px 20px', borderRadius: 10 }}>
+          <div className="notice-card notice-card-red">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <strong style={{ color: '#b91c1c', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ModernIcon name="warning" size={16} color="#b91c1c" /> Official Notice: Complaint Filed Involving You
+              <strong style={{ color: 'var(--red-text)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="warning" size={16} color="var(--red-text)" /> Official Notice: Complaint Filed Involving You
               </strong>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#fee2e2', color: '#991b1b' }}>
+              <span className="notice-badge notice-badge-red">
                 NOTICE AS RESPONDENT ({complaintsAgainstMe.length})
               </span>
             </div>
@@ -80,10 +81,10 @@ export default function Dashboard() {
               You are named as the respondent in <strong>Case #{complaintsAgainstMe[0].caseRef}</strong> ({complaintsAgainstMe[0].category || 'Formal Complaint'}). Under Barangay privacy protocols, the complainant&apos;s identity is protected.
             </p>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 8 }}>
-              <Link to={`/track?ref=${encodeURIComponent(complaintsAgainstMe[0].caseRef)}`} style={{ fontSize: '0.85rem', color: '#b91c1c', fontWeight: 700, textDecoration: 'underline' }}>
+              <Link to={`/track?ref=${encodeURIComponent(complaintsAgainstMe[0].caseRef)}`} style={{ fontSize: '0.85rem', color: 'var(--red-text)', fontWeight: 700, textDecoration: 'underline' }}>
                 View Case Details →
               </Link>
-              <Link to="/profile" style={{ fontSize: '0.85rem', color: '#64748b', textDecoration: 'underline' }}>
+              <Link to="/profile" style={{ fontSize: '0.85rem', color: 'var(--muted)', textDecoration: 'underline' }}>
                 View All Notices in Profile ({complaintsAgainstMe.length})
               </Link>
             </div>
@@ -91,35 +92,18 @@ export default function Dashboard() {
         )}
 
         {mediations.length > 0 && (
-          <div className="card" style={{ borderLeft: '4px solid #6366f1', background: '#f5f3ff', marginBottom: 24, padding: '16px 20px', borderRadius: 10 }}>
+          <div className="notice-card notice-card-indigo">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-              <strong style={{ color: '#4338ca', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <ModernIcon name="scale" size={16} color="#4338ca" /> Official Mediation Hearing Scheduled
+              <strong style={{ color: 'var(--indigo-text)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <ModernIcon name="scale" size={16} color="var(--indigo-text)" /> Official Mediation Hearing Scheduled
               </strong>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {mediations[0].mediationStatus && (
-                  <span style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '3px 9px',
-                    borderRadius: 12,
-                    background: mediations[0].mediationStatus === 'Settled' ? '#dcfce7' :
-                                mediations[0].mediationStatus === 'Cancelled' ? '#fee2e2' :
-                                mediations[0].mediationStatus === 'Ongoing' ? '#fef3c7' :
-                                mediations[0].mediationStatus === 'Rescheduled' ? '#ffedd5' :
-                                mediations[0].mediationStatus === 'Unsettled' ? '#f1f5f9' : '#e0e7ff',
-                    color: mediations[0].mediationStatus === 'Settled' ? '#15803d' :
-                           mediations[0].mediationStatus === 'Cancelled' ? '#b91c1c' :
-                           mediations[0].mediationStatus === 'Ongoing' ? '#b45309' :
-                           mediations[0].mediationStatus === 'Rescheduled' ? '#c2410c' :
-                           mediations[0].mediationStatus === 'Unsettled' ? '#475569' : '#4338ca',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.02em',
-                  }}>
+                  <span className="notice-badge notice-badge-indigo">
                     {mediations[0].mediationStatus}
                   </span>
                 )}
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 9px', borderRadius: 12, background: '#e0f2fe', color: '#0369a1' }}>
+                <span className="notice-badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
                   ACTION REQUIRED
                 </span>
               </div>
@@ -157,58 +141,179 @@ export default function Dashboard() {
         )}
 
         <div className="section-title">
-          <h3>Quick Actions</h3>
-          <span className="pill-muted">{isVerified ? 'Available Actions' : 'Complaints & Tracking'}</span>
+          <h3>Services & Dispatch</h3>
+          <span className="notice-badge" style={{ background: 'var(--gray-bg)', color: 'var(--gray-text)' }}>
+            {isVerified ? 'Full Access' : 'Limited Access'}
+          </span>
         </div>
 
-        <div className="quick-actions-grid">
-          <div className="card quick-action-card" style={{ margin: 0 }}>
-            <div className="icon-badge">
-              <ModernIcon name="megaphone" size={20} color="#0284c7" />
+        <div className="quick-actions-grid" style={{ gridTemplateColumns: 'minmax(0, 1.35fr) minmax(0, 1fr)', maxWidth: '100%' }}>
+          {/* Primary Action Card */}
+          <div className="card quick-action-card" style={{ maxWidth: '100%', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div className="icon-badge" style={{ background: 'var(--sky)', color: 'var(--navy)', marginBottom: 0 }}>
+                <ModernIcon name="megaphone" size={22} color="var(--navy)" />
+              </div>
+              <span className="notice-badge" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
+                PRIMARY ACTION
+              </span>
             </div>
-            <h4>File Complaint</h4>
-            <p>Report neighborhood issues, safety concerns, or infrastructure damages.</p>
-            <Link to="/file-complaint"><button className="btn btn-sky">File Report →</button></Link>
+            <h4 style={{ fontSize: '1.2rem', marginBottom: 6 }}>File a Formal Complaint / Report</h4>
+            <p style={{ fontSize: '0.92rem', color: 'var(--muted)', marginBottom: 20 }}>
+              Initiate barangay dispute proceedings under Katarungang Pambarangay, report safety concerns, or request local peace officer intervention.
+            </p>
+            <Link to="/file-complaint">
+              <button className="btn btn-navy" style={{ width: '100%', padding: '12px 20px' }}>
+                Open Filing Form →
+              </button>
+            </Link>
           </div>
 
-          <div className="card quick-action-card" style={{ margin: 0 }}>
-            <div className="icon-badge">
-              <ModernIcon name="chart" size={20} color="#1d4ed8" />
+          {/* Secondary Action Card */}
+          <div className="card quick-action-card" style={{ maxWidth: '100%', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <div className="icon-badge" style={{ background: 'var(--gray-bg)', color: 'var(--muted)', marginBottom: 0 }}>
+                <ModernIcon name="chart" size={20} color="var(--muted)" />
+              </div>
+              <span className="notice-badge" style={{ background: 'var(--gray-bg)', color: 'var(--gray-text)' }}>
+                TRACKING
+              </span>
             </div>
-            <h4>Track Complaints</h4>
-            <p>Monitor real-time progress, hearings, and status of your filed reports.</p>
-            <Link to="/track"><button className="btn btn-navy">Track Status →</button></Link>
+            <h4 style={{ fontSize: '1.05rem', marginBottom: 6 }}>Track Filed Reports & Hearings</h4>
+            <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginBottom: 20 }}>
+              Check reference IDs, summons updates, and schedule notifications.
+            </p>
+            <Link to="/track">
+              <button className="btn btn-outline" style={{ width: '100%', padding: '11px 18px' }}>
+                Lookup Case Status →
+              </button>
+            </Link>
           </div>
         </div>
 
         {isVerified && (
           <>
             <div className="section-title">
-              <h3>Announcements</h3>
+              <h3>Community Bulletins &amp; Announcements</h3>
             </div>
-            {announcements.length === 0 && <p style={{ color: 'var(--muted)' }}>No announcements yet.</p>}
-            {announcements.map((a) => (
-              <div className="announcement-banner" style={{ marginBottom: 16 }} key={a.id}>
-                <div
-                  className="cover"
-                  onClick={a.imageUrl ? () => setLightboxAnnouncement(a) : undefined}
-                  style={a.imageUrl ? {
-                    backgroundColor: '#0f172a',
-                    backgroundImage: `url(${toAssetUrl(a.imageUrl)})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    cursor: 'zoom-in',
-                  } : undefined}
-                >{a.tag || ''}</div>
-                <div className="body">
-                  <h4>{a.title}</h4>
-                  <p>{a.body}</p>
-                  <div className="date-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <ModernIcon name="calendar" size={13} color="#64748b" /> {a.eventDate || ''}
-                  </div>
-                </div>
+            {announcements.length === 0 && (
+              <div className="card" style={{ padding: '24px', color: 'var(--muted)', textAlign: 'center' }}>
+                No active announcements posted yet.
               </div>
-            ))}
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: '20px', marginBottom: 28 }}>
+              {announcements.map((a) => (
+                <Link
+                  key={a.id}
+                  to={`/announcements/${a.id}`}
+                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}
+                >
+                  <article
+                    className="card announcement-civic-card"
+                    style={{
+                      width: '100%',
+                      padding: 0,
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      cursor: 'pointer',
+                      transition: 'transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease',
+                      border: '1px solid var(--border)',
+                      background: 'var(--card)',
+                    }}
+                  >
+                    {a.imageUrl ? (
+                      <div
+                        style={{
+                          height: 180,
+                          width: '100%',
+                          backgroundImage: `url(${toAssetUrl(a.imageUrl)})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundColor: '#0f172a',
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          height: 90,
+                          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '0 20px',
+                          color: '#94a3b8',
+                        }}
+                      >
+                        <ModernIcon name="megaphone" size={24} color="#38bdf8" />
+                      </div>
+                    )}
+                    <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8 }}>
+                        <span
+                          style={{
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            color: '#0284c7',
+                            background: '#e0f2fe',
+                            padding: '3px 9px',
+                            borderRadius: 'var(--radius-pill)',
+                            border: '1px solid #bae6fd',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          {a.tag || 'Official Bulletin'}
+                        </span>
+                        {a.eventDate && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#64748b' }}>
+                            <ModernIcon name="calendar" size={13} color="#64748b" /> {a.eventDate}
+                          </div>
+                        )}
+                      </div>
+                      <h4
+                        style={{
+                          fontSize: '1.08rem',
+                          fontWeight: 700,
+                          color: 'var(--navy)',
+                          margin: '0 0 8px',
+                          lineHeight: 1.35,
+                        }}
+                      >
+                        {a.title}
+                      </h4>
+                      <p
+                        style={{
+                          fontSize: '0.88rem',
+                          color: 'var(--muted)',
+                          lineHeight: 1.55,
+                          margin: '0 0 16px',
+                          flex: 1,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {a.body}
+                      </p>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          fontSize: '0.85rem',
+                          fontWeight: 700,
+                          color: '#2563eb',
+                          marginTop: 'auto',
+                        }}
+                      >
+                        Read Full Bulletin →
+                      </div>
+                    </div>
+                  </article>
+                </Link>
+              ))}
+            </div>
           </>
         )}
 
@@ -239,27 +344,6 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
-
-      {isVerified && lightboxAnnouncement && (
-        <div className="lightbox-overlay" onClick={() => setLightboxAnnouncement(null)}>
-          <button className="lightbox-close" onClick={() => setLightboxAnnouncement(null)} aria-label="Close">
-            <ModernIcon name="close" size={16} />
-          </button>
-          <div className="lightbox-card" onClick={(e) => e.stopPropagation()}>
-            <img src={toAssetUrl(lightboxAnnouncement.imageUrl)} alt="" className="lightbox-img" />
-            <div className="lightbox-info">
-              {lightboxAnnouncement.tag && <span className="pill-muted" style={{ marginBottom: 8, display: 'inline-block' }}>{lightboxAnnouncement.tag}</span>}
-              <h4>{lightboxAnnouncement.title}</h4>
-              {lightboxAnnouncement.body && <p>{lightboxAnnouncement.body}</p>}
-              {lightboxAnnouncement.eventDate && (
-                <div className="date-tag" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                  <ModernIcon name="calendar" size={13} color="#64748b" /> {lightboxAnnouncement.eventDate}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

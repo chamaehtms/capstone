@@ -255,9 +255,24 @@ export default function ComplaintsRecord() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <StatCard label="Active Cases" value={stats.active} accent="green" />
-        <StatCard label="Hearings This Week" value={8} accent="orange" sub="Next hearing: tomorrow, 10:00 AM" />
-        <StatCard label="Resolution Rate" value={`${stats.resolutionRate}%`} accent="blue" sub="Target 90%" />
+        <StatCard
+          label="Active Blotters"
+          value={<span className="font-mono">{stats.active || 0}</span>}
+          accent="green"
+          sub="Disputes currently in conciliation or review"
+        />
+        <StatCard
+          label="Scheduled Hearings"
+          value={<span className="font-mono">{stats.scheduledHearings || 0}</span>}
+          accent="orange"
+          sub="Pending mediation sessions assigned"
+        />
+        <StatCard
+          label="Dispute Resolution Rate"
+          value={<span className="font-mono">{stats.resolutionRate || 0}%</span>}
+          accent="blue"
+          sub={`${stats.resolved || 0} disputes successfully settled`}
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
