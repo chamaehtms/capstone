@@ -1,23 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../api';
 
+const DRAFT_STORAGE_KEY = 'bp_escalation_compose_draft';
+
 export default function EscalationCompose() {
   const [searchParams] = useSearchParams();
-  const [form, setForm] = useState({
-    category: searchParams.get('category') || '',
-    reason: 'Formal Escalation',
-    toDepartment: '',
-    toRecipient: '',
-    subject: searchParams.get('category') ? `Formal Escalation - ${searchParams.get('category')}` : 'Formal Escalation Letter',
-    body: '',
-    caseRef: searchParams.get('caseRef') || '',
+  const caseRefParam = searchParams.get('caseRef') || '';
+  const categoryParam = searchParams.get('category') || '';
+
+  const [form, setForm] = useState(() => {
+    // Attempt restoring saved draft from localStorage
+    try {
+      const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          return {
+            category: parsed.category || categoryParam || '',
+            reason: parsed.reason || 'Formal Escalation',
+            toDepartment: parsed.toDepartment || '',
+            toRecipient: parsed.toRecipient || '',
+            subject: parsed.subject || (categoryParam ? `Formal Escalation - ${categoryParam}` : 'Formal Escalation Letter'),
+            body: parsed.body || '',
+            caseRef: parsed.caseRef || caseRefParam || '',
+          };
+        }
+      }
+    } catch {
+      // Ignore parse failure
+    }
+
+    return {
+      category: categoryParam,
+      reason: 'Formal Escalation',
+      toDepartment: '',
+      toRecipient: '',
+      subject: categoryParam ? `Formal Escalation - ${categoryParam}` : 'Formal Escalation Letter',
+      body: '',
+      caseRef: caseRefParam,
+    };
   });
+
   const [error, setError] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const update = (field) => (e) => setForm({ ...form, [field]: e.target.value });
+
+  const handleSaveDraft = () => {
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(form));
+      setToastMessage('Draft letter saved successfully.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch {
+      setError('Unable to save draft in browser storage.');
+    }
+  };
+
+  const handleClearDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      setForm({
+        category: categoryParam,
+        reason: 'Formal Escalation',
+        toDepartment: '',
+        toRecipient: '',
+        subject: categoryParam ? `Formal Escalation - ${categoryParam}` : 'Formal Escalation Letter',
+        body: '',
+        caseRef: caseRefParam,
+      });
+      setToastMessage('Draft discarded.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch {
+      // Ignore
+    }
+  };
 
   const handleIssue = async (e) => {
     e.preventDefault();
@@ -25,6 +84,7 @@ export default function EscalationCompose() {
     setLoading(true);
     try {
       const { data } = await api.post('/escalations', form);
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
       navigate(`/escalation/${data.id}/issued`, { state: { escalation: data } });
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to issue letter.');
@@ -116,20 +176,43 @@ export default function EscalationCompose() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <div className="flex justify-end gap-3 pt-2">
+        {toastMessage && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-sm font-semibold flex items-center justify-between animate-in fade-in">
+            <span>✓ {toastMessage}</span>
+            <button
+              type="button"
+              onClick={() => setToastMessage('')}
+              className="text-emerald-600 hover:text-emerald-900 font-bold ml-2 text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-2">
           <button
             type="button"
-            className="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50"
+            onClick={handleClearDraft}
+            className="text-xs text-slate-400 hover:text-rose-600 font-medium transition-colors"
           >
-            Save Draft
+            Discard Draft
           </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-white text-sm font-medium disabled:opacity-60"
-          >
-            {loading ? 'Issuing…' : 'Issue Letter'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              className="px-4 py-2.5 rounded-lg border border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              Save Draft
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-5 py-2.5 rounded-lg bg-navy-900 hover:bg-navy-800 text-white text-sm font-semibold disabled:opacity-60 transition-colors shadow-xs"
+            >
+              {loading ? 'Issuing…' : 'Issue Letter'}
+            </button>
+          </div>
         </div>
       </form>
     </div>
