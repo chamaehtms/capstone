@@ -37,7 +37,7 @@ export default function Landing() {
 
       <main className="landing-split-container">
         {/* Left Column: Civic Hero Statement */}
-        <section className="landing-lead">
+        <section className="landing-lead">  
           <h1>Civic resolution & resident services, direct to your barangay.</h1>
           <p className="landing-subtext">
             Submit formal disputes under Katarungang Pambarangay, track case hearings in real-time,

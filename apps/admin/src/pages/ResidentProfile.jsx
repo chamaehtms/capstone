@@ -32,7 +32,6 @@ import {
 } from 'lucide-react';
 import api, { toAssetUrl } from '../api';
 import AdminIcon from '../components/AdminIcons.jsx';
-import AdminPurokMap from '../components/AdminPurokMap.jsx';
 
 function formatDate(value) {
   if (!value) return null;
@@ -566,26 +565,8 @@ export default function ResidentProfile() {
               )}
             </div>
 
-            {/* Right 5 Columns: Map + Zone + Compliance Card */}
+            {/* Right 5 Columns: Zone + Compliance Card */}
             <div className="lg:col-span-5 space-y-6">
-              
-              {/* Interactive Dynamic OpenStreetMap / Leaflet of Poblacion Cordova */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-                    <MapPin className="w-4 h-4 text-emerald-600" />
-                    <span>Resident Purok / Zone Map</span>
-                  </h3>
-                  <span className="text-[11px] font-bold text-slate-500">
-                    Poblacion, Cordova
-                  </span>
-                </div>
-                <AdminPurokMap
-                  zoneName={resident.zone}
-                  residentName={resident.fullName}
-                  height="260px"
-                />
-              </div>
 
               {/* Residential Zone Card */}
               <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">

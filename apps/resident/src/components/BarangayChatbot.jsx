@@ -31,6 +31,7 @@ export default function BarangayChatbot() {
   const [sendingAdminMsg, setSendingAdminMsg] = useState(false);
   const [adminSentSuccess, setAdminSentSuccess] = useState(false);
   const [unreadAdminCount, setUnreadAdminCount] = useState(0);
+  const [language, setLanguage] = useState('en'); // 'en' | 'fil' | 'ceb'
 
   const messagesEndRef = useRef(null);
   const adminMessagesEndRef = useRef(null);
@@ -190,6 +191,11 @@ export default function BarangayChatbot() {
         }),
       });
 
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Server returned ${res.status}`);
+      }
+
       const data = await res.json();
       setIsTyping(false);
 
@@ -205,6 +211,7 @@ export default function BarangayChatbot() {
 
       setAiMessages((prev) => [...prev, aiMsg]);
     } catch (err) {
+      console.error('[BarangayChatbot] Error querying AI assistant:', err);
       setIsTyping(false);
       setAiMessages((prev) => [
         ...prev,
@@ -565,9 +572,31 @@ export default function BarangayChatbot() {
               </button>
             </div>
 
-            <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0284c7', flexShrink: 0 }}>
-              Poblacion, Cordova
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <label htmlFor="chatbot-lang-select" style={{ fontSize: '0.68rem', fontWeight: 600, color: '#64748b' }}>
+                Lang:
+              </label>
+              <select
+                id="chatbot-lang-select"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  color: '#1e3a8a',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '3px 6px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                <option value="en">English</option>
+                <option value="fil">Tagalog</option>
+                <option value="ceb">Bisaya</option>
+              </select>
+            </div>
           </div>
 
           {/* TAB 1: AI ASSISTANT CHAT */}
