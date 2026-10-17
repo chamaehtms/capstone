@@ -133,14 +133,18 @@ export default function Login() {
         )}
 
         <form onSubmit={handleSubmit} autoComplete="off">
+          {/* Hidden inputs to prevent aggressive browser autofill */}
+          <input type="text" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="off" />
+          <input type="password" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="off" />
+
           <div className="field">
             <label className="field-label" style={{ margin: 0, textAlign: 'left' }}>Email</label>
             <div className="input-icon">
               <ModernIcon name="mail" size={18} className="icon" />
               <input
                 type="email"
-                name="resident_auth_email"
-                autoComplete="new-password"
+                name="user_login_email_noautofill"
+                autoComplete="one-time-code"
                 value={identifier}
                 onChange={e => setIdentifier(e.target.value)}
                 placeholder="Enter your email"
@@ -157,7 +161,7 @@ export default function Login() {
               <ModernIcon name="key" size={18} className="icon" />
               <input
                 type={showPassword ? 'text' : 'password'}
-                name="resident_auth_password"
+                name="user_login_password_noautofill"
                 autoComplete="new-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}

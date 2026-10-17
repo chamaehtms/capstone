@@ -515,7 +515,7 @@ async function sendResidentPendingVerificationEmail({
     + `You can now sign in to the Residents Portal and submit community complaints, incident reports, and view barangay advisories.\n\n`
     + `Sign in at:\n`
     + `${targetLoginUrl}\n\n`
-    + `Our barangay administrators will review your submitted identification documents. Once verified, full certification and clearance services will become available.\n\n`
+    + `Our barangay administrators will review your submitted identification documents. Once verified, official certification and community services will become available.\n\n`
     + `Barangay Poblacion Administration\n`
     + `Office of the Punong Barangay`;
 
@@ -592,7 +592,7 @@ async function sendResidentPendingVerificationEmail({
           </div>
 
           <div style="background-color: #f1f5f9; border-radius: 8px; padding: 14px 16px; margin-bottom: 24px; font-size: 12px; color: #64748b; line-height: 1.6;">
-            <strong>ℹ️ What happens next?</strong> Barangay administrators will review your submitted valid ID and selfie. Once verified, official clearance and certificate services will be unlocked.
+            <strong>ℹ️ What happens next?</strong> Barangay administrators will review your submitted valid ID and selfie. Once verified, official community certificates and services will be unlocked.
           </div>
 
           <p style="margin: 0; font-size: 13px; color: #334155; line-height: 1.6;">

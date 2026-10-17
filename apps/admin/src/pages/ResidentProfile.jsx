@@ -63,7 +63,6 @@ export default function ResidentProfile() {
   const [activeTab, setActiveTab] = useState('Personal Info');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMediationHistoryModalOpen, setIsMediationHistoryModalOpen] = useState(false);
-  const [isRenewalModalOpen, setIsRenewalModalOpen] = useState(false);
   const [isAddFamilyModalOpen, setIsAddFamilyModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -76,10 +75,6 @@ export default function ResidentProfile() {
     status: 'Pending'
   });
   const [savingMember, setSavingMember] = useState(false);
-
-  // Clearance status local toggle
-  const [clearanceStatus, setClearanceStatus] = useState('EXPIRED');
-  const [clearanceExpiry, setClearanceExpiry] = useState('Oct 12, 2025');
 
   // Edit profile form state
   const [purokOptions, setPurokOptions] = useState([]);
@@ -198,13 +193,6 @@ export default function ResidentProfile() {
     }
   };
 
-  const handleClearanceRenewal = () => {
-    setClearanceStatus('VALID');
-    setClearanceExpiry('Oct 17, 2027');
-    setIsRenewalModalOpen(false);
-    showNotification('Barangay Clearance renewal request approved & issued.');
-  };
-
   const handleAddFamilyMember = async (e) => {
     e.preventDefault();
     if (!resident || !familyForm.name.trim()) return;
@@ -266,12 +254,6 @@ export default function ResidentProfile() {
   const precinct = resident.zone
     ? `PRECINCT-${resident.zone.replace(/\D/g, '') || '0432-A'}`
     : 'PRECINCT-0432-A';
-
-  const documents = [
-    { name: 'Barangay Resident ID Card', idNum: `BID-${resident.id?.slice(0, 8) || 'POB'}`, status: resident.status === 'Verified' ? 'VALID' : 'PENDING', expiry: 'Perpetual' },
-    { name: 'Barangay Tax Clearance (Cedula)', idNum: 'CCI-POB-2024-91', status: clearanceStatus, expiry: clearanceExpiry },
-    { name: 'COMELEC Voter Certification', idNum: voterRegNo, status: 'VALID', expiry: 'Active List' }
-  ];
 
   return (
     <div className="min-h-screen bg-[#F4F6F9] text-slate-800 font-sans pb-16 -mt-2 sm:-mt-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-8 pt-4 antialiased selection:bg-slate-200">
@@ -863,46 +845,6 @@ export default function ResidentProfile() {
                 className="px-4 py-2 bg-[#0A1A2F] text-white text-xs font-bold rounded-lg hover:bg-slate-900"
               >
                 Close Ledger
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 3: BARANGAY CLEARANCE RENEWAL */}
-      {isRenewalModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 p-6 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
-              <h3 className="text-base font-extrabold text-slate-900">Renew Barangay Clearance</h3>
-              <button onClick={() => setIsRenewalModalOpen(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs text-slate-600">
-              <p>
-                You are initiating renewal for <strong>{resident.fullName}</strong> ({resident.zone || 'Barangay Poblacion'}).
-              </p>
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1 text-[11px]">
-                <p>• Clearance Type: <strong>Barangay Multi-Purpose Clearance</strong></p>
-                <p>• Assessment Fee: <strong>₱ 50.00 {resident.age >= 60 ? '(Senior Citizen Discount Applied)' : ''}</strong></p>
-                <p>• Verified Status: <strong>No Pending Criminal Summons</strong></p>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6 pt-3 border-t border-slate-100">
-              <button
-                onClick={() => setIsRenewalModalOpen(false)}
-                className="px-3 py-2 border border-slate-200 text-xs font-bold rounded-lg hover:bg-slate-50 text-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleClearanceRenewal}
-                className="px-4 py-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-xs font-bold rounded-lg"
-              >
-                Confirm & Issue Clearance
               </button>
             </div>
           </div>

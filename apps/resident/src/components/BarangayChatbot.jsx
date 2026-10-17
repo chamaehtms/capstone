@@ -58,7 +58,7 @@ export default function BarangayChatbot() {
   const DEFAULT_GREETING = {
     id: 'welcome-1',
     sender: 'ai',
-    text: 'Good day. I am the official Barangay AI Assistant for Poblacion, Cordova. I can assist you with barangay clearances, complaint tracking, community announcements, and official office procedures. How may I help you today?',
+    text: 'Good day. I am the official Barangay AI Assistant for Poblacion, Cordova. I can assist you with certifications, complaint tracking, community announcements, and official office procedures. How may I help you today?',
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   };
 
@@ -291,7 +291,7 @@ export default function BarangayChatbot() {
   // Quick Action Prompts
   const QUICK_PROMPTS = [
     { label: 'Check My Complaint Status', query: 'How is my complaint going?' },
-    { label: 'Barangay Clearance Info', query: 'What are the requirements for Barangay Clearance?' },
+    { label: 'Barangay Certificate Info', query: 'What are the requirements for Barangay Certificates?' },
     { label: 'Office Hours & Officials', query: 'What are the office hours and officials of Barangay Poblacion?' },
     { label: 'Curfew & Noise Rules', query: 'What are the rules on curfew and noise regulations?' },
     {
@@ -891,7 +891,7 @@ export default function BarangayChatbot() {
               >
                 <input
                   type="text"
-                  placeholder="Ask about barangay services, clearance, complaints..."
+                  placeholder="Ask about barangay services, certificates, complaints..."
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   style={{

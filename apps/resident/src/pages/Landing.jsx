@@ -106,8 +106,8 @@ export default function Landing() {
                 <ModernIcon name="document" size={20} color="#93c5fd" />
               </div>
               <div className="tile-text">
-                <strong>Barangay Clearance & Certs</strong>
-                <p>Request proof of residency, indigency, and business clearances.</p>
+                <strong>Barangay Certificates</strong>
+                <p>Request proof of residency, indigency, and official community certifications.</p>
               </div>
               <span className="tile-arrow">→</span>
             </Link>

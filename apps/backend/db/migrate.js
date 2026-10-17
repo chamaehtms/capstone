@@ -481,25 +481,25 @@ async function run() {
   console.log('Seeding official Barangay Poblacion chatbot knowledge base...');
   const starterKnowledge = [
     {
-      id: 'kb-clearance',
-      category: 'clearance',
-      title: 'Barangay Clearance Requirements & Procedures',
-      keywords: ['clearance', 'certificate of residency', 'requirements', 'how to get clearance', 'cedula', 'fees', 'cost'],
-      answerEn: `To obtain an official Barangay Clearance in Poblacion, Cordova:
+      id: 'kb-residency-certificate',
+      category: 'certificates',
+      title: 'Certificate of Residency Requirements & Procedures',
+      keywords: ['certificate of residency', 'residency certificate', 'requirements', 'how to get certificate', 'cedula', 'fees', 'cost'],
+      answerEn: `To obtain an official Certificate of Residency in Poblacion, Cordova:
 1. Requirements:
    • Valid Government-issued ID (e.g., PhilSys National ID, Voter's ID, Driver's License, Postal ID).
    • Proof of residency in Barangay Poblacion (utility bill or verification from your assigned Purok Leader).
    • Community Tax Certificate (Cedula) for the current calendar year.
 2. Fee: PHP 50.00 (Standard administrative fee). Under RA 11261 (First Time Jobseekers Assistance Act), issuance is completely FREE for first-time job applicants with a valid barangay certification.
 3. Office Location & Hours: Barangay Poblacion Hall Front Desk, Monday to Friday from 8:00 AM to 5:00 PM. Same-day release upon document validation.`,
-      answerFil: `Para sa opisyal na Barangay Clearance sa Poblacion, Cordova:
+      answerFil: `Para sa opisyal na Certificate of Residency sa Poblacion, Cordova:
 1. Mga Dokumento:
    • Balidong Government-issued ID (National ID, Voter's ID, Postal ID).
    • Katibayan ng paninirahan sa Poblacion (utility bill o kumpirmasyon mula sa Purok Leader).
    • Sedula (Community Tax Certificate) para sa kasalukuyang taon.
 2. Bayad: PHP 50.00. Libre ito para sa first-time jobseekers sa ilalim ng RA 11261.
 3. Oras at Lokasyon: Barangay Poblacion Hall Front Desk, Lunes hanggang Biyernes, 8:00 AM hanggang 5:00 PM.`,
-      answerCeb: `Aron mokuha og opisyal nga Barangay Clearance sa Poblacion, Cordova:
+      answerCeb: `Aron mokuha og opisyal nga Certificate of Residency sa Poblacion, Cordova:
 1. Mga Kinahanglanon:
    • Balidong Government ID (National ID, Voter's ID, Postal ID).
    • Pamatuod sa pagpuyo sa Poblacion (utility bill o sertipikasyon gikan sa Purok Leader).
@@ -615,25 +615,25 @@ async function run() {
       id: 'kb-indigency-permits',
       category: 'certificates',
       title: 'Certificate of Indigency, Barangay Permits & Financial Aid',
-      keywords: ['indigency', 'certificate of indigency', 'permit', 'business clearance', 'financial aid', 'assistance', 'dswd', 'scholarship', 'medical'],
+      keywords: ['indigency', 'certificate of indigency', 'permit', 'business permit', 'financial aid', 'assistance', 'dswd', 'scholarship', 'medical'],
       answerEn: `Barangay Certificates & Indigency Issuance:
 1. Certificate of Indigency:
    • Requirement: Valid government ID, verification from your Purok Leader certifying bona fide residency of at least 6 months, and stated assistance purpose (Medical, Hospitalization, Public Attorney's Office, Scholarship, or DSWD).
    • Fee: Completely FREE of charge.
-2. Barangay Business Clearance:
+2. Barangay Business Permit / Certification:
    • Requirement: DTI / SEC Registration, Lease Contract or Proof of Property Ownership, Zoning verification.
    • Processing: 1 to 2 business days at the Barangay Poblacion Hall Licensing Section.`,
       answerFil: `Sertipiko ng Indigency at Barangay Permits:
 1. Certificate of Indigency:
    • Mga Kailangan: Valid ID, kumpirmasyon mula sa Purok Leader (paninirahan ng 6 na buwan pataas), at layunin (Medical, Hospitalization, Scholarship, o DSWD).
    • Bayad: Libre (Walang bayad).
-2. Business Clearance:
+2. Business Permit / Sertipikasyon:
    • Mga Kailangan: DTI/SEC registration, kontrata sa upa, at zoning compliance.`,
       answerCeb: `Sertipiko sa Indigency ug Barangay Permits:
 1. Certificate of Indigency:
    • Mga Kinahanglanon: Balidong ID, kumpirmasyon sa Purok Leader (nagpuyo kapin sa 6 ka bulan), ug katuyoan (Medical, Hospitalization, Scholarship, o DSWD).
    • Bayad: Libre (Walay bayad).
-2. Barangay Business Clearance:
+2. Barangay Business Permit / Sertipikasyon:
    • Mga Kinahanglanon: DTI/SEC registration, kontrata sa abang, ug zoning compliance.`
     }
   ];

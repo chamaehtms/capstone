@@ -64,13 +64,13 @@ const SUPPORTED_ID_KEYWORDS = [
   'PHILHEALTH', 'PAG-IBIG', 'HDMF',
   'SENIOR CITIZEN', 'OSCA',
   'PWD', 'PERSONS WITH DISABILITY',
-  'BARANGAY', 'POBLACION', 'CERTIFICATE', 'CLEARANCE',
+  'BARANGAY', 'POBLACION', 'CERTIFICATE',
   'IDENTIFICATION', 'IDENTITY CARD', 'ID CARD', 'GOVERNMENT',
   'EMPLOYEE ID', 'STAFF', 'CIVIC LEDGER', 'OFFICIAL', 'MUNICIPALITY'
 ];
 
 // Specific, high-confidence keywords that indicate an actual physical government/civic ID card in a selfie.
-// Excludes generic conversational words or room text like 'STAFF', 'POBLACION', 'CLEARANCE', 'OFFICIAL', 'GOVERNMENT'.
+// Excludes generic conversational words or room text like 'STAFF', 'POBLACION', 'OFFICIAL', 'GOVERNMENT'.
 const CARD_ANCHOR_KEYWORDS = [
   'PHILSYS', 'PHILID', 'PHILIPPINE IDENTIFICATION', 'NATIONAL ID',
   'DRIVER', 'LICENSE', 'LAND TRANSPORTATION',

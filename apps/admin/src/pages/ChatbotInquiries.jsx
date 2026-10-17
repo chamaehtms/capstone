@@ -19,7 +19,7 @@ export default function ChatbotInquiries() {
   const [kbMode, setKbMode] = useState('add'); // 'add' | 'edit'
   const [kbForm, setKbForm] = useState({
     id: '',
-    category: 'clearance',
+    category: 'certificates',
     title: '',
     keywords: '',
     answerEn: '',
@@ -141,7 +141,7 @@ export default function ChatbotInquiries() {
     setKbMode('add');
     setKbForm({
       id: '',
-      category: 'clearance',
+      category: 'certificates',
       title: initialTitle,
       keywords: '',
       answerEn: '',
@@ -568,11 +568,10 @@ export default function ChatbotInquiries() {
                     onChange={(e) => setKbForm({ ...kbForm, category: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="clearance">Clearances & Permits</option>
+                    <option value="certificates">Certificates & Permits</option>
                     <option value="complaints">Complaints & Mediation</option>
                     <option value="officials_hours">Officials & Office Hours</option>
                     <option value="waste_peace_order">Waste & Peace/Order</option>
-                    <option value="certificates">Certificates & Indigency</option>
                     <option value="general_faq">General FAQs</option>
                   </select>
                 </div>
@@ -601,7 +600,7 @@ export default function ChatbotInquiries() {
                   required
                   value={kbForm.title}
                   onChange={(e) => setKbForm({ ...kbForm, title: e.target.value })}
-                  placeholder="e.g. Barangay Clearance Requirements"
+                  placeholder="e.g. Certificate of Residency Requirements"
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -614,7 +613,7 @@ export default function ChatbotInquiries() {
                   type="text"
                   value={kbForm.keywords}
                   onChange={(e) => setKbForm({ ...kbForm, keywords: e.target.value })}
-                  placeholder="clearance, certificate, cedula, fees, requirements"
+                  placeholder="certificate, residency, indigency, cedula, fees, requirements"
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

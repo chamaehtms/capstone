@@ -210,11 +210,16 @@ export default function FileComplaint() {
 
               {error && <div className="error-msg">{error}</div>}
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} autoComplete="off">
+                {/* Hidden input to prevent aggressive browser autofill */}
+                <input type="text" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" autoComplete="off" />
+
                 <div className="field-row">
                   <div className="field">
                     <label className="field-label">Barangay Case No.</label>
                     <input
+                      name="complaint_case_no"
+                      autoComplete="off"
                       value={form.barangayCaseNo}
                       onChange={(e) => update('barangayCaseNo', e.target.value)}
                       placeholder="Enter case number (if known)"
@@ -223,6 +228,8 @@ export default function FileComplaint() {
                   <div className="field">
                     <label className="field-label">For</label>
                     <input
+                      name="complaint_nature_for"
+                      autoComplete="off"
                       value={form.nature}
                       onChange={(e) => update('nature', e.target.value)}
                       placeholder="Nature of complaint (e.g., Unpaid Debt)"
@@ -234,6 +241,8 @@ export default function FileComplaint() {
                 <div className="field">
                   <label className="field-label">Complainant/s</label>
                   <input
+                    name="complaint_complainant_name"
+                    autoComplete="off"
                     value={form.complainantName}
                     onChange={(e) => update('complainantName', e.target.value)}
                     placeholder="Full Name(s) of Complainant"
@@ -241,6 +250,8 @@ export default function FileComplaint() {
                     style={{ marginBottom: 10 }}
                   />
                   <input
+                    name="complaint_complainant_address"
+                    autoComplete="off"
                     value={form.complainantAddress}
                     onChange={(e) => update('complainantAddress', e.target.value)}
                     placeholder="Address"
@@ -252,6 +263,8 @@ export default function FileComplaint() {
 
                 <div className="field">
                   <input
+                    name="complaint_respondent_name"
+                    autoComplete="off"
                     value={form.respondentName}
                     onChange={(e) => update('respondentName', e.target.value)}
                     placeholder="Full Name of Respondent"
@@ -263,6 +276,8 @@ export default function FileComplaint() {
                 </p>
                 <div className="field">
                   <textarea
+                    name="complaint_narrative"
+                    autoComplete="off"
                     value={form.narrative}
                     onChange={(e) => update('narrative', e.target.value)}
                     placeholder="Provide a detailed narrative of the incident, including dates, times, and specific actions…"
@@ -275,6 +290,8 @@ export default function FileComplaint() {
                 </p>
                 <div className="field">
                   <textarea
+                    name="complaint_relief_sought"
+                    autoComplete="off"
                     value={form.reliefSought}
                     onChange={(e) => update('reliefSought', e.target.value)}
                     placeholder="What specific action do you want the Barangay to take? (e.g., payment of debt, apology, cease and desist)"
