@@ -229,13 +229,13 @@ router.post('/login', async (req, res) => {
     if (!admin || !verifyPassword(password, admin.password_hash)) {
       attemptRecord.attempts += 1;
 
-      if (attemptRecord.attempts >= 5) {
-        attemptRecord.lockUntil = now + 60 * 1000; // 1 minute lockout
+      if (attemptRecord.attempts >= 10) {
+        attemptRecord.lockUntil = now + 30 * 1000; // 30 seconds lockout
         adminLoginAttempts.set(attemptKey, attemptRecord);
         return res.status(429).json({
-          message: 'Too many failed login attempts (5/5). Your account login is temporarily locked for 1 minute.',
+          message: 'Too many failed login attempts. Your account login is temporarily paused for 30 seconds.',
           locked: true,
-          secondsRemaining: 60,
+          secondsRemaining: 30,
         });
       }
 

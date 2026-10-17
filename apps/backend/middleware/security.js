@@ -89,8 +89,8 @@ function createRateLimiter({
 
     if (record.count > max) {
       record.violations += 1;
-      // Exponential penalty for repeated abusers: 30s, 60s, 300s
-      const penaltySeconds = Math.min(300, 30 * Math.pow(2, record.violations - 1));
+      // Mild penalty for rate limit exceeded: 10s to 30s max
+      const penaltySeconds = Math.min(30, 10 * record.violations);
       record.blockedUntil = now + penaltySeconds * 1000;
 
       console.warn(`[SECURITY DEFENSE] Rate limit reached by IP ${ip} on ${req.method} ${req.originalUrl}. Penalty: ${penaltySeconds}s`);
@@ -106,18 +106,18 @@ function createRateLimiter({
   };
 }
 
-// Stricter limiter for sensitive login and password reset routes: 30 attempts per 15 minutes
+// Auth limiter for login, registration, and password reset routes: 100 attempts per 15 minutes
 const authRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 30,
-  message: 'Too many authentication attempts. Please wait 15 minutes before trying again.',
+  max: 100,
+  message: 'Too many authentication attempts. Please wait a few minutes before trying again.',
   skip: () => false,
 });
 
-// General API limiter: 1500 requests per 15 minutes per IP
+// General API limiter: 5000 requests per 15 minutes per IP
 const generalRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 1500,
+  max: 5000,
   message: 'API rate limit exceeded. Please wait a moment before sending more requests.',
 });
 
