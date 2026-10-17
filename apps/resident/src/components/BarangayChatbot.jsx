@@ -39,13 +39,14 @@ export default function BarangayChatbot() {
 
   // Load message thread from admin if resident is authenticated
   useEffect(() => {
-    if (!isOpen || !token) return;
+    const activeToken = Session.getToken() || localStorage.getItem('bp_token');
+    if (!isOpen || !activeToken) return;
 
     let isMounted = true;
     async function loadAdminMessages() {
       try {
         const res = await fetch('/api/chatbot/messages', {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${activeToken}` },
         });
         if (!res.ok) return;
         const history = await res.json();
@@ -98,9 +99,10 @@ export default function BarangayChatbot() {
     setIsTyping(true);
 
     try {
+      const activeToken = Session.getToken() || localStorage.getItem('bp_token');
       const headers = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      if (activeToken) {
+        headers['Authorization'] = `Bearer ${activeToken}`;
       }
 
       const res = await fetch('/api/chatbot/ask', {
@@ -147,7 +149,8 @@ export default function BarangayChatbot() {
   // Submit direct resident-to-admin message
   const handleSendAdminMessage = async (e) => {
     e?.preventDefault();
-    if (!adminNote.trim() || !token) return;
+    const activeToken = Session.getToken() || localStorage.getItem('bp_token');
+    if (!adminNote.trim() || !activeToken) return;
 
     setSendingAdminMsg(true);
     try {
@@ -155,7 +158,7 @@ export default function BarangayChatbot() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${activeToken}`,
         },
         body: JSON.stringify({
           message: adminNote.trim(),
